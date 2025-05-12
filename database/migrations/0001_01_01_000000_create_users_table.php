@@ -11,12 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('roles', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique();
+            $table->timestamps();
+        });
+
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('fname');
+            $table->string('mname')->nullable();
+            $table->string('lname');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
+            $table->foreignId('role_id')->constrained('roles')->onDelete('no action');
+            $table->string('phone')->nullable();
             $table->string('password');
+            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->string('profile_photo')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

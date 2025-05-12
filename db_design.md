@@ -83,7 +83,7 @@
 - date_of_birth (DATE, NULLABLE)
 - primary_phone (VARCHAR 20, NOT NULL)
 - transaction_phone (VARCHAR 20, NOT NULL)
-- district_id (BIGINT UNSIGNED, NOT NULL)
+- ward_id (BIGINT UNSIGNED, NOT NULL)
 - ranking (ENUM: 'fundi_kuu', 'fundi_msaidizi', NOT NULL)
 - profile_photo (VARCHAR 255, NULLABLE)
 - status (ENUM: 'active', 'inactive', 'pending', DEFAULT 'pending')
