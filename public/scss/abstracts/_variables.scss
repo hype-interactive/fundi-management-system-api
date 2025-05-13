@@ -1,0 +1,42 @@
+//colors
+$color:(
+    // primary:  #2B398E,
+    primary:  #141E61,
+    primary_light:  #1c2a86,
+    primary_200: #e1e3ef,
+    secondary: #a5a5a9,
+    // dark: #1b273d,
+    dark:  #0F044C,
+    light: #EEEEEE,
+    success:#3FAE28,
+    fail:#F9322B,
+    active: #017BFE,
+    warning: #dda80b,
+    );
+
+//font-imports
+@font-face {
+    font-family: 'ubuntu-regular';
+    src: url('../../fonts/Ubuntu-Regular.ttf') format('truetype');
+};
+@font-face {
+    font-family: 'ubuntu-light';
+    src: url('../../fonts/Ubuntu-Light.ttf') format('truetype');
+};
+@font-face {
+    font-family: 'ubuntu-bold';
+    src: url('../../fonts/Ubuntu-Bold.ttf') format('truetype');
+};
+@font-face {
+    font-family: 'ubuntu-semi-bold';
+    src: url('../../fonts/Ubuntu-Medium.ttf') format('truetype');
+};
+
+//font-family
+$font__family: (
+	base:'ubuntu-regular', // font-family(base)
+	light:'ubuntu-light', // font-family(base)
+	bold:'ubuntu-bold', // font-family(base)
+	semi_bold:'ubuntu-semi-bold', // font-family(base)
+);
+

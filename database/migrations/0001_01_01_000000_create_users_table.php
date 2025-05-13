@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -47,6 +48,30 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
+        // Create the role records
+        DB::table('roles')->insert([
+            ['name' => 'root'],
+            ['name' => 'admin'],
+            ['name' => 'operator'],
+        ]);
+
+        // Create the default user
+        DB::table('users')->insert([
+            'fname' => 'System',
+            'mname' => 'Admin',
+            'lname' => 'User',
+            'email' => 'admin@admin.com',
+            'email_verified_at' => now(),
+            'role_id' => 1, // Assuming 'root' role has ID 1
+            'phone' => '1234567890',
+            'password' => bcrypt('Fundi@2025'), // Use bcrypt for password hashing
+            'status' => 'active',
+            'profile_photo' => null,
+            'remember_token' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**

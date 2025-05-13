@@ -1,0 +1,10 @@
+@mixin display-flex ($justify) {
+    display: flex;
+    justify-content: $justify;
+    flex-direction: row;
+}
+
+// Font Family
+@mixin font-family($elem) {
+	font-family: unquote(get-font-family($elem));
+}

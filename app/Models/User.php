@@ -121,4 +121,10 @@ class User extends Authenticatable
     {
         return trim("{$this->fname} {$this->mname} {$this->lname}");
     }
+
+    // Because of the deviation from using the default 'name' as required by the Laravel's default User model, replace the default 'name' with 'full_name' in the User model.
+    public function getNameAttribute()
+    {
+        return $this->full_name;
+    }
 }

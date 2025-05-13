@@ -1,0 +1,14 @@
+body{
+    @include font-family(base);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+
+*:focus{
+    outline: 0px;
+    border: none;
+}
+
