@@ -18,8 +18,14 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'fname',
+        'mname',
+        'lname',
         'email',
+        'phone',
+        'role_id',
+        'status',
+        'profile_photo',
         'password',
     ];
 
@@ -44,5 +50,75 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function districts()
+    {
+        return $this->belongsToMany(District::class, 'operator_districts');
+    }
+
+    public function siteVisits()
+    {
+        return $this->hasMany(SiteVisit::class, 'operator_id');
+    }
+
+    public function approvedSiteVisits()
+    {
+        return $this->hasMany(SiteVisit::class, 'approved_by');
+    }
+
+    public function createdFundis()
+    {
+        return $this->hasMany(Fundi::class, 'created_by');
+    }
+
+    public function approvedFundis()
+    {
+        return $this->hasMany(Fundi::class, 'approved_by');
+    }
+
+    public function budgetAllocations()
+    {
+        return $this->hasMany(BudgetAllocation::class, 'created_by');
+    }
+
+    public function disbursementBatches()
+    {
+        return $this->hasMany(DisbursementBatch::class, 'created_by');
+    }
+
+    public function smsCampaigns()
+    {
+        return $this->hasMany(SmsCampaign::class, 'created_by');
+    }
+
+    public function smsTemplates()
+    {
+        return $this->hasMany(SmsTemplate::class, 'created_by');
+    }
+
+    // public function legacyImports()
+    // {
+    //     return $this->hasMany(LegacyImport::class, 'imported_by');
+    // }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    public function incentives()
+    {
+        return $this->hasMany(OperatorIncentive::class, 'operator_id');
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function getFullNameAttribute()
+    {
+        return trim("{$this->fname} {$this->mname} {$this->lname}");
     }
 }
