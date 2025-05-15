@@ -9,8 +9,8 @@ $(document).ready(function () {
         }
         if (
             current == "/administration" ||
-            current == "/coverage" ||
-            current == "/collectors"
+            current == "/operators" ||
+            current == "/legacy-data"
         ) {
             $(".management").addClass("active");
         }

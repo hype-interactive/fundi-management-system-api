@@ -17,22 +17,22 @@
                         <a class="nav-link active" href="/"> <i class="fa-solid fa-chart-pie"></i> Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('fundis') }}"> <i class="fa-solid fa-people-group"></i> Fundis</a>
+                        <a class="nav-link" href="/fundis"> <i class="fa-solid fa-people-group"></i> Fundis</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link" href="/site-visits">
                             <i class="fa-solid fa-location"></i></i>
                             Site Visits
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link" href="/financials">
                             <i class="fa-solid fa-coins"></i></i>
                             Financials
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link" href="/messaging">
                             <i class="fa-solid fa-message"></i></i>
                             Messaging
                         </a>
@@ -45,14 +45,14 @@
                         <div class="collapse mb-3" id="collapseExample">
                             <div class="card card-body">
                                 @if (isRoot())
-                                    <a href="#" class="btn btn-custom inner-btn">
+                                    <a href="/administration" class="btn btn-custom inner-btn">
                                         Administration
                                         <i class="fa-solid fa-user-gear"></i>
                                     </a>
                                 @endif
-                                <a href="#" class="btn btn-custom inner-btn mt-3">Operators <i
+                                <a href="/operators" class="btn btn-custom inner-btn mt-3">Operators <i
                                         class="fa-solid fa-user-group"></i></a>
-                                <a href="#" class="btn btn-custom inner-btn mt-3">Legacy Data <i
+                                <a href="/legacy-data" class="btn btn-custom inner-btn mt-3">Legacy Data <i
                                         class="fa-regular fa-folder-open"></i></a>
                             </div>
                         </div>
