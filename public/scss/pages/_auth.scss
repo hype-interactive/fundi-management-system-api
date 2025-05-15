@@ -1,0 +1,71 @@
+.auth-wrapper {
+    width: 100vw;
+    height: 100vh;
+    @include display-flex(center);
+    align-items: center;
+    background: white;  /* fallback for old browsers */
+
+
+    .auth-form {
+        .header {
+            @include display-flex(center);
+            align-items: center;
+            margin-bottom: 2rem;
+            img{
+                width: 200px;
+                object-fit: contain;
+                object-position: center;
+            }
+
+        }
+        .body {
+            box-shadow: 0px 5px 18px 3px rgba(0,0,0,0.17);
+            -webkit-box-shadow: 0px 5px 18px 3px rgba(0,0,0,0.17);
+            -moz-box-shadow: 0px 5px 18px 3px rgba(0,0,0,0.17);
+
+            border-radius: 0.25rem;
+            min-width: 500px;
+            background-color: white;
+            padding: 2rem 2.5rem;
+
+            @include display-flex(space-between);
+            flex-direction: column;
+            @include font-family(light);
+
+            .error{
+                color: color(fail);
+                font-size: 13px;
+                list-style: none;
+            }
+            .title{
+                font-size: 1.5rem;
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+            input{
+                padding: 1.5rem 1rem;
+            }
+            button{
+                width: 100%;
+                padding:1rem;
+                font-size: 1.2rem;
+                color: color(dark);
+                @include font-family(semi_bold);
+            }
+            a,p{
+                color: grey;
+                font-size: 14px;
+                margin-bottom: 0;
+
+            }
+            *:focus{
+                border: 0;
+                outline: none;
+            }
+            a:hover{
+                color: color(primary);
+                text-decoration: none;
+            }
+        }
+    }
+}

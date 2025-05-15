@@ -1,0 +1,134 @@
+.main-wrapper {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    height: 100vh;
+    .navigation {
+        overflow-y: scroll;
+        min-height: 100vh;
+        position: relative;
+        background: color(dark); /* fallback for old browsers */
+        background: -webkit-linear-gradient(
+            to bottom,
+            white,
+            #3381a2,
+            color(primary),
+            color(dark),
+            color(dark)
+        ); /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(
+            to bottom,
+            white,
+            #307ea0,
+            color(primary),
+            color(dark),
+            color(dark)
+        ); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+        width: 270px;
+        padding: 1rem;
+        .brand-logo {
+            @include display-flex(center);
+            flex-direction: column;
+            align-items: center;
+            @include font-family(semi_bold);
+            margin-bottom: 4rem;
+            margin-top: 1rem;
+            img {
+                margin-bottom: 1rem;
+            }
+            h6 {
+                color: color(dark);
+                margin-bottom: 0px;
+                padding-bottom: 0px;
+            }
+        }
+        .divider {
+            margin-top: 1rem;
+            border-top: 0.01rem solid white;
+            margin-bottom: 1rem;
+        }
+        .nav-tabs {
+            flex-direction: column;
+            border: none;
+            .nav-link {
+                border-radius: 0.25rem;
+                color: white;
+                margin-bottom: 1rem;
+                @include font-family(light);
+                i {
+                    float: right;
+                }
+            }
+            .active {
+                a {
+                    background-color: white;
+                    color: color(dark);
+                }
+                .collapse {
+                    .card {
+                        a {
+                            background: color(primary_200) !important;
+                        }
+                    }
+                }
+            }
+            .nav-item {
+                .inner-btn {
+                    font-size: 15px;
+                    padding: 0.5rem;
+                    width: 100%;
+                    @include display-flex(space-between);
+                    align-items: center;
+                    i {
+                        font-size: 13;
+                        margin-left: 1rem;
+                    }
+                }
+            }
+        }
+        .avatar-wrapper {
+            position: absolute;
+            bottom: 1rem;
+            margin-top: 4rem;
+            width: fit-content;
+            @include display-flex(space-between);
+
+            color: white;
+            .avatar {
+                width: 45px;
+                height: 45px;
+                border: 0.01rem solid white;
+                border-radius: 50%;
+                overflow: hidden;
+                margin-right: 1rem;
+                cursor: pointer;
+                img {
+                    background-color: white;
+                    width: 100%;
+                    padding: 0.4rem;
+                    object-fit: cover;
+                    object-position: center;
+                }
+            }
+            .name {
+                @include font-family(bold);
+                font-size: 14px;
+            }
+            .phone {
+                @include font-family(thin);
+                font-size: 14px;
+            }
+            .logout {
+                padding: 0.01rem 1.3rem;
+                cursor: pointer;
+                i {
+                    margin-right: 0.5rem;
+                }
+            }
+        }
+    }
+    .main-body {
+        height: inherit;
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
+}

@@ -1,36 +1,101 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+@extends('layouts.main')
+@section('layout')
+    <div class="main-wrapper">
+        <div class="d-flex">
+            <div class="navigation">
+                <div class="brand-logo">
+                    <img src="{{ asset('images/logo.png') }}" width="100" alt="">
+                    @if (isRoot())
+                        <h6> Super User</h6>
+                    @else
+                        <h6>Administrator</h6>
+                    @endif
+                </div>
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"> <i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"> <i class="fa-solid fa-people-group"></i> Fundis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fa-solid fa-location"></i></i>
+                            Site Visits
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fa-solid fa-coins"></i></i>
+                            Financials
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fa-solid fa-message"></i></i>
+                            Messaging
+                        </a>
+                    </li>
+                    <div class="divider"></div>
+                    <li class="nav-item management">
+                        <a class="nav-link " data-toggle="collapse" href="#collapseExample" role="button"
+                            aria-expanded="false" aria-controls="collapseExample"><i class="fa-solid fa-folder-tree"></i>
+                            Management</a>
+                        <div class="collapse mb-3" id="collapseExample">
+                            <div class="card card-body">
+                                @if (isRoot())
+                                    <a href="#" class="btn btn-custom inner-btn">
+                                        Administration
+                                        <i class="fa-solid fa-user-gear"></i>
+                                    </a>
+                                @endif
+                                <a href="#" class="btn btn-custom inner-btn mt-3">Operators <i
+                                        class="fa-solid fa-user-group"></i></a>
+                                <a href="#" class="btn btn-custom inner-btn mt-3">Legacy Data <i
+                                        class="fa-regular fa-folder-open"></i></a>
+                            </div>
+                        </div>
+                    </li>
+                    @if (isRoot())
+                        <li class="nav-item">
+                            <a href="/logs" class="nav-link"><i class="fa-solid fa-file-shield"></i> Logs</a>
+                        </li>
+                    @endif
+                </ul>
+                <div class="avatar-wrapper dropup">
+                    <a class="avatar" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <img src="{{ asset('images/avatar.png') }}" alt="">
+                    </a>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-            @include('layouts.navigation')
-
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white dark:bg-gray-800 shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
+                    <div class="d-flex justify-content-start flex-column">
+                        <div class="name">
+                            Mr. {{ Auth::user()->fname }}
+                        </div>
+                        <div class="phone">
+                            {{ Auth::user()->phone }}
+                        </div>
                     </div>
-                </header>
-            @endisset
-
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+                    <div class="dropdown-menu ml-1 mb-3">
+                        <div class="logout">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <a :href="route('logout')"
+                                    onclick="event.preventDefault();
+                                                    this.closest('form').submit();">
+                                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign out
+                                </a>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container-fluid p-3">
+                <div class="main-body">
+                    @yield('page')
+                    {{ $slot ?? '' }}
+                </div>
+            </div>
         </div>
-    </body>
-</html>
+    </div>
+@endsection

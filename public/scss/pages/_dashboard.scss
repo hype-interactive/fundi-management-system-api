@@ -1,0 +1,81 @@
+.dashboard-wrapper {
+    @include font-family(light);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    color: color(dark);
+    .header {
+        h2 {
+            @include font-family(bold);
+        }
+        p {
+            color: grey;
+        }
+    }
+
+    .summary {
+        padding: 1rem 1rem;
+
+        .notifications {
+            margin-bottom: 1rem;
+            margin-top: 1rem;
+            .tile {
+                @include display-flex(space-between);
+                width: 100%;
+                border-radius: 0.5rem;
+                background-color: white;
+                padding: 0.2rem;
+                align-items: center;
+                margin-bottom: 1.5rem;
+                .icon {
+                    background-color: #dae4ee;
+                    border-radius: 0.5rem;
+                    width: 40px;
+                    height: 40px;
+                    @include display-flex(center);
+                    align-items: center;
+                    i {
+                        font-size: 1.3rem;
+                        color: color(dark);
+                    }
+                }
+
+                .title {
+                    width: 70%;
+                    font-size: 1rem;
+                    align-items: baseline;
+                    color: color(dark);
+                    @include font-family(light);
+                    @include display-flex(start);
+                    .count {
+                        @include font-family(bold);
+                        margin-right: 1rem;
+                    }
+                }
+            }
+        }
+        .divider {
+            border-top: 0.01rem solid grey;
+        }
+        .filter {
+            border-radius: 0.25rem;
+            padding: 1rem;
+            background: white;
+            margin-top: 3rem;
+            font-size: 14px;
+            select{
+                padding: 0.3rem;
+                font-size: 14px;
+
+            }
+        }
+    }
+
+    .dark-bg{
+        background: -webkit-linear-gradient(to bottom, color(primary),color(primary), color(dark)); /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(to bottom, color(primary),color(primary), color(dark));
+    }
+    .light-bg{
+        background: -webkit-linear-gradient(to bottom, color(primary_light), color(primary)); /* Chrome 10-25, Safari 5.1-6 */
+        background: linear-gradient(to bottom, color(primary_light), color(primary));
+    }
+}

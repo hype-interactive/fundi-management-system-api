@@ -1,18 +1,16 @@
 //colors
-$color:(
-    // primary:  #2B398E,
-    primary:  #141E61,
-    primary_light:  #1c2a86,
-    primary_200: #e1e3ef,
-    secondary: #a5a5a9,
-    // dark: #1b273d,
-    dark:  #0F044C,
-    light: #EEEEEE,
-    success:#3FAE28,
-    fail:#F9322B,
-    active: #017BFE,
-    warning: #dda80b,
-    );
+$color: (
+    primary: #00AEEF,        // Bright cyan-blue (used in the roof/house shape)
+    primary_light: #5CD3F3,  // A lighter variant of the blue
+    primary_200: #ecf3f6,    // Very light blue for soft backgrounds
+    secondary: #a5a5a9,      // White (used in text)
+    dark: #0b67a9,           // Near-black for deep contrasts
+    light: #F5F7FA,          // Very light grey for backgrounds
+    success: #3FAE28,        // Your original success green
+    fail: #F9322B,           // Your original error red
+    active: #017BFE,         // Your original active blue
+    warning: #DDA80B         // Your original warning yellow
+);
 
 //font-imports
 @font-face {
