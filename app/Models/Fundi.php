@@ -12,7 +12,9 @@ class Fundi extends Model
 
     protected $fillable = [
         'unique_id',
-        'name',
+        'fname',
+        'mname',
+        'lname',
         'gender',
         'nida_number',
         'primary_phone',
@@ -32,6 +34,11 @@ class Fundi extends Model
         'approved_at' => 'datetime',
         'legacy_match' => 'boolean',
     ];
+
+    public function getFullNameAttribute()
+    {
+        return trim("{$this->fname} {$this->mname} {$this->lname}");
+    }
 
     public function ward()
     {

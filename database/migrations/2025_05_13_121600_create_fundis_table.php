@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('fundis', function (Blueprint $table) {
             $table->id();
-            $table->string('unique_id', 20)->unique();
-            $table->string('name');
+            $table->string('unique_id')->unique();
+            $table->string('fname');
+            $table->string('mname')->nullable();
+            $table->string('lname');
             $table->enum('gender', ['male', 'female', 'other']);
             $table->string('nida_number', 20)->unique()->nullable();
             $table->string('primary_phone', 20);

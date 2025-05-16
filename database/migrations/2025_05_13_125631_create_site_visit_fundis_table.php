@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('site_visit_id')->constrained()->cascadeOnDelete();
             $table->foreignId('fundi_id')->constrained();
             $table->text('notes')->nullable();
-            $table->timestamp('created_at')->useCurrent();
+            $table->timestamps();
         });
     }
 

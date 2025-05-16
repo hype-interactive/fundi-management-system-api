@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->decimal('total_amount', 12, 2);
             $table->timestamp('disbursement_date');
-            $table->enum('status', ['pending', 'in_progress', 'completed', 'failed'])->default('pending');
+            $table->enum('status', ['pending', 'in_progress', 'completed', 'failed', 'cancelled'])->default('pending');
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
         });
