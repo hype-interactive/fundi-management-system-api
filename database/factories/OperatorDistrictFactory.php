@@ -17,7 +17,9 @@ class OperatorDistrictFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => $this->faker->randomElement(
+                \App\Models\User::where('id', '!=', 1)->pluck('id')->toArray()
+            ),
             'district_id' => $this->faker->randomElement(\App\Models\District::pluck('id')->toArray()),
         ];
     }

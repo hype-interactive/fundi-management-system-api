@@ -21,7 +21,7 @@ class BudgetAllocationFactory extends Factory
             'description' => $this->faker->paragraph,
             'total_amount' => $this->faker->randomFloat(2, 1000, 100000),
             'remaining_amount' => $this->faker->randomFloat(2, 1000, 100000),
-            'created_by' => \App\Models\User::factory(),
+            'created_by' => $this->faker->randomElement(\App\Models\User::pluck('id')->toArray()),
             'status' => $this->faker->randomElement(['active', 'completed', 'cancelled']),
         ];
     }

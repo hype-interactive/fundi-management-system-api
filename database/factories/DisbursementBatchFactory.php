@@ -23,7 +23,7 @@ class DisbursementBatchFactory extends Factory
             'total_amount' => $this->faker->randomFloat(2, 1000, 100000),
             'disbursement_date' => $this->faker->dateTimeBetween('-1 year', '+1 year'),
             'status' => $this->faker->randomElement(['pending', 'in_progress', 'completed', 'failed']),
-            'created_by' => \App\Models\User::factory(),
+            'created_by' => $this->faker->randomElement(\App\Models\User::pluck('id')->toArray()),
         ];
     }
 }

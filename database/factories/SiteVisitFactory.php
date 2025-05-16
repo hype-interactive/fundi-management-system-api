@@ -17,7 +17,9 @@ class SiteVisitFactory extends Factory
     public function definition(): array
     {
         return [
-            'operator_id' => \App\Models\User::factory(),
+            'operator_id' => $this->faker->randomElement(
+                \App\Models\User::where('id', '!=', 1)->pluck('id')->toArray()
+            ),
             'ward_id' => $this->faker->randomElement(\App\Models\Ward::pluck('id')->toArray()),
             'site_name' => $this->faker->word,
             'site_description' => $this->faker->sentence,
@@ -25,7 +27,7 @@ class SiteVisitFactory extends Factory
             'gps_latitude' => $this->faker->latitude,
             'gps_longitude' => $this->faker->longitude,
             'status' => $this->faker->randomElement(['pending', 'approved', 'rejected']),
-            'approved_by' => \App\Models\User::factory(),
+            'approved_by' => $this->faker->randomElement(\App\Models\User::pluck('id')->toArray()),
             'approved_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'rejection_reason' => $this->faker->sentence,
         ];

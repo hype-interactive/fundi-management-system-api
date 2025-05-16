@@ -17,12 +17,14 @@ class OperatorIncentiveFactory extends Factory
     public function definition(): array
     {
         return [
-            'operator_id' => \App\Models\User::factory(),
+            'operator_id' => $this->faker->randomElement(
+                \App\Models\User::where('id', '!=', 1)->pluck('id')->toArray()
+            ),
             'site_visit_id' => \App\Models\SiteVisit::factory(),
             'amount' => $this->faker->randomFloat(2, 100, 10000),
             'description' => $this->faker->sentence,
             'status' => $this->faker->randomElement(['pending', 'approved', 'rejected']),
-            'approved_by' => \App\Models\User::factory(),
+            'approved_by' => $this->faker->randomElement(\App\Models\User::pluck('id')->toArray()),
             'approved_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'paid_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'transaction_reference' => $this->faker->uuid,

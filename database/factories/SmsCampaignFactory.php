@@ -22,7 +22,7 @@ class SmsCampaignFactory extends Factory
             'recipient_type' => $this->faker->randomElement(['fundis', 'operators', 'both']),
             'scheduled_at' => $this->faker->dateTimeBetween('now', '+1 month'),
             'status' => $this->faker->randomElement(['draft', 'scheduled', 'processing', 'completed']),
-            'created_by' => \App\Models\User::factory(),
+            'created_by' => $this->faker->randomElement(\App\Models\User::pluck('id')->toArray()),
             'sent_at' => $this->faker->dateTimeBetween('now', '+1 month'),
         ];
     }

@@ -17,7 +17,7 @@ class ActivityLogFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => $this->faker->randomElement(\App\Models\User::pluck('id')->toArray()),
             'log_type' => $this->faker->randomElement(['create', 'update', 'delete', 'access', 'excel']),
             'description' => $this->faker->sentence,
             'model_type' => $this->faker->word,

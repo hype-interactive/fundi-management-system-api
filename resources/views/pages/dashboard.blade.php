@@ -14,7 +14,7 @@
         </div>
         <div class="col-md-3">
             <div class="section-right summary light-bg ">
-                {{-- @livewire('company-summary') --}}
+                @livewire('dashboard.company-summary')
             </div>
         </div>
     </div>

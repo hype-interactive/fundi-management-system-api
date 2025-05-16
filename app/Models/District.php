@@ -28,4 +28,9 @@ class District extends Model
     {
         return $this->belongsToMany(User::class, 'operator_districts');
     }
+
+    public function fundis()
+    {
+        return $this->hasManyThrough(Fundi::class, Ward::class, 'district_id', 'ward_id');
+    }
 }

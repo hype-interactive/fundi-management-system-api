@@ -19,7 +19,7 @@ class SmsTemplateFactory extends Factory
         return [
             'title' => $this->faker->sentence(3),
             'content' => $this->faker->paragraph,
-            'created_by' => \App\Models\User::factory(),
+            'created_by' => $this->faker->randomElement(\App\Models\User::pluck('id')->toArray()),
         ];
     }
 }
