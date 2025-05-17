@@ -29,9 +29,9 @@ Route::middleware('auth')->group(function () {
     })->name('messaging');
 
     // Routes under management
-    Route::get('/administration', function () {
+    Route::get('/administrators', function () {
         return view('pages.admins');
-    })->name('administration');
+    })->name('administrators');
 
     Route::get('/operators', function () {
         return view('pages.under-construction');
