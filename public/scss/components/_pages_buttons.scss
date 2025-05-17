@@ -1,0 +1,10 @@
+.pages{
+    padding: 0.3rem 1rem;
+    border-radius: 0.25rem;
+    @include display-flex(space-between);
+    text-align: center;
+    align-items: center;
+    button{
+        color: color(dark);
+    }
+}

@@ -1,0 +1,36 @@
+.summary-tile-wrapper{
+    .tile {
+        padding: 0.5rem 1rem;
+        border-bottom: 4px solid color(dark);
+        background-color: whitesmoke;
+
+        .main-text{
+            width: 100%;
+            @include display-flex(space-between);
+            align-items: center;
+            font-size: 2rem;
+            color: color(dark);
+            i{
+                float: left !important;
+                font-size: 1.8rem;
+                // margin-left: 0.5rem;
+            }
+            .up{
+                color:color(success);
+            }
+            .down{
+                color:color(fail);
+            }
+
+        }
+        .text-semi-bold{
+            color: color(dark);
+        }
+        .separator{
+            border-top: 0.08rem solid color(dark);
+            margin-bottom: 0.1rem;
+            margin-top: 0.1rem;
+        }
+
+    }
+}

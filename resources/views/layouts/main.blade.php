@@ -15,11 +15,14 @@
 
 <body>
     @yield('layout')
-    {{-- javascript --}}
+    
+    <!-- javascript -->
     @livewireScripts()
     {{-- @livewireChartsScripts() --}}
-    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <!-- Alert Scripts -->
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
         integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous">
     </script>
@@ -31,7 +34,6 @@
     </script>
     <script src="https://kit.fontawesome.com/68b4c1056b.js" crossorigin="anonymous"></script>
     <script src="{{ asset('js/app.js') }}"></script>
-
 </body>
 
 </html>

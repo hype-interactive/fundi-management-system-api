@@ -7,7 +7,19 @@
         "base/helpers",
         "base/typography";
 
+@import "components/summary_tile",
+        "components/avatar",
+        "components/admin_card",
+        "components/circular_icon",
+        "components/modal",
+        "components/operator_card",
+        "components/pages_buttons",
+        "components/search_box",
+        "components/table";
+
 @import "pages/auth",
         "pages/main",
         "pages/dashboard",
+        "pages/admins",
         "pages/under_construction";
+

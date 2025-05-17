@@ -30,7 +30,7 @@ Route::middleware('auth')->group(function () {
 
     // Routes under management
     Route::get('/administration', function () {
-        return view('pages.under-construction');
+        return view('pages.admins');
     })->name('administration');
 
     Route::get('/operators', function () {

@@ -1,0 +1,39 @@
+.custom-table {
+    overflow: scroll;
+    height: 100%;
+    .table {
+        tr {
+            th {
+                color: color(dark);
+                font-size: 15px;
+
+                @include font-family(semi_bold);
+
+                .avatar-circle {
+                    background: color(primary_200);
+                    border-radius: 50%;
+                    padding: 0.2rem;
+                    width: 30px;
+                    height: 30px;
+                    @include display-flex(center);
+                    align-items: center;
+                    i {
+                        color: color(secondary);
+                    }
+                }
+            }
+        }
+        td {
+            font-size: 13px;
+            height: 30px;
+            a{
+                color: color(active);
+                @include font-family(base);
+                &:hover{
+                    color: color(primary) !important;
+                }
+            }
+            
+        }
+    }
+}

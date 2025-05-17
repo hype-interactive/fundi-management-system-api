@@ -1,0 +1,12 @@
+.circular-icon{
+    background-color: #dae4ee;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    @include display-flex(center);
+    align-items: center;
+    i {
+        font-size: 1rem;
+        color: #517096;
+    }
+}

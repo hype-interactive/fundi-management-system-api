@@ -1,0 +1,31 @@
+.modal-dialog {
+    .modal-content {
+        color: color(dark) !important;
+        border: 0.01rem solid color(secondary);
+        border-radius: 0.25rem;
+
+        .modal-body {
+            font-size: 13px;
+            padding: 1rem 2rem;
+
+            .file-upload-wrapper {
+                @include display-flex(center);
+                align-items: center;
+
+                #file {
+                    display: inline-block;
+                    width: 100%;
+                    padding: 120px 0 0 0;
+                    height: 100px;
+                    overflow: hidden;
+                    -webkit-box-sizing: border-box;
+                    -moz-box-sizing: border-box;
+                    box-sizing: border-box;
+                    background: url('https://cdn1.iconfinder.com/data/icons/hawcons/32/698394-icon-130-cloud-upload-512.png') center center no-repeat #e4e4e4;
+                    border-radius: 0.25rem;
+                    background-size: 60px 60px;
+                }
+            }
+        }
+    }
+}

@@ -117,12 +117,25 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    public function isRoot()
+    {
+        return $this->role->name === 'root';
+    }
+
+    public function getPrimaryDistrictAttribute()
+    {
+        return $this->districts->first();
+    }
+
     public function getFullNameAttribute()
     {
         return trim("{$this->fname} {$this->mname} {$this->lname}");
     }
 
-    // Because of the deviation from using the default 'name' as required by the Laravel's default User model, replace the default 'name' with 'full_name' in the User model.
+    /* Because of the deviation from using the default 'name' as required by the Laravel's default User model, replace the default 'name' with 'full_name' in the User model.
+    * This is to ensure that the default 'name' attribute is not used in the application.
+    * This is a workaround to avoid breaking changes in the application.
+    */
     public function getNameAttribute()
     {
         return $this->full_name;

@@ -46,7 +46,7 @@
                             <div class="card card-body">
                                 @if (isRoot())
                                     <a href="/administration" class="btn btn-custom inner-btn">
-                                        Administration
+                                        Administrators
                                         <i class="fa-solid fa-user-gear"></i>
                                     </a>
                                 @endif
