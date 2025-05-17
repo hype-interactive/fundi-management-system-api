@@ -53,3 +53,17 @@ if (! function_exists('currentDistrictIds')) {
         return currentUser()?->districts()->pluck('districts.id') ?? collect();
     }
 }
+
+/**
+ * Generate a default password for a new user.
+ *
+ * This function creates a default password based on the user's first name,
+ * last name, and the current date. The password is formatted as:
+ * "FirstNameLastNameYYYYMMDD".
+ */
+if (! function_exists('generateDefaultPassword')) {
+    function generateDefaultPassword(string $firstName, string $lastName): string
+    {
+        return strtolower($firstName . $lastName . now()->format('Ymd'));
+    }
+}

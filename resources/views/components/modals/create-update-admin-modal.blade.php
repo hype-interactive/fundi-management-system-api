@@ -41,10 +41,8 @@
                                 <span class="error text-danger"><small>This field is required</small></span>
                             @enderror
                         </div>
-
-
                     </div>
-                    <div class="form-row">
+                    {{-- <div class="form-row">
                         <div class="form-group col-md-6">
                             <label for="inputHNo">Password</label>
                             <input type="password" class="form-control" wire:model="rpassword">
@@ -60,13 +58,14 @@
                                         previous</small></span>
                             @enderror
                         </div>
-                    </div>
+                    </div> --}}
                     <div class="form-row">
                         <div class="form-group col-md-6">
-                            <label for="inputHNo">Role</label>
+                            <label for="inputRole">Role</label>
                             <select wire:model="role" id="inputRole" class="form-control">
-                                <option value="1"> Administrator </option>
-                                <option value="3"> Super User</option>
+                                <option value="">-- Select Role --</option>
+                                <option value="2">Administrator</option>
+                                <option value="1">Super User</option>
                             </select>
                             @error('role')
                                 <span class="error">{{ $message }}</span>

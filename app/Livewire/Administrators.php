@@ -31,8 +31,8 @@ class Administrators extends Component
     public $lname;
     public $email;
     public $phone;
-    public $password;
-    public $rpassword;
+    // public $password;
+    // public $rpassword;
 
     public function mount()
     {
@@ -62,7 +62,7 @@ class Administrators extends Component
      */
     public function refresh()
     {
-        $this->reset(['fname', 'mname', 'lname', 'email', 'phone', 'password', 'rpassword']);
+        $this->reset(['fname', 'mname', 'lname', 'email', 'phone']);
         $this->action_text = "Create";
         $this->admin_id = null;
         $this->role = null;
@@ -104,7 +104,7 @@ class Administrators extends Component
             'lname' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $this->admin_id,
             'phone' => 'required|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed',
+            // 'password' => 'nullable|string|min:8|confirmed',
             'district' => 'required|exists:districts,id',
         ]);
 
@@ -118,7 +118,7 @@ class Administrators extends Component
                 'phone' => $this->phone,
                 'role_id' => $this->role,
                 'status' => 'active',
-                'password' => bcrypt($this->password),
+                'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
             ]
         );
 
@@ -137,7 +137,7 @@ class Administrators extends Component
         }
 
         // Reset form fields
-        $this->reset(['fname', 'mname', 'lname', 'email', 'phone', 'password', 'rpassword']);
+        $this->reset(['fname', 'mname', 'lname', 'email', 'phone']);
 
         // Redirect to /administration where the alert will be shown in mount()
         return redirect('/administration');
