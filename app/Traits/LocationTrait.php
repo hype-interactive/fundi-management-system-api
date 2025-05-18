@@ -57,7 +57,7 @@ trait LocationTrait
     /**
      * Retrieve all wards or those in a specific district.
      */
-    public function getWards(?int $districtId = null)
+    public function getWards(int|String|null $districtId = null)
     {
         return $districtId
             ? Ward::where('district_id', $districtId)->get()

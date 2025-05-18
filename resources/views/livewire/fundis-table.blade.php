@@ -12,13 +12,13 @@
                     @if (isRoot())
                         <div class="col">
                             <div class="select">
-                                @include('components.select_district')
+                                @include('components.selects.select_district')
                             </div>
                         </div>
                     @endif
                     <div class="col">
                         <div class="select">
-                            @include('components.select_ward')
+                            @include('components.selects.select_ward')
                         </div>
                     </div>
                 </div>
