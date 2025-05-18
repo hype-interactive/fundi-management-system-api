@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FundiController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,8 +14,10 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/fundis', function () {
-        return view('pages.under-construction');
+        return view('pages.fundis');
     })->name('fundis');
+
+    Route::get('/fundi/{fundi}', [FundiController::class, 'show'])->name('fundi');
 
     Route::get('/site-visits', function () {
         return view('pages.under-construction');

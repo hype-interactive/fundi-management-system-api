@@ -1,0 +1,22 @@
+.fundis-wrapper {
+    position: relative;
+
+    .filter {
+        padding-top: 2rem;
+        padding-bottom: 1rem;
+        font-size: 15px;
+        *:focus {
+            outline: none;
+            border: none;
+        }
+
+    }
+    .custom-table {
+        margin-bottom: 3rem;
+    }
+    .pages{
+        position: absolute;
+        bottom: 0 ;
+        right: 0;
+    }
+}

@@ -67,3 +67,20 @@ if (! function_exists('generateDefaultPassword')) {
         return strtolower($firstName . $lastName . now()->format('Ymd'));
     }
 }
+
+/**
+ * Convert an asset path to a base64 encoded string.
+ *
+ * This function reads the contents of a file at the given path,
+ * encodes it in base64, and returns a data URI.
+ * The data URI can be used directly in HTML image tags.
+ * For example: <img src="{{ assetToBase64($path) }}" alt="Image">
+ */
+if (! function_exists('assetToBase64')) {
+    function assetToBase64($path)
+    {
+        $type = pathinfo($path, PATHINFO_EXTENSION);
+        $data = file_get_contents($path);
+        return 'data:image/' . $type . ';base64,' . base64_encode($data);
+    }
+}

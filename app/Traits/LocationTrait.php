@@ -47,7 +47,7 @@ trait LocationTrait
     /**
      * Retrieve all districts or those in a specific region.
      */
-    public static function getDistricts(int|null $regionId = null)
+    public function getDistricts(int|null $regionId = null)
     {
         return $regionId
             ? District::where('region_id', $regionId)->get()
@@ -57,7 +57,7 @@ trait LocationTrait
     /**
      * Retrieve all wards or those in a specific district.
      */
-    public static function getWards(?int $districtId = null)
+    public function getWards(?int $districtId = null)
     {
         return $districtId
             ? Ward::where('district_id', $districtId)->get()
