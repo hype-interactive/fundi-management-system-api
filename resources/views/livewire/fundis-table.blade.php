@@ -3,7 +3,7 @@
         <div class="row">
             <div class="col-md-3">
                 <div class="search">
-                    <input wire:model="search_key" type="text" id="search">
+                    <input wire:model.live.debounce.300ms="search_key" type="text" id="search">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
             </div>

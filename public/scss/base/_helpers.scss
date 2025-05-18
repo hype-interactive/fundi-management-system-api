@@ -74,7 +74,8 @@
             text-decoration: none !important;
         }
         .dropdown-menu{
-            background: color(primary_200);
+            // background: color(primary_200);
+            background: #e1e3ef;
             min-width: max-content !important;
             padding:1rem;
             a{
@@ -83,6 +84,7 @@
                 margin-bottom: 1rem;
                 &:hover{
                     color: color(active) !important;
+                    cursor: pointer;
                 }
             }
         }

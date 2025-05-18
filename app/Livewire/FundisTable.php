@@ -3,9 +3,10 @@
 namespace App\Livewire;
 
 use App\Models\Fundi;
-use App\Traits\LocationTrait;
 use Livewire\Component;
+use Livewire\Attributes\Url;
 use Livewire\WithPagination;
+use App\Traits\LocationTrait;
 
 class FundisTable extends Component
 {
@@ -13,16 +14,33 @@ class FundisTable extends Component
 
     protected $paginationTheme = 'bootstrap';
 
+    #[Url]
     public $search_key = '';
+
     public $perPage = 10;
 
+    #[Url]
     public $district = null;
+
+    #[Url]
     public $ward = null;
+
+    #[Url]
     public $gender = null;
+
+    #[Url]
     public $ranking = null;
+
+    #[Url]
     public $approval_status = null;
+
+    #[Url]
     public $created_by = null;
+
+    #[Url]
     public $approved_by = null;
+
+    #[Url]
     public $legacy_match = null;
 
     public $districts = [];
@@ -32,10 +50,53 @@ class FundisTable extends Component
     public $approval_status_options = [];
     public $creators = [];
     public $approvers = [];
+    public $isAdminOrRoot = false;
 
-    protected $listeners = [
-        'downloadFundiPDF' => 'downloadFundiPDF',
-    ];
+    public function updatedDistrict($value)
+    {
+        $this->ward = null;
+        $this->wards = $this->getWards($value);
+    }
+
+    public function updatedSearchKey()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedWard()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedGender()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedRanking()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedApprovalStatus()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedCreatedBy()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedApprovedBy()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedLegacyMatch()
+    {
+        $this->resetPage();
+    }
 
     public function fetch()
     {
@@ -46,13 +107,20 @@ class FundisTable extends Component
     {
         $this->getData();
 
-        return Fundi::with('ward')
-            ->whereHas('ward', function ($query) {
+        $query = Fundi::with('ward.district');
+
+        // Apply district filter only if not admin/root or if a district is explicitly selected
+        if (!$this->isAdminOrRoot || $this->district) {
+            $query->whereHas('ward', function ($query) {
                 $query->whereHas('district', function ($subQuery) {
-                    $subQuery->where('id', $this->district);
+                    if ($this->district) {
+                        $subQuery->where('id', $this->district);
+                    }
                 });
-            })
-            // ->where('status', 1)
+            });
+        }
+
+        return $query
             ->when($this->search_key, function ($query, $search_key) {
                 $query->whereRaw("concat(fname, ' ', mname, ' ', lname) like ?", ['%' . $search_key . '%'])
                     ->orWhere('primary_phone', 'like', '%' . $search_key . '%')
@@ -89,13 +157,23 @@ class FundisTable extends Component
 
     public function getData()
     {
-        $this->districts = $this->getDistricts();
+        // Get all districts for admins/root, otherwise just get the user's districts
+        $this->districts = $this->isAdminOrRoot ? $this->getAllDistricts() : $this->getDistricts();
+
         $this->wards = $this->getWards($this->district);
         $this->gender_options = ['male' => 'Male', 'female' => 'Female'];
         $this->ranking_options = ['fundi_kuu' => 'Fundi Mkuu', 'fundi_msaidizi' => 'Fundi'];
         $this->approval_status_options = ['approved' => 'Approved', 'pending' => 'Pending Approval'];
         $this->creators = $this->getUsers('created_by');
         $this->approvers = $this->getUsers('approved_by');
+    }
+
+    /**
+     * Get all districts without user restrictions
+     */
+    private function getAllDistricts()
+    {
+        return \App\Models\District::orderBy('name')->get();
     }
 
     /**
@@ -150,13 +228,34 @@ class FundisTable extends Component
 
     public function mount()
     {
-        // If district is not already set, get the user's primary district, fallback to Dar es Salaam
-        $this->district = currentUser()?->primary_district?->id ?? 2;
+        $currentUser = currentUser();
+
+        // Check if user is admin or root
+        $this->isAdminOrRoot = $currentUser && ($currentUser->role->name === 'admin' || $currentUser->role->name === 'root');
+
+        // For non-admin/root users, set their primary district
+        if (!$this->isAdminOrRoot) {
+            $this->district = $currentUser?->primary_district?->id ?? 2; // fallback to Dar es Salaam
+        }
     }
 
     public function refresh()
     {
-        $this->reset();
+        $this->reset([
+            'search_key',
+            'ward',
+            'gender',
+            'ranking',
+            'approval_status',
+            'created_by',
+            'approved_by',
+            'legacy_match'
+        ]);
+
+        // Don't reset district for non-admin/root users
+        if ($this->isAdminOrRoot) {
+            $this->reset(['district']);
+        }
     }
 
     public function render()
