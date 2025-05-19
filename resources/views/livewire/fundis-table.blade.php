@@ -43,13 +43,16 @@
             <tbody>
                 @foreach ($fundis as $fundi)
                     <tr>
-                        <th scope="row"> <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle"><i
-                                    class="fa-solid fa-user"></i></a>
+                        <th scope="row">
+                            <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle">
+                                <i class="fa-solid fa-user"></i>
+                            </a>
                         </th>
                         <td>
                             <a href="{{ route('fundi', $fundi) }}">
-                                <div class="centered">{{ $fundi->fname }}
-                                    {{ $fundi->lname }}</div>
+                                <div class="centered">
+                                    {{ $fundi->fname }} {{ $fundi->lname }}
+                                </div>
                             </a>
                         </td>
                         <td>
