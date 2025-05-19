@@ -15,7 +15,7 @@
 
 <body>
     @yield('layout')
-    
+
     <!-- javascript -->
     @livewireScripts()
     {{-- @livewireChartsScripts() --}}
@@ -34,6 +34,8 @@
     </script>
     <script src="https://kit.fontawesome.com/68b4c1056b.js" crossorigin="anonymous"></script>
     <script src="{{ asset('js/app.js') }}"></script>
+
+    <script src="{{ asset('js/fundis-table.js') }}"></script>
 </body>
 
 </html>

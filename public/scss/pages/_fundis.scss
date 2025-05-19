@@ -1,22 +1,204 @@
 .fundis-wrapper {
     position: relative;
 
+    .mobile-filter-toggle {
+        .btn {
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+
+            &:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+        }
+    }
+
     .filter {
         padding-top: 2rem;
         padding-bottom: 1rem;
-        font-size: 15px;
-        *:focus {
-            outline: none;
-            border: none;
+        // margin-bottom: 1rem;
+
+        @media (max-width: 767.98px) {
+            // padding: 1rem;
+            border-radius: 8px;
         }
 
+        *:focus {
+            outline: none;
+        }
     }
-    .custom-table {
-        margin-bottom: 3rem;
+
+    .results-summary {
+        padding: 0.75rem 1rem;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        font-size: 14px;
+
+        .view-toggle {
+            .btn {
+                padding: 6px 12px;
+                border-radius: 6px;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    transform: translateY(-1px);
+                }
+            }
+        }
     }
-    .pages{
-        position: absolute;
-        bottom: 0 ;
-        right: 0;
+
+    // Mobile Cards
+    .mobile-cards {
+        .fundi-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            }
+
+            .card-header {
+                padding: 1rem;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-bottom: 1px solid #e9ecef;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+
+                .fundi-avatar {
+                    flex-shrink: 0;
+                }
+
+                .fundi-details {
+                    flex-grow: 1;
+                    min-width: 0;
+
+                    .fundi-name {
+                        color: color(dark);
+                        font-weight: 600;
+                        margin: 0;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    .fundi-meta {
+                        display: flex;
+                        gap: 0.5rem;
+                        flex-wrap: wrap;
+                        margin-top: 0.5rem;
+                    }
+                }
+            }
+
+            .card-body {
+                padding: 1rem;
+
+                .contact-row,
+                .location-row,
+                .creator-row {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 0.5rem;
+                    font-size: 14px;
+
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+
+                    i {
+                        width: 20px;
+                        flex-shrink: 0;
+                    }
+
+                    span {
+                        color: color(dark);
+                    }
+                }
+
+                .creator-row {
+                    margin-top: 0.75rem;
+                    padding-top: 0.75rem;
+                    border-top: 1px solid #f0f0f0;
+                }
+            }
+        }
+
+        .empty-state {
+            padding: 3rem 1rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+            i {
+                opacity: 0.5;
+            }
+
+            h5, p {
+                margin: 0;
+            }
+
+            p {
+                font-size: 14px;
+            }
+        }
+    }
+
+    // Badge Styles
+    .ranking-badge,
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.7em;
+        border-radius: 6px;
+        font-weight: 500;
+        white-space: nowrap;
+
+        i {
+            font-size: 0.85em;
+        }
+    }
+
+    .ranking-badge {
+        color: white;
+        &.bg-primary {
+            background: color(primary);
+        }
+
+        &.bg-secondary {
+            background: color(secondary);
+        }
+    }
+
+    // Phone number styling
+    .phone-number {
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        color: color(dark);
+        font-weight: 500;
+    }
+
+    .contact-info {
+        .phone-number {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        small {
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+    }
+
+    .creator-name {
+        font-size: 13px;
+        color: color(dark_50);
+        font-style: italic;
     }
 }

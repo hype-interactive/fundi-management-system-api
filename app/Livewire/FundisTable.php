@@ -52,6 +52,10 @@ class FundisTable extends Component
     public $approvers = [];
     public $isAdminOrRoot = false;
 
+    // New properties for mobile responsiveness
+    public $showMobileFilters = false;
+    public $compactView = false;
+
     public function updatedDistrict($value)
     {
         $this->ward = null;
@@ -190,6 +194,14 @@ class FundisTable extends Component
     }
 
     /**
+     * Toggle compact view for better mobile experience
+     */
+    public function toggleCompactView()
+    {
+        $this->compactView = !$this->compactView;
+    }
+
+    /**
      * Download the PDF of fundis
      */
     public function downloadFundiPDF()
@@ -226,6 +238,57 @@ class FundisTable extends Component
         }, 'magic_builders_mafundi.pdf');
     }
 
+    /**
+     * Export current filtered data to Excel
+     */
+    public function exportToExcel()
+    {
+        return response()->streamDownload(function () {
+            $fundis = $this->getFundiQuery()->get();
+
+            $headers = [
+                'Name',
+                'Gender',
+                'Primary Phone',
+                'Transaction Phone',
+                'NIDA Number',
+                'Ward',
+                'District',
+                'Ranking',
+                'Status',
+                'Registered By',
+                'Approved By',
+                'Created At',
+                'Approved At'
+            ];
+
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $headers);
+
+            foreach ($fundis as $fundi) {
+                fputcsv($handle, [
+                    $fundi->full_name,
+                    ucfirst($fundi->gender),
+                    $fundi->primary_phone,
+                    $fundi->transaction_phone,
+                    $fundi->nida_number,
+                    $fundi->ward->name ?? 'N/A',
+                    $fundi->ward->district->name ?? 'N/A',
+                    $this->ranking_options[$fundi->ranking] ?? 'N/A',
+                    $fundi->approved_at ? 'Approved' : 'Pending',
+                    $fundi->creator->full_name ?? 'N/A',
+                    $fundi->approver->full_name ?? 'N/A',
+                    $fundi->created_at->format('Y-m-d H:i:s'),
+                    $fundi->approved_at ? $fundi->approved_at->format('Y-m-d H:i:s') : 'N/A'
+                ]);
+            }
+
+            fclose($handle);
+        }, 'fundis_export_' . date('Y-m-d_H-i-s') . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
     public function mount()
     {
         $currentUser = currentUser();
@@ -237,6 +300,12 @@ class FundisTable extends Component
         if (!$this->isAdminOrRoot) {
             $this->district = $currentUser?->primary_district?->id ?? 2; // fallback to Dar es Salaam
         }
+
+        // Auto-hide mobile filters initially on mobile
+        $this->showMobileFilters = false;
+
+        // Set compact view based on screen size (you can add logic to detect this)
+        $this->compactView = false;
     }
 
     public function refresh()
@@ -256,6 +325,9 @@ class FundisTable extends Component
         if ($this->isAdminOrRoot) {
             $this->reset(['district']);
         }
+
+        // Hide mobile filters after refresh
+        $this->showMobileFilters = false;
     }
 
     public function render()

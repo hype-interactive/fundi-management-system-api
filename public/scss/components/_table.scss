@@ -1,6 +1,7 @@
 .custom-table {
     overflow: scroll;
     height: 100%;
+
     .table {
         tr {
             th {
@@ -23,6 +24,7 @@
                 }
             }
         }
+
         td {
             font-size: 13px;
             height: 30px;
@@ -33,7 +35,46 @@
                     color: color(primary) !important;
                 }
             }
-            
+
+        }
+
+        // Responsive column hiding
+        @media (max-width: 991.98px) {
+            .d-lg-table-cell {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            .d-xl-table-cell {
+                display: none !important;
+            }
         }
     }
+
+
+    // Loading state
+    &.loading {
+        opacity: 0.7;
+        pointer-events: none;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid color(primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            transform: translate(-50%, -50%);
+        }
+    }
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
