@@ -37,18 +37,19 @@
         </div>
     </div>
 
-    <!-- Results Summary -->
+    <!-- Desktop Actions -->
     <div class="results-summary mb-2 d-flex justify-content-between align-items-center">
         <div class="view-toggle d-none d-md-block">
             <button wire:click="$toggle('compactView')"
                 class="btn btn-sm {{ $compactView ? 'btn-primary' : 'btn-outline-primary' }}">
                 <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }}"></i>
+                {{ $compactView ? 'Expand' : 'Compact' }}
             </button>
         </div>
         <div class="view-toggle d-none d-md-block">
             <button wire:click="refresh" class="btn btn-outline-secondary btn-sm w-100">
                 <i class="fa-solid fa-arrows-rotate me-1"></i>
-                Clear
+                Clear Filters
             </button>
         </div>
     </div>

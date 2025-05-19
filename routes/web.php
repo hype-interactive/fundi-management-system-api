@@ -20,8 +20,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/fundi/{fundi}', [FundiController::class, 'show'])->name('fundi');
 
     Route::get('/site-visits', function () {
-        return view('pages.under-construction');
+        return view('pages.site-visits');
     })->name('site-visits');
+
+    Route::get('/site-visit/{siteVisit}', function () {
+        return view('pages.under-construction');
+    })->name('site-visit');
 
     Route::get('/financials', function () {
         return view('pages.under-construction');

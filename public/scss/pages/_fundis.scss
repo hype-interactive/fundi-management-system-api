@@ -17,10 +17,9 @@
     .filter {
         padding-top: 2rem;
         padding-bottom: 1rem;
-        // margin-bottom: 1rem;
 
         @media (max-width: 767.98px) {
-            // padding: 1rem;
+            padding: 1rem;
             border-radius: 8px;
         }
 
