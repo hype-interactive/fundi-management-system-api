@@ -1,4 +1,15 @@
 .badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.7em;
+    border-radius: 6px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: white;
+
+    i {
+        font-size: 0.85em;
+    }
+
     &.bg-success {
         background-color: color(success) !important;
         color: #fff !important;

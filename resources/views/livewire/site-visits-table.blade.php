@@ -186,9 +186,9 @@
                                 </td>
                             @endif
                             <td class="d-lg-table-cell d-none">
-                                @if ($visit->rejection_reason)
+                                @if ($visit->status === 'rejected')
                                     <span class="badge bg-danger">Rejected</span>
-                                @elseif($visit->approved_at)
+                                @elseif ($visit->status === 'approved')
                                     <span class="badge bg-success">Approved</span>
                                 @else
                                     <span class="badge bg-warning">Pending</span>

@@ -139,8 +139,8 @@ class Administrators extends Component
         // Reset form fields
         $this->reset(['fname', 'mname', 'lname', 'email', 'phone']);
 
-        // Redirect to /administration where the alert will be shown in mount()
-        return redirect('/administration');
+        // Redirect to /administrators where the alert will be shown in mount()
+        return redirect('/administrators');
     }
 
     /**

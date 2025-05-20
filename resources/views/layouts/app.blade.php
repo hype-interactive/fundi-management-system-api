@@ -45,7 +45,7 @@
                         <div class="collapse mb-3" id="collapseExample">
                             <div class="card card-body">
                                 @if (isRoot())
-                                    <a href="/administration" class="btn btn-custom inner-btn">
+                                    <a href="/administrators" class="btn btn-custom inner-btn">
                                         Administrators
                                         <i class="fa-solid fa-user-gear"></i>
                                     </a>

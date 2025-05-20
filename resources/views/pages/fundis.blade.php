@@ -15,7 +15,7 @@
                                 class="fa-solid fa-plus mr-4"></i>Add Fundi</a>
                         <a class="" type="button" data-toggle="modal" data-target="#bulk"><i
                                 class="fa-solid fa-cloud-arrow-up mr-4"></i>Add Bulk</a>
-                        <a class="cursor-pointer" type="button" id="fundis-pdf" wire:click="downloadFundiPDF">
+                        <a class="cursor-pointer" type="button" id="fundis-pdf" onclick="Livewire.dispatch('downloadFundiPDF')">
                             <i class="fa-solid fa-cloud-arrow-down mr-4"></i>
                             Print
                         </a>

@@ -73,7 +73,7 @@
                         </div>
                         <div class="form-group col-md-6">
                             <label for="inputAdmin">District</label>
-                            @include('components.select_district')
+                            @include('components.selects.select_district')
                             @error('district')
                                 <span class="error">{{ $message }}</span>
                             @enderror

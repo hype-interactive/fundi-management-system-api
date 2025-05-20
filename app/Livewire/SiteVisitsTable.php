@@ -310,6 +310,16 @@ class SiteVisitsTable extends Component
      */
     private function getVisitStatus($visit)
     {
+        // First check database status field
+        if ($visit->status === 'rejected') {
+            return 'Rejected';
+        } elseif ($visit->status === 'approved') {
+            return 'Approved';
+        } elseif ($visit->status === 'pending') {
+            return 'Pending';
+        }
+
+        // Fallback to the old logic for backward compatibility
         if ($visit->rejection_reason) {
             return 'Rejected';
         } elseif ($visit->approved_at) {

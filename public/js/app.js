@@ -8,7 +8,7 @@ $(document).ready(function () {
             $this.parent().addClass("active");
         }
         if (
-            current == "/administration" ||
+            current == "/administrators" ||
             current == "/operators" ||
             current == "/legacy-data"
         ) {
