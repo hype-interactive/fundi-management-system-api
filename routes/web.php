@@ -19,6 +19,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/fundi/{fundi}', [FundiController::class, 'show'])->name('fundi');
 
+    Route::get('/unapproved_fundis', function () {
+        return  view('pages.unapproved-fundis');
+    })->name('unapproved-fundis');
+
     Route::get('/site-visits', function () {
         return view('pages.site-visits');
     })->name('site-visits');

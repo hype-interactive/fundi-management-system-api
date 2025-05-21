@@ -7,10 +7,8 @@
                 <div class="dropdown">
                     <i class="fa-solid fa-bars icon" data-toggle="dropdown" aria-expanded="false"></i>
                     <div class="dropdown-menu">
-                        {{-- <a href="{{ route('special-clients') }}" class="" type="button"> <i
-                                class="fa-solid fa-people-group mr-4"></i>Special Clients </a>
-                        <a href="{{ route('unapproved') }}" class="" type="button"> <i
-                                class="fa-solid fa-person-circle-xmark mr-4"></i>Unapproved </a> --}}
+                        <a href="{{ route('unapproved-fundis') }}" class="" type="button"> <i
+                                class="fa-solid fa-person-circle-xmark mr-4"></i>Unapproved </a>
                         <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#addFundiForm"> <i
                                 class="fa-solid fa-plus mr-4"></i>Add Fundi</a>
                         <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#bulk"><i
