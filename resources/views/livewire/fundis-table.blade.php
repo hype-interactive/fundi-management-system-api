@@ -39,17 +39,25 @@
 
     <!-- Desktop Actions -->
     <div class="results-summary mb-2 d-flex justify-content-between align-items-center">
-        <div class="view-toggle d-none d-md-block">
+        <div class="d-flex gap-2">
             <button wire:click="$toggle('compactView')"
                 class="btn btn-sm {{ $compactView ? 'btn-primary' : 'btn-outline-primary' }}">
                 <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }}"></i>
                 {{ $compactView ? 'Expand' : 'Compact' }}
             </button>
         </div>
-        <div class="view-toggle d-none d-md-block">
-            <button wire:click="refresh" class="btn btn-outline-secondary btn-sm w-100">
+        <div class="d-flex gap-2">
+            <button wire:click="refresh" class="btn btn-outline-secondary btn-sm">
                 <i class="fa-solid fa-arrows-rotate me-1"></i>
                 Clear Filters
+            </button>
+            <button wire:click="exportToExcel" class="btn btn-outline-success btn-sm">
+                <i class="fa-solid fa-file-excel me-1"></i>
+                Export Excel
+            </button>
+            <button wire:click="downloadFundiPDF" class="btn btn-outline-danger btn-sm">
+                <i class="fa-solid fa-file-pdf me-1"></i>
+                Download PDF
             </button>
         </div>
     </div>

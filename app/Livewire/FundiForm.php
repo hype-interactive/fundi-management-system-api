@@ -2,10 +2,291 @@
 
 namespace App\Livewire;
 
+use App\Models\Fundi;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class FundiForm extends Component
 {
+    use WithFileUploads;
+
+    // Fundi form properties
+    public $fundi_id = null;
+    public $fname = '';
+    public $mname = '';
+    public $lname = '';
+    public $gender = '';
+    public $nida_number = '';
+    public $primary_phone = '';
+    public $transaction_phone = '';
+    public $district = null;
+    public $ward_id = null;
+    public $ranking = '';
+    public $profile_photo = null;
+    public $status = 'active';
+    public $legacy_match = false;
+    public $legacy_id = '';
+
+    // Component compatibility
+    public $ward = null;
+    public $district_id = null;
+
+    // UI state properties
+    public $action_text = 'Create';
+    public $editing = false;
+    public $existing_photo = null;
+    public $remove_photo = false;
+
+    // Districts and wards for dropdowns
+    public $districts = [];
+    public $wards = [];
+
+    protected $listeners = [
+        'editFundi' => 'loadFundi',
+        'createNewFundi' => 'resetForm',
+        'resetValidation' => 'resetValidation'
+    ];
+
+    public function mount()
+    {
+        $this->resetForm();
+        $this->loadDistricts();
+    }
+
+    // public function resetValidation()
+    // {
+    //     $this->resetErrorBag();
+    // }
+
+    /**
+     * Load all districts for the dropdown
+     */
+    public function loadDistricts()
+    {
+        $currentUser = currentUser();
+
+        // If admin or root, get all districts, otherwise get user's districts
+        if ($currentUser && ($currentUser->role->name === 'admin' || $currentUser->role->name === 'root')) {
+            $this->districts = \App\Models\District::orderBy('name')->get();
+        } else {
+            $this->districts = $currentUser->districts;
+
+            // Set default district to user's primary district
+            if ($currentUser->primary_district && !$this->district) {
+                $this->district = $currentUser->primary_district->id;
+                $this->loadWards();
+            }
+        }
+    }
+
+    /**
+     * Load wards for the selected district
+     */
+    public function loadWards()
+    {
+        if ($this->district) {
+            $this->wards = \App\Models\Ward::where('district_id', $this->district)
+                ->orderBy('name')
+                ->get();
+        } else {
+            $this->wards = [];
+        }
+
+        // Reset ward selection if district changes
+        if ($this->editing == false) {
+            $this->ward_id = null;
+        }
+    }
+
+    /**
+     * Watch for district changes to update wards
+     */
+    public function updatedDistrict()
+    {
+        $this->loadWards();
+    }
+
+    // Add this watcher to sync ward to ward_id
+    public function updatedWard($value)
+    {
+        $this->ward_id = $value;
+    }
+
+    /**
+     * Reset the form to default values
+     */
+    public function resetForm()
+    {
+        $this->reset([
+            'fundi_id',
+            'fname',
+            'mname',
+            'lname',
+            'gender',
+            'nida_number',
+            'primary_phone',
+            'transaction_phone',
+            'ward_id',
+            'ranking',
+            'profile_photo',
+            'status',
+            'legacy_match',
+            'legacy_id',
+            'editing',
+            'existing_photo',
+            'remove_photo'
+        ]);
+
+        // Set default values
+        $this->action_text = 'Create';
+        $this->status = 'active';
+        $this->legacy_match = false;
+
+        // Load user's primary district if available
+        $currentUser = currentUser();
+        if ($currentUser && $currentUser->primary_district) {
+            $this->district = $currentUser->primary_district->id;
+            $this->loadWards();
+        }
+    }
+
+    /**
+     * Load an existing fundi for editing
+     */
+    public function loadFundi($fundiId)
+    {
+        $fundi = Fundi::findOrFail($fundiId);
+
+        $this->resetForm();
+
+        $this->fundi_id = $fundi->id;
+        $this->fname = $fundi->fname;
+        $this->mname = $fundi->mname;
+        $this->lname = $fundi->lname;
+        $this->gender = $fundi->gender;
+        $this->nida_number = $fundi->nida_number;
+        $this->primary_phone = $fundi->primary_phone;
+        $this->transaction_phone = $fundi->transaction_phone;
+
+        // Set district first to load wards correctly
+        $this->district = $fundi->ward->district->id;
+        $this->loadWards();
+        $this->ward_id = $fundi->ward_id;
+        $this->ward = $fundi->ward_id;
+
+        $this->ranking = $fundi->ranking;
+        $this->status = $fundi->status ?: 'active';
+        $this->legacy_match = $fundi->legacy_match;
+        $this->legacy_id = $fundi->legacy_id;
+
+        // Handle existing photo
+        if ($fundi->profile_photo) {
+            $this->existing_photo = Storage::url($fundi->profile_photo);
+            $this->remove_photo = false;
+        } else {
+            $this->existing_photo = null;
+        }
+
+        $this->action_text = 'Update';
+        $this->editing = true;
+    }
+
+    /**
+     * Mark existing photo for removal
+     */
+    public function removePhoto()
+    {
+        $this->remove_photo = true;
+        $this->existing_photo = null;
+    }
+
+    /**
+     * Create or update a fundi
+     */
+    public function createOrUpdateFundi()
+    {
+        $rules = [
+            'fname' => 'required|string|max:255',
+            'mname' => 'nullable|string|max:255',
+            'lname' => 'required|string|max:255',
+            'gender' => 'required|in:male,female',
+            'nida_number' => 'nullable|string|max:255',
+            'primary_phone' => 'required|string|max:20|unique:fundis,primary_phone,' . $this->fundi_id,
+            'transaction_phone' => 'nullable|string|max:20',
+            'district' => 'required|exists:districts,id',
+            'ward_id' => 'required|exists:wards,id',
+            'ranking' => 'required|in:fundi_kuu,fundi_msaidizi',
+            'status' => 'required|in:active,inactive',
+            'profile_photo' => $this->fundi_id ? 'nullable|image|max:2048' : 'nullable|image|max:2048',
+            'legacy_id' => 'nullable|required_if:legacy_match,true|string|max:255',
+        ];
+
+        $this->validate($rules);
+
+        // Generate a unique ID if this is a new fundi
+        $unique_id = $this->fundi_id ? null : 'F' . date('Ymd') . rand(1000, 9999);
+
+        // Handle profile photo upload
+        $photo_path = null;
+        if ($this->profile_photo) {
+            $photo_path = $this->profile_photo->store('fundis', 'public');
+        } elseif ($this->editing && !$this->remove_photo) {
+            // Keep existing photo if editing and not removing
+            $photo_path = Fundi::find($this->fundi_id)->profile_photo;
+        }
+
+        // Ensure ward_id is set from ward if it exists
+        if (empty($this->ward_id) && !empty($this->ward)) {
+            $this->ward_id = $this->ward;
+        }
+
+        // Create or update the fundi
+        $fundi = Fundi::updateOrCreate(
+            ['id' => $this->fundi_id],
+            [
+                'unique_id' => $unique_id,
+                'fname' => $this->fname,
+                'mname' => $this->mname,
+                'lname' => $this->lname,
+                'gender' => $this->gender,
+                'nida_number' => $this->nida_number,
+                'primary_phone' => $this->primary_phone,
+                'transaction_phone' => $this->transaction_phone,
+                'ward_id' => $this->ward_id,
+                'ranking' => $this->ranking,
+                'profile_photo' => $photo_path,
+                'status' => $this->status,
+                'created_by' => $this->fundi_id ? null : Auth::id(), // Only set if creating new
+                'legacy_match' => $this->legacy_match,
+                'legacy_id' => $this->legacy_match ? $this->legacy_id : null,
+            ]
+        );
+
+        if ($fundi) {
+            session()->flash('saved', [
+                'title' => 'Success',
+                'text' => 'Fundi ' . ($this->editing ? 'updated' : 'created') . ' successfully.',
+            ]);
+
+            // Close modal using JS
+            $this->dispatchBrowserEvent('closeModal', ['modalId' => 'addFundiForm']);
+        } else {
+            session()->flash('saved', [
+                'title' => 'Error',
+                'text' => 'Failed to ' . ($this->editing ? 'update' : 'create') . ' fundi.',
+            ]);
+        }
+
+        // Reset form after saving
+        $this->resetForm();
+        $this->loadDistricts();
+
+        // Redirect to fundi list page
+        return redirect('/fundis');
+    }
+
     public function render()
     {
         return view('livewire.fundi-form');

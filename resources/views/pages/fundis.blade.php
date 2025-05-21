@@ -11,14 +11,10 @@
                                 class="fa-solid fa-people-group mr-4"></i>Special Clients </a>
                         <a href="{{ route('unapproved') }}" class="" type="button"> <i
                                 class="fa-solid fa-person-circle-xmark mr-4"></i>Unapproved </a> --}}
-                        <a class="" type="button" data-toggle="modal" data-target="#addFundiForm"> <i
+                        <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#addFundiForm"> <i
                                 class="fa-solid fa-plus mr-4"></i>Add Fundi</a>
-                        <a class="" type="button" data-toggle="modal" data-target="#bulk"><i
+                        <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#bulk"><i
                                 class="fa-solid fa-cloud-arrow-up mr-4"></i>Add Bulk</a>
-                        <a class="cursor-pointer" type="button" id="fundis-pdf" onclick="Livewire.dispatch('downloadFundiPDF')">
-                            <i class="fa-solid fa-cloud-arrow-down mr-4"></i>
-                            Print
-                        </a>
                     </div>
                 </div>
             </div>

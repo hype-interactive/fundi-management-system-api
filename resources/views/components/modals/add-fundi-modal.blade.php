@@ -12,7 +12,6 @@
                 <div class="modal-body">
                     @livewire('fundi-form')
                 </div>
-
             </div>
         </div>
     </div>

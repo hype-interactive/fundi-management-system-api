@@ -155,7 +155,7 @@ class FundisTable extends Component
             ->when($this->legacy_match, function ($query, $legacy_match) {
                 $query->where('legacy_match', $legacy_match);
             })
-            ->orderBy('fname', 'asc')
+            // ->orderBy('fname', 'asc')
             ->latest('created_at');
     }
 
