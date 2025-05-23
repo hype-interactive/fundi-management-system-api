@@ -1,0 +1,193 @@
+.fundi-wrapper {
+
+    .profile {
+        h6 {
+            color: white;
+        }
+        .fundi-info {
+            background: white;
+            border-radius: 0.25rem;
+            color: color(dark);
+            font-size: 15px;
+            padding: 1rem 0.5rem;
+            overflow: hidden;
+            @include font-family(light);
+            .row {
+                margin-bottom: 0.5rem;
+                text-align: start !important;
+                .label {
+                    font-size: 12px;
+                    color: grey;
+                }
+                .title {
+                    width: 100%;
+                    border-bottom: 0.01rem solid color(secondary);
+                }
+            }
+        }
+        .transactions-history {
+            .tile {
+                @include font-family(semi_bold);
+                @include display-flex(center);
+                align-items: center;
+                margin-bottom: 1rem;
+                color: white;
+                padding: 0.3rem 0.8rem;
+                border-radius: 0.25rem;
+            }
+            .tile-special {
+                margin: 0.5rem 0.2rem;
+                background-color: color(light);
+                padding: 0.3rem 0.8rem;
+                border-radius: 0.15rem;
+                color: black;
+                border-left: 0.3rem solid color(active);
+                i{
+                    font-size: 18px;
+                    color: gray;
+                }
+                .text-end {
+                    text-align: end;
+                }
+                .text-start {
+                    text-align: start;
+                }
+            }
+        }
+        .site-visits {
+            margin-top: 1rem;
+
+            .visit-item {
+                background-color: color(light);
+                padding: 0.5rem;
+                margin-bottom: 0.5rem;
+                border-radius: 0.15rem;
+                border-left: 0.3rem solid color(secondary);
+
+                .date {
+                    font-size: 12px;
+                    color: grey;
+                }
+
+                .site-name {
+                    @include font-family(semi_bold);
+                }
+
+                .status {
+                    font-size: 12px;
+                    padding: 0.1rem 0.3rem;
+                    border-radius: 0.15rem;
+
+                    &.completed {
+                        background-color: rgba(0, 128, 0, 0.1);
+                        color: green;
+                    }
+
+                    &.pending {
+                        background-color: rgba(255, 165, 0, 0.1);
+                        color: orange;
+                    }
+                }
+            }
+        }
+
+        .legacy-match {
+            margin-top: 1rem;
+            background-color: rgba(255, 165, 0, 0.1);
+            border-left: 0.3rem solid orange;
+            padding: 0.5rem;
+            border-radius: 0.15rem;
+
+            .legacy-title {
+                @include font-family(semi_bold);
+                color: orange;
+            }
+        }
+    }
+    .fundi-forms {
+        margin-top: 1rem;
+        .nav-tabs-custom {
+            @include display-flex(space-between);
+            button {
+                border: none;
+                text-align: start;
+                background-color: transparent;
+                @include font-family(semi_bold);
+                color: grey;
+                padding-left: 0;
+                font-size: 18px;
+                padding-bottom: 0.1rem;
+                width: 45%;
+            }
+            *:focus {
+                outline: none;
+                border: none;
+            }
+            .active {
+                color: color(dark);
+                border-bottom: 0.1rem solid color(primary);
+            }
+        }
+        .tab-content {
+            padding-top: 3rem;
+            .form-row {
+                @include font-family(light);
+                margin-bottom: 1rem;
+                .col-md-6 {
+                    padding-right: 1rem;
+                    label {
+                        color: grey;
+                    }
+                }
+            }
+            .transactions-form {
+                .transaction-item {
+                    background-color: color(light);
+                    padding: 0.8rem;
+                    margin-bottom: 0.8rem;
+                    border-radius: 0.25rem;
+
+                    .amount {
+                        @include font-family(semi_bold);
+                        color: color(primary);
+                    }
+
+                    .date {
+                        font-size: 12px;
+                        color: grey;
+                    }
+
+                    .status {
+                        padding: 0.2rem 0.4rem;
+                        border-radius: 0.15rem;
+                        font-size: 12px;
+
+                        &.success {
+                            background-color: rgba(0, 128, 0, 0.1);
+                            color: green;
+                        }
+
+                        &.pending {
+                            background-color: rgba(255, 165, 0, 0.1);
+                            color: orange;
+                        }
+
+                        &.failed {
+                            background-color: rgba(255, 0, 0, 0.1);
+                            color: red;
+                        }
+                    }
+                }
+            }
+            .submit {
+                width: 100%;
+                margin-top: 1rem;
+                text-align: center;
+                button {
+                    padding: 0.5rem 5.5rem;
+                    @include font-family(semi_bold);
+                }
+            }
+        }
+    }
+}

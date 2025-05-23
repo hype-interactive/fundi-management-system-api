@@ -38,10 +38,14 @@ class FundiForm extends Component
     public $editing = false;
     public $existing_photo = null;
     public $remove_photo = false;
+    public $mode = 'create'; // 'create' or 'edit'
 
     // Districts and wards for dropdowns
     public $districts = [];
     public $wards = [];
+
+    // Accept fundi model for editing
+    public $fundi = null;
 
     protected $listeners = [
         'editFundi' => 'loadFundi',
@@ -49,9 +53,16 @@ class FundiForm extends Component
         'resetValidation' => 'resetValidation'
     ];
 
-    public function mount()
+    public function mount($fundi = null)
     {
-        $this->resetForm();
+        if ($fundi) {
+            $this->fundi = $fundi;
+            $this->mode = 'edit';
+            $this->loadFundiData($fundi);
+        } else {
+            $this->mode = 'create';
+            $this->resetForm();
+        }
         $this->loadDistricts();
     }
 
@@ -59,6 +70,43 @@ class FundiForm extends Component
     // {
     //     $this->resetErrorBag();
     // }
+
+    /**
+     * Load fundi data for editing
+     */
+    public function loadFundiData($fundi)
+    {
+        $this->fundi_id = $fundi->id;
+        $this->fname = $fundi->fname;
+        $this->mname = $fundi->mname;
+        $this->lname = $fundi->lname;
+        $this->gender = $fundi->gender;
+        $this->nida_number = $fundi->nida_number;
+        $this->primary_phone = $fundi->primary_phone;
+        $this->transaction_phone = $fundi->transaction_phone;
+
+        // Set district first to load wards correctly
+        $this->district = $fundi->ward->district->id;
+        $this->loadWards();
+        $this->ward_id = $fundi->ward_id;
+        $this->ward = $fundi->ward_id;
+
+        $this->ranking = $fundi->ranking;
+        $this->status = $fundi->status ?: 'active';
+        $this->legacy_match = $fundi->legacy_match;
+        $this->legacy_id = $fundi->legacy_id;
+
+        // Handle existing photo
+        if ($fundi->profile_photo) {
+            $this->existing_photo = Storage::url($fundi->profile_photo);
+            $this->remove_photo = false;
+        } else {
+            $this->existing_photo = null;
+        }
+
+        $this->action_text = 'Update';
+        $this->editing = true;
+    }
 
     /**
      * Load all districts for the dropdown
@@ -265,13 +313,20 @@ class FundiForm extends Component
         );
 
         if ($fundi) {
-            session()->flash('saved', [
-                'title' => 'Success',
-                'text' => 'Fundi ' . ($this->editing ? 'updated' : 'created') . ' successfully.',
-            ]);
-
-            // Close modal using JS
-            $this->dispatchBrowserEvent('closeModal', ['modalId' => 'addFundiForm']);
+            // Handle different modes differently
+            if ($this->mode === 'create') {
+                // Close modal using JS for create mode
+                $this->dispatchBrowserEvent('closeModal', ['modalId' => 'addFundiForm']);
+                // Reset form after saving
+                $this->resetForm();
+                $this->loadDistricts();
+                // Redirect to fundi list page
+                return redirect('/fundis');
+            } else {
+                // For edit mode, just show success message and stay on page
+                // Optionally reload the fundi data
+                $this->loadFundiData($fundi);
+            }
         } else {
             session()->flash('saved', [
                 'title' => 'Error',

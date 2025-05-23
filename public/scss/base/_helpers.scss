@@ -8,16 +8,16 @@
     color: color(fail) !important;
 }
 
-.page{
+.page {
     @include font-family(light);
     color: color(dark);
     padding-top: 1rem;
     padding-bottom: 1rem;
 }
-.btn-neg{
+.btn-neg {
     color: white;
     font-size: 13px;
-    background:  color(fail) !important;
+    background: color(fail) !important;
 }
 
 .text-alt {
@@ -33,17 +33,17 @@
     }
 }
 
-.error{
+.error {
     color: color(fail);
     font-size: 0.7rem;
 }
 
-.btn-danger{
+.btn-danger {
     background: color(fail);
     color: color(light);
 }
 
-.h-fixed-40{
+.h-fixed-40 {
     height: 40vh;
     overflow-y: scroll;
 }
@@ -52,36 +52,38 @@
     @include display-flex(space-between);
     border-bottom: 0.01rem solid color(secondary);
     align-items: center;
-    button{ margin-bottom: 0.5rem;}
+    button {
+        margin-bottom: 0.5rem;
+    }
 
-    a{
-        color:color(dark) !important;
+    a {
+        color: color(dark) !important;
         text-decoration: none !important;
     }
 
-    .dropdown{
+    .dropdown {
         *::-ms-expand {
             display: none;
         }
-        .icon{
+        .icon {
             font-size: 1.5rem;
             color: color(dark) !important;
         }
 
-        .dropdown-toggle{
+        .dropdown-toggle {
             color: color(dark) !important;
             text-decoration: none !important;
         }
-        .dropdown-menu{
+        .dropdown-menu {
             // background: color(primary_200);
             background: #e1e3ef;
             min-width: max-content !important;
-            padding:1rem;
-            a{
+            padding: 1rem;
+            a {
                 display: block;
-                    color: color(primary_light) !important;
+                color: color(primary_light) !important;
                 margin-bottom: 1rem;
-                &:hover{
+                &:hover {
                     color: color(active) !important;
                     cursor: pointer;
                 }
@@ -90,19 +92,29 @@
     }
 }
 
-.section-right{
+.section-right {
     border-radius: 0.5rem;
     width: 100%;
     padding: 1rem;
-    background: color(dark);  /* fallback for old browsers */
-    background: -webkit-linear-gradient(to bottom,color(primary_light),color(primary), color(dark));  /* Chrome 10-25, Safari 5.1-6 */
-    background: linear-gradient(to bottom,color(primary_light),color(primary), color(dark));
+    background: color(dark); /* fallback for old browsers */
+    background: -webkit-linear-gradient(
+        to bottom,
+        color(primary_light),
+        color(primary),
+        color(dark)
+    ); /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(
+        to bottom,
+        color(primary_light),
+        color(primary),
+        color(dark)
+    );
 }
 
-.custom-table{
-    table{
-        tbody{
-            a{
+.custom-table {
+    table {
+        tbody {
+            a {
                 // color: color(dark);
                 text-decoration: none;
             }
@@ -123,80 +135,108 @@
     padding: 0.3rem 0.5rem;
     border-radius: 0.25rem;
     border: 0.01rem solid color(secondary);
-    select,input {
+    select,
+    input {
         border: none;
         width: 100%;
     }
-    .form-control{
+    .form-control {
         height: unset;
         padding-top: 0.1rem;
         padding-bottom: 0.1rem;
     }
-    .form-control:focus{
+    .form-control:focus {
         outline: 0px !important;
         border: none !important;
     }
-
 }
 
-.border-bottom{
+.border-bottom {
     border-bottom: 0.1rem solid color(secondary);
 }
 
-.bg-green{
+.bg-green {
     background: color(success);
 }
-.bg-red{
+.bg-red {
     background: color(fail);
 }
-.bg-grey{
+.bg-grey {
     background: color(secondary);
 }
 
 //border color
-.brd-l-success{
+.brd-l-success {
     border-left: 0.2rem solid color(success) !important;
 }
-.brd-l-danger{
-    border-left:0.2rem solid color(fail) !important;
+.brd-l-danger {
+    border-left: 0.2rem solid color(fail) !important;
 }
-.brd-l-default{
-    border-left:0.2rem solid color(secondary) !important;
+.brd-l-default {
+    border-left: 0.2rem solid color(secondary) !important;
 }
-.brd-l-info{
-    border-left:0.2rem solid color(active) !important;
+.brd-l-info {
+    border-left: 0.2rem solid color(active) !important;
 }
-.brd-l-warning{
-    border-left:0.2rem solid color(warning) !important;
+.brd-l-warning {
+    border-left: 0.2rem solid color(warning) !important;
 }
-.brd-l-primary{
-    border-left:0.2rem solid color(primary) !important;
+.brd-l-primary {
+    border-left: 0.2rem solid color(primary) !important;
 }
 
 //text color
-.text-success{
+.text-success {
     color: color(success) !important;
 }
-.text-danger{
+.text-danger {
     color: color(fail) !important;
 }
-.text-default{
+.text-default {
     color: color(secondary) !important;
 }
-.text-info{
+.text-info {
     color: color(active) !important;
 }
-.text-warning{
+.text-warning {
     color: color(warning) !important;
 }
-.text-primary{
+.text-primary {
     color: color(primary) !important;
 }
 
-.capitalize{
+.capitalize {
     text-transform: capitalize;
 }
 
-.pages{
-    float: right;
+.card-header[data-toggle="collapse"] {
+    transition: all 0.3s ease;
+}
+
+.card-header[data-toggle="collapse"]:hover {
+    background-color: #e9ecef !important;
+}
+
+.card-header .fas.fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+.card-header[aria-expanded="false"] .fas.fa-chevron-down {
+    transform: rotate(-90deg);
+}
+
+.preview-box {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f8f9fa;
+}
+
+.preview-box img {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group label .text-danger {
+    font-size: 0.9em;
 }
