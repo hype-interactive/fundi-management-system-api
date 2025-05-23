@@ -24,7 +24,7 @@
                         @livewire('fundi-form', ['fundi'=> $fundi])
                     </div>
                     <div class="tab-pane fade transactions-form" id="nav-profile" role="tabpanel" aria-labelledby="nav-profile-tab">
-                        {{-- @livewire('fundi-transaction-form',['fundi'=> $fundi]) --}}
+                        @livewire('fundi-transaction-form',['fundi'=> $fundi])
                     </div>
                 </div>
             </div>

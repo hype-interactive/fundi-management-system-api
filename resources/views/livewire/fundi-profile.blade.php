@@ -193,8 +193,8 @@
             <h6>Recent Site Visits</h6>
             @foreach ($siteVisits as $visit)
                 <div class="visit-item">
-                    <div class="site-name">{{ $visit->site->name ?? 'Unknown Site' }}</div>
-                    <div class="date">{{ $visit->date->format('d M, Y') }}</div>
+                    <div class="site-name">{{ $visit->site_name ?? 'Unknown Site' }}</div>
+                    <div class="date">{{ $visit->visit_date->format('d M, Y') }}</div>
                     <div class="row mt-1">
                         <div class="col-6">
                             <small>{{ $visit->purpose ?? 'Site Visit' }}</small>
