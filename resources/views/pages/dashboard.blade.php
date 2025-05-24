@@ -9,7 +9,7 @@
             </div>
             <div class="body">
 
-                {{-- <livewire:collection-summary> --}}
+                <livewire:platform-summary>
             </div>
         </div>
         <div class="col-md-3">
