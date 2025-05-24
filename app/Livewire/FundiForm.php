@@ -316,7 +316,7 @@ class FundiForm extends Component
             // Handle different modes differently
             if ($this->mode === 'create') {
                 // Close modal using JS for create mode
-                $this->dispatchBrowserEvent('closeModal', ['modalId' => 'addFundiForm']);
+                // $this->dispatchBrowserEvent('closeModal', ['modalId' => 'addFundiForm']);
                 // Reset form after saving
                 $this->resetForm();
                 $this->loadDistricts();

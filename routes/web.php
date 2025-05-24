@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\FundiController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SiteVisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
@@ -27,9 +28,7 @@ Route::middleware('auth')->group(function () {
         return view('pages.site-visits');
     })->name('site-visits');
 
-    Route::get('/site-visit/{siteVisit}', function () {
-        return view('pages.under-construction');
-    })->name('site-visit');
+    Route::get('/site-visit/{siteVisit}', [SiteVisitController::class, 'show'])->name('site-visit');
 
     Route::get('/financials', function () {
         return view('pages.under-construction');
