@@ -17,7 +17,7 @@
                         <a class="nav-link active" href="/"> <i class="fa-solid fa-chart-pie"></i> Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/fundis"> <i class="fa-solid fa-people-group"></i> Fundis</a>
+                        <a class="nav-link" href="/fundis"> <i class="fa-solid fa-people-group"></i> Mafundi</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="/site-visits">

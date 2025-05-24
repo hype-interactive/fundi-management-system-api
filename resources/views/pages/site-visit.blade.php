@@ -63,22 +63,6 @@
             });
         });
 
-        // Action functions
-        function approveVisit(visitId) {
-            if (confirm('Are you sure you want to approve this site visit?')) {
-                // Add your approval logic here
-                console.log('Approving visit:', visitId);
-            }
-        }
-
-        function rejectVisit(visitId) {
-            const reason = prompt('Please provide a reason for rejection:');
-            if (reason) {
-                // Add your rejection logic here
-                console.log('Rejecting visit:', visitId, 'Reason:', reason);
-            }
-        }
-
         function exportVisit(visitId) {
             // Add your export logic here
             console.log('Exporting visit:', visitId);

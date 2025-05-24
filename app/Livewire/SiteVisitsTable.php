@@ -20,6 +20,9 @@ class SiteVisitsTable extends Component
     public $perPage = 10;
 
     #[Url]
+    public $region = null;
+
+    #[Url]
     public $district = null;
 
     #[Url]
@@ -40,21 +43,34 @@ class SiteVisitsTable extends Component
     #[Url]
     public $visit_date_to = null;
 
+    public $regions = [];
     public $districts = [];
     public $wards = [];
     public $status_options = [];
     public $operators = [];
     public $approvers = [];
-    public $isAdminOrRoot = false;
 
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
     public $compactView = false;
 
+    public function updatedRegion($value)
+    {
+        $this->district = null;
+        $this->ward = null;
+
+        // Load districts based on region selection
+        $this->districts = $this->getDistricts((int)$value);
+        $this->wards = collect();
+
+        $this->resetPage();
+    }
+
     public function updatedDistrict($value)
     {
         $this->ward = null;
         $this->wards = $this->getWards($value);
+        $this->resetPage();
     }
 
     public function updatedSearchKey()
@@ -99,20 +115,12 @@ class SiteVisitsTable extends Component
 
     public function getSiteVisitQuery()
     {
-        $this->getData();
+        $this->loadData();
 
-        $query = SiteVisit::with(['ward.district', 'operator', 'approver', 'photos']);
+        $query = SiteVisit::with(['ward.district.region', 'operator', 'approver', 'photos']);
 
-        // Apply district filter only if not admin/root or if a district is explicitly selected
-        if (!$this->isAdminOrRoot || $this->district) {
-            $query->whereHas('ward', function ($query) {
-                $query->whereHas('district', function ($subQuery) {
-                    if ($this->district) {
-                        $subQuery->where('id', $this->district);
-                    }
-                });
-            });
-        }
+        // Apply location-based filters using the trait method
+        $this->applyLocationFiltersToQuery($query, $this->region, $this->district, $this->ward);
 
         return $query
             ->when($this->search_key, function ($query, $search_key) {
@@ -123,9 +131,6 @@ class SiteVisitsTable extends Component
                             $operatorQuery->whereRaw("concat(fname, ' ', lname) like ?", ['%' . $search_key . '%']);
                         });
                 });
-            })
-            ->when($this->ward, function ($query, $ward) {
-                $query->where('ward_id', $ward);
             })
             ->when($this->status, function ($query, $status) {
                 if ($status == 'approved') {
@@ -152,27 +157,26 @@ class SiteVisitsTable extends Component
             ->latest('created_at');
     }
 
-    public function getData()
+    public function loadData()
     {
-        // Get all districts for admins/root, otherwise just get the user's districts
-        $this->districts = $this->isAdminOrRoot ? $this->getAllDistricts() : $this->getDistricts();
+        // Load regions based on user permissions
+        $this->regions = $this->getAccessibleRegions();
 
+        // Load districts based on current region selection and user permissions
+        $this->districts = $this->getDistricts((int)$this->region);
+
+        // Load wards based on current district selection
         $this->wards = $this->getWards($this->district);
+
+        // Load other dropdown options
         $this->status_options = [
             'approved' => 'Approved',
             'pending' => 'Pending Approval',
             'rejected' => 'Rejected'
         ];
+
         $this->operators = $this->getOperators();
         $this->approvers = $this->getUsers('approved_by');
-    }
-
-    /**
-     * Get all districts without user restrictions
-     */
-    private function getAllDistricts()
-    {
-        return \App\Models\District::orderBy('name')->get();
     }
 
     /**
@@ -210,6 +214,14 @@ class SiteVisitsTable extends Component
     }
 
     /**
+     * Toggle mobile filters visibility
+     */
+    public function toggleMobileFilters()
+    {
+        $this->showMobileFilters = !$this->showMobileFilters;
+    }
+
+    /**
      * Download the PDF of site visits
      */
     public function downloadSiteVisitPDF()
@@ -224,10 +236,16 @@ class SiteVisitsTable extends Component
             // Create an array of rows
             $rows = [];
             foreach ($siteVisits as $visit) {
+                $location = $this->getLocationBreadcrumb(
+                    $visit->ward_id,
+                    $visit->ward->district_id,
+                    $visit->ward->district->region_id
+                );
+
                 $rows[] = [
                     'site_name' => $visit->site_name,
                     'operator' => $visit->operator->full_name ?? 'N/A',
-                    'location' => $visit->ward->name . ', ' . $visit->ward->district->name,
+                    'location' => $location,
                     'visit_date' => $visit->visit_date->format('Y-m-d'),
                     'status' => $this->getVisitStatus($visit),
                     'gps_coordinates' => $visit->gps_latitude && $visit->gps_longitude
@@ -262,6 +280,7 @@ class SiteVisitsTable extends Component
                 'Operator',
                 'Ward',
                 'District',
+                'Region',
                 'Visit Date',
                 'GPS Latitude',
                 'GPS Longitude',
@@ -270,7 +289,7 @@ class SiteVisitsTable extends Component
                 'Approved At',
                 'Rejection Reason',
                 'Photos Count',
-                'Fundis Count',
+                'Mafundi Count',
                 'Products Count',
                 'Created At'
             ];
@@ -285,6 +304,7 @@ class SiteVisitsTable extends Component
                     $visit->operator->full_name ?? 'N/A',
                     $visit->ward->name ?? 'N/A',
                     $visit->ward->district->name ?? 'N/A',
+                    $visit->ward->district->region->name ?? 'N/A',
                     $visit->visit_date->format('Y-m-d'),
                     $visit->gps_latitude,
                     $visit->gps_longitude,
@@ -331,20 +351,24 @@ class SiteVisitsTable extends Component
 
     public function mount()
     {
-        $currentUser = currentUser();
+        $user = currentUser();
 
-        // Check if user is admin or root
-        $this->isAdminOrRoot = $currentUser && ($currentUser->role->name === 'admin' || $currentUser->role->name === 'root');
+        // For non-admin/root users, set their primary location
+        if (!$this->isAdminOrRoot()) {
+            $primaryDistrict = $this->getUserPrimaryDistrict();
+            $primaryRegion = $this->getUserPrimaryRegion();
 
-        // For non-admin/root users, set their primary district
-        if (!$this->isAdminOrRoot) {
-            $this->district = $currentUser?->primary_district?->id ?? 2; // fallback to Dar es Salaam
+            if ($primaryDistrict) {
+                $this->district = $primaryDistrict->id;
+            }
+
+            if ($primaryRegion) {
+                $this->region = $primaryRegion->id;
+            }
         }
 
-        // Auto-hide mobile filters initially on mobile
+        // Auto-hide mobile filters initially
         $this->showMobileFilters = false;
-
-        // Set compact view based on screen size (you can add logic to detect this)
         $this->compactView = false;
     }
 
@@ -360,9 +384,9 @@ class SiteVisitsTable extends Component
             'visit_date_to'
         ]);
 
-        // Don't reset district for non-admin/root users
-        if ($this->isAdminOrRoot) {
-            $this->reset(['district']);
+        // Don't reset region/district for non-admin/root users
+        if ($this->isAdminOrRoot()) {
+            $this->reset(['region', 'district']);
         }
 
         // Hide mobile filters after refresh

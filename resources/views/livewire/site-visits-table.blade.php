@@ -38,6 +38,11 @@
                     @if (isRoot())
                         <div class="col-lg-2 col-md-3 col-6">
                             <div class="select">
+                                @include('components.selects.select_region')
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-3 col-6">
+                            <div class="select">
                                 @include('components.selects.select_district')
                             </div>
                         </div>
@@ -71,7 +76,7 @@
                         </div>
                     </div>
 
-                    <!-- Date From -->
+                    {{-- <!-- Date From -->
                     <div class="col-lg-2 col-md-4 col-6">
                         <input wire:model.live="visit_date_from" type="date" class="form-control form-control-sm"
                             placeholder="From Date">
@@ -81,7 +86,7 @@
                     <div class="col-lg-2 col-md-4 col-6">
                         <input wire:model.live="visit_date_to" type="date" class="form-control form-control-sm"
                             placeholder="To Date">
-                    </div>
+                    </div> --}}
                 </div>
             </div>
         </div>
@@ -286,7 +291,7 @@
                                 @if ($visit->fundis->count() > 0)
                                     <span class="badge bg-info me-2">
                                         <i class="fa-solid fa-users me-1"></i>
-                                        {{ $visit->fundis->count() }} Fundis
+                                        {{ $visit->fundis->count() }} Mafundi
                                     </span>
                                 @endif
                                 @if ($visit->products->count() > 0)

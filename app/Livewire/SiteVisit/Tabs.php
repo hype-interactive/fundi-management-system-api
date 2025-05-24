@@ -10,7 +10,10 @@ class Tabs extends Component
     public SiteVisit $siteVisit;
     public string $activeTab = 'details';
 
-    protected $listeners = ['tabChanged'];
+    protected $listeners = [
+        'tabChanged',
+        'visitStatusChanged' => '$refresh'
+    ];
 
     public function mount(SiteVisit $siteVisit)
     {

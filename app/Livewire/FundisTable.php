@@ -20,6 +20,9 @@ class FundisTable extends Component
     public $perPage = 10;
 
     #[Url]
+    public $region = null;
+
+    #[Url]
     public $district = null;
 
     #[Url]
@@ -43,6 +46,7 @@ class FundisTable extends Component
     #[Url]
     public $legacy_match = null;
 
+    public $regions = [];
     public $districts = [];
     public $wards = [];
     public $gender_options = [];
@@ -50,16 +54,28 @@ class FundisTable extends Component
     public $approval_status_options = [];
     public $creators = [];
     public $approvers = [];
-    public $isAdminOrRoot = false;
 
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
     public $compactView = false;
 
+    public function updatedRegion($value)
+    {
+        $this->district = null;
+        $this->ward = null;
+
+        // Load districts based on region selection
+        $this->districts = $this->getDistricts((int)$value);
+        $this->wards = collect();
+
+        $this->resetPage();
+    }
+
     public function updatedDistrict($value)
     {
         $this->ward = null;
         $this->wards = $this->getWards($value);
+        $this->resetPage();
     }
 
     public function updatedSearchKey()
@@ -109,20 +125,12 @@ class FundisTable extends Component
 
     public function getFundiQuery()
     {
-        $this->getData();
+        $this->loadData();
 
-        $query = Fundi::with('ward.district');
+        $query = Fundi::with('ward.district.region');
 
-        // Apply district filter only if not admin/root or if a district is explicitly selected
-        if (!$this->isAdminOrRoot || $this->district) {
-            $query->whereHas('ward', function ($query) {
-                $query->whereHas('district', function ($subQuery) {
-                    if ($this->district) {
-                        $subQuery->where('id', $this->district);
-                    }
-                });
-            });
-        }
+        // Apply location-based filters using the trait method
+        $this->applyLocationFiltersToQuery($query, $this->region, $this->district, $this->ward);
 
         return $query
             ->when($this->search_key, function ($query, $search_key) {
@@ -130,9 +138,9 @@ class FundisTable extends Component
                     ->orWhere('primary_phone', 'like', '%' . $search_key . '%')
                     ->orWhere('transaction_phone', 'like', '%' . $search_key . '%');
             })
-            ->when($this->ward, function ($query, $ward) {
-                $query->where('ward_id', $ward);
-            })
+            // ->when($this->ward, function ($query, $ward) {
+            //     $query->where('ward_id', $ward);
+            // })
             ->when($this->gender, function ($query, $gender) {
                 $query->where('gender', $gender);
             })
@@ -159,12 +167,17 @@ class FundisTable extends Component
             ->latest('created_at');
     }
 
-    public function getData()
+    public function loadData()
     {
-        // Get all districts for admins/root, otherwise just get the user's districts
-        $this->districts = $this->isAdminOrRoot ? $this->getAllDistricts() : $this->getDistricts();
+        // Load regions based on user permissions
+        $this->regions = $this->getAccessibleRegions();
 
+        // Load districts based on current region selection and user permissions
+        $this->districts = $this->getDistricts((int)$this->region);
+
+        // Load wards based on current district selection
         $this->wards = $this->getWards($this->district);
+
         $this->gender_options = ['male' => 'Male', 'female' => 'Female'];
         $this->ranking_options = ['fundi_kuu' => 'Fundi Mkuu', 'fundi_msaidizi' => 'Fundi'];
         $this->approval_status_options = ['approved' => 'Approved', 'pending' => 'Pending Approval'];
@@ -216,17 +229,24 @@ class FundisTable extends Component
             // Create an array of rows
             $rows = [];
             foreach ($fundis as $fundi) {
+                $location = $this->getLocationBreadcrumb(
+                    $fundi->ward_id,
+                    $fundi->ward->district_id,
+                    $fundi->ward->district->region_id
+                );
+
                 $rows[] = [
                     'name' => $fundi->full_name,
-                    'address' => $fundi->ward->name . ', ' . $fundi->ward->district->name,
-                    'phone' => $fundi->primary_phone,
+                    'address' => $location,
+                    'primary_phone' => $fundi->primary_phone,
+                    'transaction_phone' => $fundi->transaction_phone,
                     'gender' => ucfirst($fundi->gender),
                     'ranking' => $this->ranking_options[$fundi->ranking] ?? 'N/A',
                     'status' => $fundi->approved_at ? 'Approved' : 'Pending',
                 ];
             }
 
-            $title = 'Fundis | Mafundi';
+            $title = 'Mafundi | Magic Builders';
             $date = date('D, M/d/Y');
             $html_view = view('documents.fundis', compact('title', 'date', 'rows'))->render();
             $pdf = app('dompdf.wrapper');
@@ -254,6 +274,7 @@ class FundisTable extends Component
                 'NIDA Number',
                 'Ward',
                 'District',
+                'Region',
                 'Ranking',
                 'Status',
                 'Registered By',
@@ -274,6 +295,7 @@ class FundisTable extends Component
                     $fundi->nida_number,
                     $fundi->ward->name ?? 'N/A',
                     $fundi->ward->district->name ?? 'N/A',
+                    $fundi->ward->district->region->name ?? 'N/A',
                     $this->ranking_options[$fundi->ranking] ?? 'N/A',
                     $fundi->approved_at ? 'Approved' : 'Pending',
                     $fundi->creator->full_name ?? 'N/A',
@@ -291,14 +313,18 @@ class FundisTable extends Component
 
     public function mount()
     {
-        $currentUser = currentUser();
+        // For non-admin/root users, set their primary location
+        if (!$this->isAdminOrRoot()) {
+            $primaryDistrict = $this->getUserPrimaryDistrict();
+            $primaryRegion = $this->getUserPrimaryRegion();
 
-        // Check if user is admin or root
-        $this->isAdminOrRoot = $currentUser && ($currentUser->role->name === 'admin' || $currentUser->role->name === 'root');
+            if ($primaryDistrict) {
+                $this->district = $primaryDistrict->id;
+            }
 
-        // For non-admin/root users, set their primary district
-        if (!$this->isAdminOrRoot) {
-            $this->district = $currentUser?->primary_district?->id ?? 2; // fallback to Dar es Salaam
+            if ($primaryRegion) {
+                $this->region = $primaryRegion->id;
+            }
         }
 
         // Auto-hide mobile filters initially on mobile
@@ -321,9 +347,9 @@ class FundisTable extends Component
             'legacy_match'
         ]);
 
-        // Don't reset district for non-admin/root users
-        if ($this->isAdminOrRoot) {
-            $this->reset(['district']);
+        // Don't reset region/district for non-admin/root users
+        if ($this->isAdminOrRoot()) {
+            $this->reset(['region', 'district']);
         }
 
         // Hide mobile filters after refresh

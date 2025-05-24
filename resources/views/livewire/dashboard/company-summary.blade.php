@@ -24,7 +24,7 @@
             </div>
             <div class="title">
                 <div class="count">{{ $this->fundi_count }}</div>
-                Fundis
+                Mafundi
             </div>
         </div>
     </div>

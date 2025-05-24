@@ -23,7 +23,7 @@
             </div>
             <div class="stat-item">
                 <div class="stat-number">{{ $siteVisit->fundis->count() }}</div>
-                <div class="stat-label">Fundis</div>
+                <div class="stat-label">Mafundi</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">
@@ -46,13 +46,11 @@
         </h5>
         <div class="action-buttons">
             @if ($siteVisit->status === 'pending')
-                <button class="btn btn-success btn-sm" wire:click="approveVisit"
-                        wire:confirm="Are you sure you want to approve this site visit?">
+                <button class="btn btn-success btn-sm" wire:click="confirmApprove">
                     <i class="fa-solid fa-check me-1"></i>
                     Approve Visit
                 </button>
-                <button class="btn btn-danger btn-sm"
-                        onclick="rejectVisit({{ $siteVisit->id }})">
+                <button class="btn btn-danger btn-sm" wire:click="confirmReject">
                     <i class="fa-solid fa-times me-1"></i>
                     Reject Visit
                 </button>
@@ -107,4 +105,6 @@
             @endif
         </div>
     </div>
+
+    <livewire:components.confirmation-modal />
 </div>

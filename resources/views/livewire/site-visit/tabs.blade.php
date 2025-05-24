@@ -15,7 +15,7 @@
             </button>
             <button class="nav-link @if($activeTab === 'fundis') active @endif"
                     wire:click="switchTab('fundis')" type="button">
-                Fundis ({{ $siteVisit->fundis->count() }})
+                Mafundi ({{ $siteVisit->fundis->count() }})
             </button>
             @if ($siteVisit->status === 'rejected' && $siteVisit->rejection_reason)
                 <button class="nav-link text-danger @if($activeTab === 'rejection') active @endif"

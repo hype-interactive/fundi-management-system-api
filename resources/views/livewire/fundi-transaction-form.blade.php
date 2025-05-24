@@ -29,14 +29,14 @@
             <!-- Transaction Summary -->
             <div class="row mb-4">
                 <div class="col-md-3">
-                    <div class="card bg-success text-white">
+                    <div class="card bg-grey text-white">
                         <div class="card-body">
                             <h6 class="card-title">Total Received</h6>
                             <h4>{{ number_format($transactionSummary['total_received']) }} TZS</h4>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                {{-- <div class="col-md-3">
                     <div class="card bg-warning text-white">
                         <div class="card-body">
                             <h6 class="card-title">Pending</h6>
@@ -51,9 +51,9 @@
                             <h4>{{ number_format($transactionSummary['total_processing']) }} TZS</h4>
                         </div>
                     </div>
-                </div>
+                </div> --}}
                 <div class="col-md-3">
-                    <div class="card bg-danger text-white">
+                    <div class="card bg-grey text-white">
                         <div class="card-body">
                             <h6 class="card-title">Failed</h6>
                             <h4>{{ number_format($transactionSummary['total_failed']) }} TZS</h4>
@@ -71,7 +71,7 @@
                     <!-- Filters -->
                     <div class="mb-3">
                         <div class="form-row">
-                            <div class="col-md-2">
+                            {{-- <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="transaction_status">Status</label>
                                     <select class="form-control" id="transaction_status" wire:model="transaction_status">
@@ -82,10 +82,10 @@
                                         <option value="failed">Failed</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div class="col-md-2">
+                            </div> --}}
+                            <div class="col-md-3">
                                 <div class="form-group">
-                                    <label for="disbursement_batch_id">Disbursement Batch</label>
+                                    <label for="disbursement_batch_id">Disburse. Batch</label>
                                     <select class="form-control" id="disbursement_batch_id" wire:model="disbursement_batch_id">
                                         <option value="">All Batches</option>
                                         @foreach($disbursementBatches as $batch)

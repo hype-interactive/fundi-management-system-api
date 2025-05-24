@@ -33,6 +33,11 @@
     }
 }
 
+.btn-primary {
+    background: color(primary) !important;
+    color: color(light) !important;
+}
+
 .error {
     color: color(fail);
     font-size: 0.7rem;

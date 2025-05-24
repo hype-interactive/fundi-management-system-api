@@ -166,7 +166,7 @@
     .ranking-badge {
         color: white;
         &.bg-primary {
-            background: color(primary);
+            background: color(primary) !important;
         }
 
         &.bg-secondary {

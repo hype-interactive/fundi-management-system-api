@@ -76,4 +76,11 @@ class SiteVisit extends Model
     {
         return $this->ward->district->region();
     }
+
+    public function getLocationAttribute()
+    {
+        return $this->gps_latitude && $this->gps_longitude
+            ? "Lat: {$this->gps_latitude}, Long: {$this->gps_longitude}"
+            : 'Not specified';
+    }
 }

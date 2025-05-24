@@ -46,25 +46,16 @@
             color: #666;
         }
 
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            color: white;
-            display: inline-block;
-        }
-
         .status-approved {
-            background-color: #28a745;
+            color: #28a745;
         }
 
         .status-pending {
-            background-color: #ffc107;
-            color: #212529;
+            color: #ffc107;
         }
 
         .status-rejected {
-            background-color: #dc3545;
+            color: #dc3545;
         }
 
         .footer {
@@ -104,11 +95,11 @@
                         <td>{{ $row['visit_date'] }}</td>
                         <td>
                             @if($row['status'] == 'Approved')
-                                <span class="status-badge status-approved">Approved</span>
+                                <span class="status-approved">Approved</span>
                             @elseif($row['status'] == 'Rejected')
-                                <span class="status-badge status-rejected">Rejected</span>
+                                <span class="status-rejected">Rejected</span>
                             @else
-                                <span class="status-badge status-pending">Pending</span>
+                                <span class="status-pending">Pending</span>
                             @endif
                         </td>
                         <td>{{ $row['gps_coordinates'] }}</td>

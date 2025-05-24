@@ -13,6 +13,11 @@
                     @if (isRoot())
                         <div class="col">
                             <div class="select">
+                                @include('components.selects.select_region')
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="select">
                                 @include('components.selects.select_district')
                             </div>
                         </div>
