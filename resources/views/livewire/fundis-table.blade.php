@@ -132,6 +132,7 @@
                             <td class="d-lg-table-cell d-none">
                                 @include('components.approval-status-badge', [
                                     'approved_at' => $fundi->approved_at,
+                                    'rejected_at' => $fundi->rejected_at,
                                 ])
                             </td>
                             <td class="d-xl-table-cell d-none">
@@ -168,6 +169,7 @@
                                 @include('components.ranking-badge', ['ranking' => $fundi->ranking])
                                 @include('components.approval-status-badge', [
                                     'approved_at' => $fundi->approved_at,
+                                    'rejected_at' => $fundi->rejected_at,
                                 ])
                             </div>
                         </div>

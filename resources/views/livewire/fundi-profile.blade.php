@@ -141,6 +141,27 @@
         @endif
     </div>
 
+    <!-- Actions Section -->
+    @if (!$fundi->approved_at || !$fundi->rejected_at)
+        <div class="actions-card mt-4">
+            <h6 class="card-title">
+                <i class="fa-solid fa-cogs mr-2"></i>
+                Actions
+            </h6>
+            <div class="action-buttons">
+                <button class="btn btn-success btn-sm" wire:click="confirmApprove">
+                    <i class="fa-solid fa-check me-1"></i>
+                    Approve Fundi
+                </button>
+                <button class="btn btn-danger btn-sm" wire:click="confirmReject">
+                    <i class="fa-solid fa-times me-1"></i>
+                    Reject Fundi
+                </button>
+            </div>
+        </div>
+    @endif
+
+    <!-- Legacy Match Section -->
     @if ($legacyMatch)
         <div class="legacy-match">
             <div class="legacy-title">Legacy System Match</div>
@@ -162,7 +183,9 @@
             </div>
         </div>
     @endif
+    <!-- End of Legacy Match Section -->
 
+    <!-- Transactions and Site Visits Section -->
     @if (count($transactions) > 0)
         <div class="transactions-history mt-4">
             <h6>Recent Transactions</h6>
@@ -187,7 +210,9 @@
             @endforeach
         </div>
     @endif
+    <!-- End of Transactions Section -->
 
+    <!-- Site Visits Section -->
     @if (count($siteVisits) > 0)
         <div class="site-visits">
             <h6>Recent Site Visits</h6>
@@ -209,4 +234,6 @@
             @endforeach
         </div>
     @endif
+
+    <livewire:components.confirmation-modal />
 </div>

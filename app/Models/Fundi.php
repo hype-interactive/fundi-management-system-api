@@ -26,18 +26,31 @@ class Fundi extends Model
         'created_by',
         'approved_by',
         'approved_at',
+        'rejection_reason',
+        'rejected_at',
+        'rejected_by',
         'legacy_match',
         'legacy_id',
     ];
 
     protected $casts = [
         'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
         'legacy_match' => 'boolean',
     ];
 
     public function getFullNameAttribute()
     {
         return trim("{$this->fname} {$this->mname} {$this->lname}");
+    }
+
+    public function getApprovalStatusAttribute(): string
+    {
+        return match (true) {
+            $this->rejected_at => 'Rejected',
+            $this->approved_at => 'Approved',
+            default => 'Pending',
+        };
     }
 
     public function ward()
@@ -53,6 +66,11 @@ class Fundi extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejector()
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 
     public function siteVisits()

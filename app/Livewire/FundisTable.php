@@ -148,10 +148,12 @@ class FundisTable extends Component
                 $query->where('ranking', $ranking);
             })
             ->when($this->approval_status, function ($query, $approval_status) {
-                if ($approval_status == 'approved') {
-                    $query->whereNotNull('approved_at');
-                } elseif ($approval_status == 'pending') {
-                    $query->whereNull('approved_at');
+                if ($approval_status === 'approved') {
+                    $query->whereNotNull('approved_at')->whereNull('rejected_at');
+                } elseif ($approval_status === 'rejected') {
+                    $query->whereNotNull('rejected_at');
+                } elseif ($approval_status === 'pending') {
+                    $query->whereNull('approved_at')->whereNull('rejected_at');
                 }
             })
             ->when($this->created_by, function ($query, $created_by) {
@@ -180,7 +182,7 @@ class FundisTable extends Component
 
         $this->gender_options = ['male' => 'Male', 'female' => 'Female'];
         $this->ranking_options = ['fundi_kuu' => 'Fundi Mkuu', 'fundi_msaidizi' => 'Fundi'];
-        $this->approval_status_options = ['approved' => 'Approved', 'pending' => 'Pending Approval'];
+        $this->approval_status_options = ['approved' => 'Approved', 'pending' => 'Pending Approval', 'rejected' => 'Rejected'];
         $this->creators = $this->getUsers('created_by');
         $this->approvers = $this->getUsers('approved_by');
     }
@@ -297,7 +299,7 @@ class FundisTable extends Component
                     $fundi->ward->district->name ?? 'N/A',
                     $fundi->ward->district->region->name ?? 'N/A',
                     $this->ranking_options[$fundi->ranking] ?? 'N/A',
-                    $fundi->approved_at ? 'Approved' : 'Pending',
+                    $fundi->approval_status,
                     $fundi->creator->full_name ?? 'N/A',
                     $fundi->approver->full_name ?? 'N/A',
                     $fundi->created_at->format('Y-m-d H:i:s'),

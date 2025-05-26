@@ -50,7 +50,7 @@ class FundiForm extends Component
     protected $listeners = [
         'editFundi' => 'loadFundi',
         'createNewFundi' => 'resetForm',
-        'resetValidation' => 'resetValidation'
+        'resetValidation' => 'resetValidation',
     ];
 
     public function mount($fundi = null)
@@ -266,7 +266,7 @@ class FundiForm extends Component
             'district' => 'required|exists:districts,id',
             'ward_id' => 'required|exists:wards,id',
             'ranking' => 'required|in:fundi_kuu,fundi_msaidizi',
-            'status' => 'required|in:active,inactive',
+            'status' => 'required|in:active,inactive,pending',
             'profile_photo' => $this->fundi_id ? 'nullable|image|max:2048' : 'nullable|image|max:2048',
             'legacy_id' => 'nullable|required_if:legacy_match,true|string|max:255',
         ];
@@ -290,6 +290,8 @@ class FundiForm extends Component
             $this->ward_id = $this->ward;
         }
 
+        $isCreating = empty($this->fundi_id);
+
         // Create or update the fundi
         $fundi = Fundi::updateOrCreate(
             ['id' => $this->fundi_id],
@@ -305,7 +307,7 @@ class FundiForm extends Component
                 'ward_id' => $this->ward_id,
                 'ranking' => $this->ranking,
                 'profile_photo' => $photo_path,
-                'status' => $this->status,
+                'status' => $isCreating ? 'pending' : $this->status, // Set status to pending if creating new
                 'created_by' => $this->fundi_id ? null : Auth::id(), // Only set if creating new
                 'legacy_match' => $this->legacy_match,
                 'legacy_id' => $this->legacy_match ? $this->legacy_id : null,
