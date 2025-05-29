@@ -5,15 +5,15 @@ namespace App\Livewire;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\District;
+use App\Traits\HasImageUpload;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 
 class OperatorForm extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, HasImageUpload;
 
     // Operator form properties
     public $operator_id = null;
@@ -28,6 +28,11 @@ class OperatorForm extends Component
     public $password = '';
     public $password_confirmation = '';
 
+    // Image handling properties
+    public $existing_photo_url = null;
+    public $existing_photo_public_id = null;
+    public $remove_photo = false;
+
     // Districts assignment
     public $selected_districts = [];
     public $available_districts = [];
@@ -35,8 +40,6 @@ class OperatorForm extends Component
     // UI state properties
     public $action_text = 'Create';
     public $editing = false;
-    public $existing_photo = null;
-    public $remove_photo = false;
     public $mode = 'create'; // 'create' or 'edit'
     public $show_password = false;
 
@@ -84,12 +87,14 @@ class OperatorForm extends Component
         // Load assigned districts
         $this->selected_districts = $operator->districts->pluck('id')->toArray();
 
-        // Handle existing photo
-        if ($operator->profile_photo) {
-            $this->existing_photo = Storage::url($operator->profile_photo);
+        // Handle existing photo with Cloudinary
+        if ($operator->profile_photo_url && $operator->profile_photo_public_id) {
+            $this->existing_photo_url = $operator->profile_photo_url;
+            $this->existing_photo_public_id = $operator->profile_photo_public_id;
             $this->remove_photo = false;
         } else {
-            $this->existing_photo = null;
+            $this->existing_photo_url = null;
+            $this->existing_photo_public_id = null;
         }
 
         $this->action_text = 'Update';
@@ -158,7 +163,8 @@ class OperatorForm extends Component
             'password_confirmation',
             'selected_districts',
             'editing',
-            'existing_photo',
+            'existing_photo_url',
+            'existing_photo_public_id',
             'remove_photo',
             'show_password'
         ]);
@@ -187,7 +193,18 @@ class OperatorForm extends Component
     public function removePhoto()
     {
         $this->remove_photo = true;
-        $this->existing_photo = null;
+        $this->existing_photo_url = null;
+    }
+
+    /**
+     * Get thumbnail URL for display
+     */
+    public function getThumbnailAttribute()
+    {
+        if ($this->existing_photo_public_id && !$this->remove_photo) {
+            return $this->getThumbnailUrl($this->existing_photo_public_id, 150, 150);
+        }
+        return null;
     }
 
     /**
@@ -203,10 +220,12 @@ class OperatorForm extends Component
             'phone' => 'required|string|max:20|unique:users,phone,' . $this->operator_id,
             'role_id' => 'required|exists:roles,id',
             'status' => 'required|in:active,inactive,pending',
-            'profile_photo' => 'nullable|image|max:2048',
             'selected_districts' => 'required|array|min:1',
             'selected_districts.*' => 'exists:districts,id',
         ];
+
+        // Add image validation rules
+        $rules['profile_photo'] = $this->getImageValidationRules(false, ['max:5120']); // 5MB max
 
         // Add password rules for new operators or when updating password
         if (!$this->editing || ($this->editing && !empty($this->password))) {
@@ -216,26 +235,24 @@ class OperatorForm extends Component
 
         $this->validate($rules);
 
-        // Handle profile photo upload
-        $photo_path = null;
+        // Handle profile photo upload using the trait
+        $imageData = null;
         if ($this->profile_photo) {
-            // Delete old photo if exists
-            if ($this->editing && $this->operator->profile_photo) {
-                Storage::disk('public')->delete($this->operator->profile_photo);
-            }
-            $photo_path = $this->profile_photo->store('operators', 'public');
-        } elseif ($this->editing && !$this->remove_photo) {
-            // Keep existing photo if editing and not removing
-            $photo_path = User::find($this->operator_id)->profile_photo;
-        } elseif ($this->editing && $this->remove_photo) {
-            // Remove existing photo
-            if ($this->operator->profile_photo) {
-                Storage::disk('public')->delete($this->operator->profile_photo);
-            }
-            $photo_path = null;
-        }
+            $imageData = $this->handleImageUpload(
+                $this->profile_photo,
+                'operators',
+                $this->existing_photo_public_id
+            );
 
-        $isCreating = empty($this->operator_id);
+            if (!$imageData) {
+                session()->flash('error', 'Failed to upload profile photo.');
+                return;
+            }
+        } elseif ($this->remove_photo && $this->existing_photo_public_id) {
+            // Delete the existing photo
+            $this->handleImageDeletion($this->existing_photo_public_id);
+            $imageData = ['url' => null, 'public_id' => null];
+        }
 
         // Prepare data for create/update
         $data = [
@@ -246,8 +263,13 @@ class OperatorForm extends Component
             'phone' => $this->phone,
             'role_id' => $this->role_id,
             'status' => $this->status,
-            'profile_photo' => $photo_path,
         ];
+
+        // Add image data if processed
+        if ($imageData) {
+            $data['profile_photo_url'] = $imageData['url'];
+            $data['profile_photo_public_id'] = $imageData['public_id'];
+        }
 
         // Add password if provided
         if (!empty($this->password)) {

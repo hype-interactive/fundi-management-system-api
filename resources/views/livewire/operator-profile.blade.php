@@ -2,12 +2,20 @@
     <div class="avatar-wrapper mb-4">
         <div class="light-border">
             <div class="avatar">
-                {{-- @if ($operator->profile_photo)
-                    <img src="{{ asset('storage/' . $operator->profile_photo) }}" alt="Profile Picture">
+                @if ($operator->profile_photo_public_id)
+                    <x-cloudinary::image
+                        public-id="{{ $operator->profile_photo_public_id }}"
+                        width="80"
+                        height="80"
+                        crop="fill"
+                        quality="auto"
+                        fetch-format="auto"
+                        class="rounded-full object-cover"
+                        alt="{{ $operator->fname }} {{ $operator->lname }}"
+                    />
                 @else
-                    <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar">
-                @endif --}}
-                <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar">
+                    <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar" class="rounded-full">
+                @endif
             </div>
         </div>
     </div>

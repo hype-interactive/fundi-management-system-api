@@ -228,7 +228,7 @@
         </div>
 
         <!-- Profile Photo Upload -->
-        <div class="card mb-3">
+        {{-- <div class="card mb-3">
             <div class="card-header bg-light" style="cursor: pointer;" data-toggle="collapse"
                 data-target="#photoInfo" aria-expanded="false" aria-controls="photoInfo">
                 <div class="d-flex justify-content-between align-items-center">
@@ -273,6 +273,33 @@
                             </div>
                         @endif
                     </div>
+                </div>
+            </div>
+        </div> --}}
+        {{-- Using the reusable image upload component --}}
+        <div class="card mb-3">
+            <div class="card-header bg-light" style="cursor: pointer;" data-toggle="collapse"
+                data-target="#photoInfo" aria-expanded="false" aria-controls="photoInfo">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-camera mr-2"></i>Profile Photo (Optional)
+                    </h6>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+            <div id="photoInfo" class="collapse">
+                <div class="card-body">
+                    <x-image-upload
+                        wire:model="profile_photo"
+                        label="Profile Photo"
+                        :existing="$existing_photo_url"
+                        :existing-public-id="$existing_photo_public_id"
+                        :required="false"
+                        remove-method="removePhoto"
+                        width="150"
+                        height="150"
+                        max-size="5MB"
+                    />
                 </div>
             </div>
         </div>

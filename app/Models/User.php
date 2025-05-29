@@ -3,9 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class User extends Authenticatable
 {
@@ -25,7 +26,8 @@ class User extends Authenticatable
         'phone',
         'role_id',
         'status',
-        'profile_photo',
+        'profile_photo_url',
+        'profile_photo_public_id',
         'password',
     ];
 
@@ -139,5 +141,33 @@ class User extends Authenticatable
     public function getNameAttribute()
     {
         return $this->full_name;
+    }
+
+    public function getProfilePhotoThumbnailAttribute()
+    {
+        if ($this->profile_photo_public_id) {
+            return Cloudinary::url($this->profile_photo_public_id, [
+                'width' => 150,
+                'height' => 150,
+                'crop' => 'fill',
+                'quality' => 'auto',
+                'fetch_format' => 'auto'
+            ]);
+        }
+        return null;
+    }
+
+    public function getProfilePhotoAvatarAttribute()
+    {
+        if ($this->profile_photo_public_id) {
+            return Cloudinary::url($this->profile_photo_public_id, [
+                'width' => 50,
+                'height' => 50,
+                'crop' => 'fill',
+                'quality' => 'auto',
+                'fetch_format' => 'auto'
+            ]);
+        }
+        return null;
     }
 }
