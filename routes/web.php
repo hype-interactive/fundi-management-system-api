@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FundiController;
+use App\Http\Controllers\OperatorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SiteVisitController;
 use Illuminate\Support\Facades\Route;
@@ -43,8 +44,10 @@ Route::middleware('auth')->group(function () {
     })->name('administrators');
 
     Route::get('/operators', function () {
-        return view('pages.under-construction');
+        return view('pages.operators');
     })->name('operators');
+
+    Route::get('/operators/{operator}', [OperatorController::class, 'show'])->name('operator');
 
     Route::get('/legacy-data', function () {
         return view('pages.under-construction');

@@ -1,0 +1,322 @@
+.operators-wrapper {
+    position: relative;
+
+    .mobile-filter-toggle {
+        .btn {
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+
+            &:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+        }
+    }
+
+    .filter {
+        padding-top: 2rem;
+        padding-bottom: 1rem;
+
+        @media (max-width: 767.98px) {
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        *:focus {
+            outline: none;
+        }
+    }
+
+    .results-summary {
+        padding: 0.75rem 1rem;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        font-size: 14px;
+
+        .btn {
+            padding: 6px 12px;
+            margin: 0 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+
+            &:hover {
+                transform: translateY(-1px);
+            }
+        }
+    }
+
+    // Mobile Cards
+    .mobile-cards {
+        .operator-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            }
+
+            .card-header {
+                padding: 1rem;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-bottom: 1px solid #e9ecef;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+
+                .operator-avatar {
+                    flex-shrink: 0;
+                }
+
+                .operator-details {
+                    flex-grow: 1;
+                    min-width: 0;
+
+                    .operator-name {
+                        color: color(dark);
+                        font-weight: 600;
+                        margin: 0;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+
+                    .operator-meta {
+                        display: flex;
+                        gap: 0.5rem;
+                        flex-wrap: wrap;
+                        margin-top: 0.5rem;
+                    }
+                }
+            }
+
+            .card-body {
+                padding: 1rem;
+
+                .contact-row,
+                .districts-row,
+                .performance-row {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 0.5rem;
+                    font-size: 14px;
+
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+
+                    i {
+                        width: 20px;
+                        flex-shrink: 0;
+                    }
+
+                    span {
+                        color: color(dark);
+                    }
+                }
+
+                .performance-row {
+                    margin-top: 0.75rem;
+                    padding-top: 0.75rem;
+                    border-top: 1px solid #f0f0f0;
+                    display: block;
+
+                    .performance-metrics {
+                        display: flex;
+                        gap: 1rem;
+                        flex-wrap: wrap;
+
+                        .metric {
+                            display: flex;
+                            align-items: center;
+                            font-size: 12px;
+                            color: color(dark_50);
+
+                            i {
+                                width: 16px;
+                                font-size: 10px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        .empty-state {
+            padding: 3rem 1rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+            i {
+                opacity: 0.5;
+            }
+
+            h5, p {
+                margin: 0;
+            }
+
+            p {
+                font-size: 14px;
+            }
+        }
+    }
+
+    // Badge Styles
+    .role-badge,
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.7em;
+        border-radius: 6px;
+        font-weight: 500;
+        white-space: nowrap;
+        color: color(light);
+
+        i {
+            font-size: 0.85em;
+        }
+    }
+
+    // Contact info styling
+    .email-address {
+        font-size: 13px;
+        color: color(dark_70);
+    }
+
+    .phone-number {
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        color: color(dark);
+        font-weight: 500;
+    }
+
+    .contact-info {
+        .email-address {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .phone-number {
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+    }
+
+    // Districts styling
+    .districts-list {
+        .district-badge {
+            display: inline-block;
+            background: color(primary_10);
+            color: color(primary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-right: 4px;
+            margin-bottom: 2px;
+        }
+    }
+
+    // Performance metrics
+    .performance-metrics {
+        font-size: 12px;
+        color: color(dark_50);
+
+        small {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2px;
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+
+            i {
+                width: 16px;
+                font-size: 10px;
+            }
+        }
+    }
+
+    // Responsive adjustments
+    @media (max-width: 767.98px) {
+        .mobile-cards {
+            .operator-card {
+                margin-bottom: 0.75rem;
+
+                .card-header {
+                    padding: 0.75rem;
+
+                    .operator-details {
+                        .operator-name {
+                            font-size: 16px;
+                        }
+                    }
+                }
+
+                .card-body {
+                    padding: 0.75rem;
+
+                    .contact-row,
+                    .districts-row {
+                        font-size: 13px;
+                    }
+
+                    .performance-row {
+                        .performance-metrics {
+                            .metric {
+                                font-size: 11px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Loading states
+    .loading-skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: 4px;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    // Hover effects for interactive elements
+    .table tbody tr {
+        transition: all 0.2s ease;
+
+        &:hover {
+            background-color: rgba(color(primary), 0.02);
+            transform: translateX(2px);
+        }
+    }
+
+    // Status-specific styling
+    .status-active {
+        color: color(success);
+    }
+
+    .status-inactive {
+        color: color(secondary);
+    }
+
+    .status-suspended {
+        color: color(danger);
+    }
+}
