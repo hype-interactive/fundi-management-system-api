@@ -54,7 +54,7 @@ Route::middleware('auth')->group(function () {
     })->name('legacy-data');
 
     Route::get('/logs', function () {
-        return view('pages.under-construction');
+        return view('pages.activity-logs');
     })->name('logs');
 
     // Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -1,0 +1,121 @@
+.logs-wrapper {
+    .body {
+        overflow-y: hidden;
+
+        .filter {
+            width: 100%;
+            overflow-x: hidden !important;
+        }
+
+        .paper {
+            overflow-y: scroll;
+            overflow-x: hidden;
+            background-color: #eeeeeef4;
+            border: 0.05rem solid grey;
+            max-height: 70vh;
+
+            .table {
+                .left-border {
+                    border-left: 0.2rem solid !important;
+                }
+            }
+
+            .log {
+                border-bottom: 0.1rem dotted grey;
+                margin-bottom: 2rem;
+                font-size: 14px;
+
+                .mono {
+                    font-family: monospace !important;
+                    font-weight: 200;
+                }
+            }
+
+            // Specific log type styles
+            .created {
+                color: #28a745;
+            }
+
+            .updated {
+                color: #007bff;
+            }
+
+            .deleted {
+                color: #dc3545;
+            }
+
+            .accessed {
+                color: #17a2b8;
+            }
+
+            .login {
+                color: #28a745;
+            }
+
+            .logout {
+                color: #ffc107;
+            }
+
+            .other {
+                color: #6c757d;
+            }
+
+            .pages {
+                position: absolute;
+                bottom: 0;
+                right: 0;
+            }
+        }
+
+        // Responsive design
+        @media (max-width: 768px) {
+            .filter .row .col {
+                margin-bottom: 0.5rem;
+            }
+
+            .paper {
+                .table {
+                    font-size: 12px;
+
+                    th, td {
+                        padding: 0.25rem;
+                    }
+                }
+            }
+        }
+
+        // Properties collapse styling
+        .collapse {
+            pre {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 0.25rem;
+                padding: 0.5rem;
+                font-size: 11px;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+        }
+
+        // Centered content
+        .centered {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        // Semi-bold text
+        .text-semi-bold {
+            font-weight: 600;
+        }
+
+        // Capitalize text
+        .capitalize {
+            text-transform: capitalize;
+        }
+
+        // Monospace text
+        .text-monospace {
+            font-family: monospace !important;
+        }
+    }
+}

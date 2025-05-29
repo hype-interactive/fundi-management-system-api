@@ -1,7 +1,5 @@
 <?php
 
-namespace App\Helpers;
-
 use App\Models\ActivityLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -105,5 +103,49 @@ if (! function_exists('activityFor')) {
         }
 
         return activity($action, $description, $model, $properties);
+    }
+}
+
+if (!function_exists('getLogTypeColor')) {
+    function getLogTypeColor($log)
+    {
+        switch (strtolower($log->log_type)) {
+            case 'created':
+                return 'text-success';
+            case 'updated':
+                return 'text-primary';
+            case 'deleted':
+                return 'text-danger';
+            case 'accessed':
+                return 'text-info';
+            case 'login':
+                return 'text-success';
+            case 'logout':
+                return 'text-warning';
+            default:
+                return 'text-secondary';
+        }
+    }
+}
+
+if (!function_exists('getBorderStyle')) {
+    function getBorderStyle($log)
+    {
+        switch (strtolower($log->log_type)) {
+            case 'created':
+                return 'brd-l-success';
+            case 'updated':
+                return 'brd-l-primary';
+            case 'deleted':
+                return 'brd-l-danger';
+            case 'accessed':
+                return 'brd-l-info';
+            case 'login':
+                return 'brd-l-success';
+            case 'logout':
+                return 'brd-l-warning';
+            default:
+                return 'brd-l-default';
+        }
     }
 }

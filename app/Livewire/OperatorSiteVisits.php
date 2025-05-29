@@ -79,16 +79,6 @@ class OperatorSiteVisits extends Component
         $this->resetPage();
     }
 
-    public function updatedVisitDateFrom()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedVisiteDateTo()
-    {
-        $this->resetPage();
-    }
-
     public function fetch()
     {
         return $this->getSiteVisitQuery()->paginate($this->perPage);
