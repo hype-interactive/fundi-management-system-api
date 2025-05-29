@@ -351,8 +351,6 @@ class SiteVisitsTable extends Component
 
     public function mount()
     {
-        $user = currentUser();
-
         // For non-admin/root users, set their primary location
         if (!$this->isAdminOrRoot()) {
             $primaryDistrict = $this->getUserPrimaryDistrict();

@@ -2,11 +2,12 @@
     <div class="avatar-wrapper mb-4">
         <div class="light-border">
             <div class="avatar">
-                @if ($operator->profile_photo)
+                {{-- @if ($operator->profile_photo)
                     <img src="{{ asset('storage/' . $operator->profile_photo) }}" alt="Profile Picture">
                 @else
                     <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar">
-                @endif
+                @endif --}}
+                <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar">
             </div>
         </div>
     </div>
@@ -56,7 +57,7 @@
                 <div class="label">Role</div>
             </div>
             <div class="col-md-7">
-                <span class="badge bg-primary">{{ $operator->role?->name ?? 'No Role Assigned' }}</span>
+                <span class="text-primary">{{ $operator->role?->name ?? 'No Role Assigned' }}</span>
             </div>
         </div>
 
@@ -65,7 +66,7 @@
                 <div class="label">Status</div>
             </div>
             <div class="col-md-7">
-                <span class="badge {{ $operator->status === 'active' ? 'bg-success' : 'bg-warning' }}">
+                <span class="{{ $operator->status === 'active' ? 'text-success' : 'text-warning' }}">
                     {{ ucfirst($operator->status) }}
                 </span>
             </div>
@@ -207,7 +208,7 @@
     @endif
 
     <!-- Recent Activity Section -->
-    @if (count($recentActivity) > 0)
+    {{-- @if (count($recentActivity) > 0)
         <div class="recent-activity mt-4">
             <h6>Recent Activity</h6>
             @foreach ($recentActivity as $activity)
@@ -227,7 +228,7 @@
                 </div>
             @endforeach
         </div>
-    @endif
+    @endif --}}
 
     <livewire:components.confirmation-modal />
 </div>

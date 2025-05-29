@@ -65,7 +65,7 @@
             }
         }
 
-        .transactions-history {
+        .transactions-history, .incentives-history {
             .tile {
                 @include font-family(semi_bold);
                 @include display-flex(center);
@@ -146,18 +146,23 @@
     }
     .operator-forms {
         margin-top: 1rem;
+
         .nav-tabs-custom {
-            @include display-flex(space-between);
+            // @include display-flex(space-between);
+            display: flex;
+            flex-wrap: nowrap; // prevents wrapping
+            justify-content: space-between;
+
             button {
+                flex: 1 1 0; // equal width buttons
                 border: none;
-                text-align: start;
+                text-align: center;
                 background-color: transparent;
                 @include font-family(semi_bold);
                 color: grey;
                 padding-left: 0;
                 font-size: 18px;
                 padding-bottom: 0.1rem;
-                width: 45%;
             }
             *:focus {
                 outline: none;

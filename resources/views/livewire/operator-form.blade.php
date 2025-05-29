@@ -180,7 +180,7 @@
         <!-- District Assignment -->
         <div class="card mb-3">
             <div class="card-header bg-light" style="cursor: pointer;" data-toggle="collapse"
-                data-target="#districtInfo" aria-expanded="true" aria-controls="districtInfo">
+                data-target="#districtInfo" aria-expanded="false" aria-controls="districtInfo">
                 <div class="d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">
                         <i class="fas fa-map-marker-alt mr-2"></i>District Assignment

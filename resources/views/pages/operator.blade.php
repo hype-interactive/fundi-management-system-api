@@ -4,21 +4,21 @@
         <div class="row">
             <div class="col-md-8">
                 <div class="custom-header">
-                    <h2>{{ $operator->fname }} {{ $operator->mname }} {{ $operator->lname }}</h2>
+                    <h2>{{ $operator->full_name }}</h2>
                     <a href="{{ route('operators') }}" class="btn btn-custom"><i class="fa-solid fa-arrow-left"></i> Back</a>
                 </div>
                 <div class="operator-forms">
                     <nav>
-                        <div class="nav nav-tabs-custom " id="nav-tab" role="tablist">
+                        <div class="nav nav-tabs-custom" id="nav-tab" role="tablist">
                             <button class="nav-link active " id="nav-home-tab" data-toggle="tab" data-target="#nav-home"
-                                type="button" role="tab" aria-controls="nav-home" aria-selected="true">Operator's
-                                Information</button>
+                                type="button" role="tab" aria-controls="nav-home" aria-selected="true">Site Visits</button>
                             <button class="nav-link" id="nav-profile-tab" data-toggle="tab" data-target="#nav-profile"
-                                type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Site Visits
-                                &
-                                Activities</button>
+                                type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Operator's
+                                Information
+                            </button>
                             <button class="nav-link" id="nav-incentives-tab" data-toggle="tab" data-target="#nav-incentives"
-                                type="button" role="tab" aria-controls="nav-incentives" aria-selected="false">Incentives
+                                type="button" role="tab" aria-controls="nav-incentives"
+                                aria-selected="false">Incentives
                                 &
                                 Performance</button>
                         </div>
@@ -26,11 +26,11 @@
                     <div class="tab-content" id="nav-tabContent">
                         <div class="tab-pane fade show active" id="nav-home" role="tabpanel"
                             aria-labelledby="nav-home-tab">
-                            @livewire('operator-form', ['operator' => $operator])
+                            @livewire('operator-site-visits', ['operator' => $operator])
                         </div>
                         <div class="tab-pane fade activities-form" id="nav-profile" role="tabpanel"
                             aria-labelledby="nav-profile-tab">
-                            @livewire('operator-activities-form', ['operator' => $operator])
+                            @livewire('operator-form', ['operator' => $operator])
                         </div>
                         <div class="tab-pane fade incentives-form" id="nav-incentives" role="tabpanel"
                             aria-labelledby="nav-incentives-tab">
