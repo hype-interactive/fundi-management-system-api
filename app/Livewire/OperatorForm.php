@@ -2,13 +2,14 @@
 
 namespace App\Livewire;
 
-use App\Models\User;
 use App\Models\Role;
-use App\Models\District;
-use App\Traits\HasImageUpload;
+use App\Models\User;
+use App\Models\Region;
 use Livewire\Component;
+use App\Models\District;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Storage;
+use App\Traits\HasImageUpload;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 
 class OperatorForm extends Component
@@ -33,8 +34,9 @@ class OperatorForm extends Component
     public $existing_photo_public_id = null;
     public $remove_photo = false;
 
-    // Districts assignment
-    public $selected_districts = [];
+    // Region and District assignment - CHANGED: Single district instead of multiple
+    public $selected_region = null;
+    public $selected_district = null; // CHANGED: Single district ID
     public $available_districts = [];
 
     // UI state properties
@@ -45,7 +47,8 @@ class OperatorForm extends Component
 
     // Available roles and districts
     public $roles = [];
-    public $districts = [];
+    public $regions = [];
+    public $districts;
 
     // Accept operator model for editing
     public $operator = null;
@@ -67,7 +70,7 @@ class OperatorForm extends Component
             $this->resetForm();
         }
         $this->loadRoles();
-        $this->loadDistricts();
+        $this->loadRegions();
     }
 
     /**
@@ -84,8 +87,22 @@ class OperatorForm extends Component
         $this->role_id = $operator->role_id;
         $this->status = $operator->status ?: 'active';
 
-        // Load assigned districts
-        $this->selected_districts = $operator->districts->pluck('id')->toArray();
+        // Load assigned districts and determine region - BACKWARD COMPATIBLE
+        $assignedDistricts = $operator->districts;
+        if ($assignedDistricts->count() > 0) {
+            $firstDistrict = $assignedDistricts->first();
+
+            // For backward compatibility: if operator has multiple districts, use the first one
+            $this->selected_district = $firstDistrict->id;
+            $this->selected_region = $firstDistrict->region_id;
+            $this->loadDistrictsByRegion();
+
+            // Optional: Log or notify if operator had multiple districts (for migration tracking)
+            if ($assignedDistricts->count() > 1) {
+                // You can add logging here if needed
+                Log::info("Operator {$operator->id} had multiple districts, using first one: {$firstDistrict->name}");
+            }
+        }
 
         // Handle existing photo with Cloudinary
         if ($operator->profile_photo_url && $operator->profile_photo_public_id) {
@@ -122,18 +139,82 @@ class OperatorForm extends Component
     }
 
     /**
-     * Load all districts for assignment
+     * Load all regions for selection
      */
-    public function loadDistricts()
+    public function loadRegions()
     {
         $currentUser = currentUser();
 
-        // If admin or root, get all districts, otherwise get user's districts
+        // If admin or root, get all regions, otherwise get user's regions
         if ($currentUser && ($currentUser->role->name === 'admin' || $currentUser->role->name === 'root')) {
-            $this->districts = District::orderBy('name')->get();
+            $this->regions = Region::orderBy('name')->get();
         } else {
-            $this->districts = $currentUser->districts;
+            // Get regions from user's districts
+            $userDistrictIds = $currentUser->districts->pluck('id');
+            $this->regions = Region::whereHas('districts', function ($query) use ($userDistrictIds) {
+                $query->whereIn('id', $userDistrictIds);
+            })->orderBy('name')->get();
         }
+    }
+
+    /**
+     * Load districts based on selected region - CHANGED: Clear single district
+     */
+    public function loadDistrictsByRegion()
+    {
+        if (!$this->selected_region) {
+            $this->districts = collect();
+            $this->selected_district = null; // CHANGED: Clear single district
+            return;
+        }
+
+        $currentUser = currentUser();
+
+        // If admin or root, get all districts in region
+        if ($currentUser && ($currentUser->role->name === 'admin' || $currentUser->role->name === 'root')) {
+            $this->districts = District::where('region_id', $this->selected_region)
+                ->orderBy('name')
+                ->get();
+        } else {
+            // Get only user's districts within the selected region
+            $userDistrictIds = $currentUser->districts->pluck('id');
+            $this->districts = District::where('region_id', $this->selected_region)
+                ->whereIn('id', $userDistrictIds)
+                ->orderBy('name')
+                ->get();
+        }
+
+        // Clear selected district if it doesn't belong to the new region - CHANGED
+        $availableDistrictIds = $this->districts->pluck('id')->toArray();
+        if ($this->selected_district && !in_array($this->selected_district, $availableDistrictIds)) {
+            $this->selected_district = null;
+        }
+    }
+
+    /**
+     * Handle region selection change
+     */
+    public function updatedSelectedRegion()
+    {
+        $this->loadDistrictsByRegion();
+    }
+
+    // CHANGE 2: Add a computed property to show warning about multiple districts
+    public function getHasMultipleDistrictsProperty()
+    {
+        if ($this->operator && $this->editing) {
+            return $this->operator->districts->count() > 1;
+        }
+        return false;
+    }
+
+    // CHANGE 3: Add method to get all current districts for display
+    public function getCurrentDistrictsProperty()
+    {
+        if ($this->operator && $this->editing) {
+            return $this->operator->districts;
+        }
+        return collect();
     }
 
     /**
@@ -161,7 +242,8 @@ class OperatorForm extends Component
             'profile_photo',
             'password',
             'password_confirmation',
-            'selected_districts',
+            'selected_region',
+            'selected_district', // CHANGED: Single district
             'editing',
             'existing_photo_url',
             'existing_photo_public_id',
@@ -173,7 +255,7 @@ class OperatorForm extends Component
         $this->action_text = 'Create';
         $this->status = 'active';
         $this->show_password = true; // Show password fields for new operators
-        $this->selected_districts = [];
+        $this->selected_district = null; // CHANGED: Single district
     }
 
     /**
@@ -220,8 +302,8 @@ class OperatorForm extends Component
             'phone' => 'required|string|max:20|unique:users,phone,' . $this->operator_id,
             'role_id' => 'required|exists:roles,id',
             'status' => 'required|in:active,inactive,pending',
-            'selected_districts' => 'required|array|min:1',
-            'selected_districts.*' => 'exists:districts,id',
+            'selected_region' => 'required|exists:regions,id',
+            'selected_district' => 'required|exists:districts,id', // CHANGED: Single district validation
         ];
 
         // Add image validation rules
@@ -283,8 +365,8 @@ class OperatorForm extends Component
         );
 
         if ($operator) {
-            // Sync districts
-            $operator->districts()->sync($this->selected_districts);
+            // Sync single district - CHANGED: Sync single district instead of array
+            $operator->districts()->sync([$this->selected_district]);
 
             // Show success message
             session()->flash('saved', [
@@ -297,7 +379,7 @@ class OperatorForm extends Component
                 // Reset form after saving for create mode
                 $this->resetForm();
                 $this->loadRoles();
-                $this->loadDistricts();
+                $this->loadRegions();
                 // Redirect to operators list page
                 return redirect('/operators');
             } else {
