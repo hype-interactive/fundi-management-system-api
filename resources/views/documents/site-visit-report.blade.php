@@ -45,7 +45,7 @@
         .section-title {
             background-color: #f8f9fa;
             padding: 0.75rem;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #5CD3F3;
             font-weight: bold;
             font-size: 16px;
             color: #333;
@@ -78,7 +78,7 @@
         }
 
         .status-approved {
-            color: #28a745;
+            color: #3FAE28;
             font-weight: bold;
             background-color: #d4edda;
             padding: 0.25rem 0.5rem;
@@ -86,7 +86,7 @@
         }
 
         .status-pending {
-            color: #856404;
+            color: #DDA80B;
             font-weight: bold;
             background-color: #fff3cd;
             padding: 0.25rem 0.5rem;
@@ -318,42 +318,12 @@
             </tbody>
         </table>
     </div>
-    @else
-    <div class="section">
-        <div class="section-title">Products Used</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Product Name</th>
-                    <th>Quantity</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Premium Cement</td>
-                    <td>50 bags</td>
-                    <td>High-grade cement for foundation work</td>
-                </tr>
-                <tr>
-                    <td>Steel Reinforcement Bars</td>
-                    <td>2 tons</td>
-                    <td>Grade 60 rebar for structural support</td>
-                </tr>
-                <tr>
-                    <td>Waterproofing Membrane</td>
-                    <td>200 m²</td>
-                    <td>Applied to basement and foundation areas</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
     @endif
 
     <!-- Fundis Section -->
     @if(isset($siteVisit) && $siteVisit->fundis->count() > 0)
     <div class="section">
-        <div class="section-title">Fundis (Skilled Workers)</div>
+        <div class="section-title">Mafundi (Skilled Workers)</div>
         <table>
             <thead>
                 <tr>
@@ -372,34 +342,6 @@
                     <td>{{ $fundi->pivot->notes ?? '-' }}</td>
                 </tr>
                 @endforeach
-            </tbody>
-        </table>
-    </div>
-    @else
-    <div class="section">
-        <div class="section-title">Fundis (Skilled Workers)</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Fundi Name</th>
-                    <th>Specialization</th>
-                    <th>Contact</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Hassan Mwalimu</td>
-                    <td>Mason</td>
-                    <td>+255 712 345 678</td>
-                    <td>Experienced in foundation and structural work</td>
-                </tr>
-                <tr>
-                    <td>Grace Mollel</td>
-                    <td>Plumber</td>
-                    <td>+255 687 654 321</td>
-                    <td>Certified for residential plumbing systems</td>
-                </tr>
             </tbody>
         </table>
     </div>
@@ -444,7 +386,7 @@
     </div>
 
     <!-- Approval Information -->
-    @if(isset($siteVisit) && $siteVisit->status == 'Approved' && $siteVisit->approved_by)
+    @if(isset($siteVisit) && $siteVisit->status == 'approved' && $siteVisit->approved_by)
     <div class="section">
         <div class="section-title">Approval Information</div>
         <div class="info-grid">
@@ -461,7 +403,7 @@
     @endif
 
     <!-- Rejection Reason (if applicable) -->
-    @if(isset($siteVisit) && $siteVisit->status == 'Rejected' && $siteVisit->rejection_reason)
+    @if(isset($siteVisit) && $siteVisit->status == 'rejected' && $siteVisit->rejection_reason)
     <div class="section">
         <div class="section-title">Rejection Information</div>
         <div class="rejection-reason">
