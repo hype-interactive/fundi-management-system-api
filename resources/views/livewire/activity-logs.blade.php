@@ -84,7 +84,7 @@
                                 <td>
                                     <div class="centered text-monospace {{ getLogTypeColor($log) ?? '' }}">
                                         {{ $log->description }}
-                                        @php
+                                        {{-- @php
                                             $props = is_array($log->properties)
                                                 ? $log->properties
                                                 : json_decode($log->properties, true) ?? [];
@@ -99,7 +99,7 @@
                                                     <pre>{{ json_encode($props, JSON_PRETTY_PRINT) }}</pre>
                                                 </small>
                                             </div>
-                                        @endif
+                                        @endif --}}
                                     </div>
                                 </td>
                                 <td>
