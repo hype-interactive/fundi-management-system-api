@@ -89,9 +89,42 @@ class Sidebar extends Component
 
     public function exportVisit()
     {
-        dd("Exporting visit data...");
-        // Logic for PDF export
-        // return redirect()->route('site-visit.export', $this->siteVisit);
+        try {
+            set_time_limit(300); // Set execution time to 5min
+            ini_set("memory_limit", "1000M");
+
+            return response()->streamDownload(function () {
+                // Load the site visit with all necessary relationships
+                $siteVisit = SiteVisit::with([
+                    'operator',
+                    'ward.district.region',
+                    'products',
+                    'fundis',
+                    'photos',
+                    'approver'
+                ])->find($this->siteVisit->id);
+
+                // Prepare data for the PDF template
+                $title = "Site Visit Report - {$siteVisit->site_name}";
+                $date = now()->format('D, M d, Y');
+
+                // Generate the HTML view using the site visit report template
+                $html_view = view('documents.site-visit-report', compact('siteVisit', 'title', 'date'))->render();
+
+                // Create PDF instance
+                $pdf = app('dompdf.wrapper');
+                $pdf->loadHTML($html_view);
+
+                // Set PDF orientation and paper size
+                $pdf->setPaper('A4', 'portrait');
+
+                // Stream the PDF
+                echo $pdf->stream();
+            }, "site_visit_report_{$this->siteVisit->id}_{$this->siteVisit->site_name}.pdf");
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to export site visit report: ' . $e->getMessage());
+            return;
+        }
     }
 
     public function render()

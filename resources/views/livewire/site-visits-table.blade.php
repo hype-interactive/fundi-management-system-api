@@ -192,11 +192,11 @@
                             @endif
                             <td class="d-lg-table-cell d-none">
                                 @if ($visit->status === 'rejected')
-                                    <span class="badge bg-danger">Rejected</span>
+                                    <span class="text-danger">Rejected</span>
                                 @elseif ($visit->status === 'approved')
-                                    <span class="badge bg-success">Approved</span>
+                                    <span class="text-success">Approved</span>
                                 @else
-                                    <span class="badge bg-warning">Pending</span>
+                                    <span class="text-warning">Pending</span>
                                 @endif
                             </td>
                             <td class="d-xl-table-cell d-none">
