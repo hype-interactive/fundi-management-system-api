@@ -198,7 +198,7 @@ class SmsCampaignList extends Component
     private function dispatchSmsJob($campaign)
     {
         // Dispatch SMS sending job
-        // \App\Jobs\SendSmsCampaign::dispatch($campaign);
+        \App\Jobs\SendSmsCampaign::dispatch($campaign);
     }
 
     public function applyTemplate($templateId)
