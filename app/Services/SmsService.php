@@ -108,6 +108,8 @@ class SmsService
             // Send SMS
             $result = $this->sendSms($phoneNumber, $campaign->message, $campaign->id);
 
+            Log::info("SMS sent to {$recipientType} {$recipient->id}: " . json_encode($result));
+
             // Create SMS message record
             SmsMessage::create([
                 'sms_campaign_id' => $campaign->id,
@@ -149,6 +151,8 @@ class SmsService
             case 'fundi':
             case 'worker':
                 return $recipient->phone ?? $recipient->primary_phone ?? $recipient->transaction_phone ?? null;
+            case 'custom':
+                return $recipient['phone'] ?? $recipient['phone_number'] ?? null;
             default:
                 return null;
         }

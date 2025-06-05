@@ -25,13 +25,15 @@ class SendSmsCampaign implements ShouldQueue
     public function __construct(SmsCampaign $campaign)
     {
         $this->campaign = $campaign;
+        $this->onQueue('sms_campaigns'); // Specify the queue for SMS campaigns
+        $this->queue = 'sms_campaigns'; // Set the queue name
     }
 
     public function handle(SmsService $smsService)
     {
         try {
             // Update campaign status to sending
-            $this->campaign->update(['status' => 'sending']);
+            $this->campaign->update(['status' => 'processing']);
 
             // Get recipients based on campaign configuration
             $recipients = $this->getRecipients();
