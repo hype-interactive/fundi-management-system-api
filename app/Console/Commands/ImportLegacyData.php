@@ -3,23 +3,20 @@
 namespace App\Console\Commands;
 
 use League\Csv\Reader;
-use League\Csv\Statement;
 use App\Models\LegacyFundi;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 class ImportLegacyData extends Command
 {
     protected $signature = 'import:legacy-fundis {file} {--dry-run : Run without actually importing} {--chunk-size=1000 : Number of records to process at once}';
-    protected $description = 'Import legacy fundis data with comprehensive validation and duplicate checking';
+    protected $description = 'Import legacy fundis data with minimal validation';
 
     private $stats = [
         'total_records' => 0,
         'successful_imports' => 0,
         'duplicates_found' => 0,
-        'validation_errors' => 0,
         'processing_errors' => 0
     ];
 
@@ -55,19 +52,18 @@ class ImportLegacyData extends Command
         $csv = Reader::createFromPath($filePath, 'r');
         $csv->setHeaderOffset(0);
 
-        // Get headers and validate structure
+        // Get headers
         $headers = $csv->getHeader();
-        $this->validateFileStructure($headers);
+        $this->info('File headers: ' . implode(', ', $headers));
 
         // Get all records as an array
-        $records = iterator_to_array(Statement::create()->process($csv));
+        $records = iterator_to_array($csv->getRecords());
         $this->stats['total_records'] = count($records);
 
         $this->info("Found {$this->stats['total_records']} records to process");
 
         // Process in chunks
         $processedRecords = [];
-        $chunkCount = 0;
 
         $progressBar = $this->output->createProgressBar($this->stats['total_records']);
         $progressBar->start();
@@ -85,7 +81,6 @@ class ImportLegacyData extends Command
             if (count($processedRecords) >= $chunkSize) {
                 $this->processChunk($processedRecords, $isDryRun);
                 $processedRecords = [];
-                $chunkCount++;
             }
         }
 
@@ -98,172 +93,106 @@ class ImportLegacyData extends Command
         $this->newLine();
     }
 
-    private function validateFileStructure(array $headers)
-    {
-        $requiredHeaders = ['identifier', 'full_name'];
-        $missingHeaders = array_diff($requiredHeaders, $headers);
-
-        if (!empty($missingHeaders)) {
-            throw new \Exception('Missing required headers: ' . implode(', ', $missingHeaders));
-        }
-
-        $this->info('File structure validated successfully');
-    }
-
     private function processRecord(array $record, int $lineNumber): ?array
     {
         try {
-            // Clean and normalize data
-            $cleanedData = $this->cleanRecord($record);
+            // Get values safely, handling cases where keys might not exist or be empty
+            $identifier = '';
+            $fullName = '';
+            $location = '';
 
-            // Validate the cleaned data
-            $validator = $this->validateRecord($cleanedData, $lineNumber);
+            // Try different ways to get the data
+            if (isset($record['identifier'])) {
+                $identifier = $record['identifier'];
+            } elseif (isset($record[0])) {
+                $identifier = $record[0];
+            }
 
-            if ($validator->fails()) {
-                $this->stats['validation_errors']++;
-                $this->logValidationErrors($validator->errors()->all(), $lineNumber, $cleanedData);
+            if (isset($record['full_name'])) {
+                $fullName = $record['full_name'];
+            } elseif (isset($record[1])) {
+                $fullName = $record[1];
+            }
+
+            if (isset($record['location'])) {
+                $location = $record['location'];
+            } elseif (isset($record[2])) {
+                $location = $record[2];
+            }
+
+            // Basic cleaning - just trim and handle empty values
+            $cleanedData = [
+                'name' => trim($fullName ?? ''),
+                'nida_number' => null, // Will be filled later if needed
+                'primary_phone' => $this->basicPhoneClean($identifier ?? ''),
+                'transaction_phone' => $this->basicPhoneClean($identifier ?? ''),
+                'location' => trim($location ?? ''),
+                'gender' => 'other', // Default value
+                'ranking' => 'fundi_msaidizi', // Default value
+                'status' => 'pending'
+            ];
+
+            // Skip records with no name or phone
+            if (empty($cleanedData['name']) && empty($cleanedData['primary_phone'])) {
+                return null;
+            }
+
+            // If no name but has phone, set a default name
+            if (empty($cleanedData['name']) && !empty($cleanedData['primary_phone'])) {
+                $cleanedData['name'] = 'User ' . $cleanedData['primary_phone'];
+            }
+
+            // If no phone but has name, skip this record
+            if (empty($cleanedData['primary_phone'])) {
                 return null;
             }
 
             return $cleanedData;
+
         } catch (\Exception $e) {
             $this->stats['processing_errors']++;
             $this->warn("Error processing line {$lineNumber}: " . $e->getMessage());
-            Log::warning("Record processing error", [
-                'line' => $lineNumber,
-                'record' => $record,
-                'error' => $e->getMessage()
-            ]);
             return null;
         }
     }
 
-    private function cleanRecord(array $record): array
+    private function basicPhoneClean(string $identifier): string
     {
-        return [
-            'name' => $this->cleanName($record['full_name'] ?? ''),
-            'nida_number' => $this->cleanNidaNumber($record['identifier'] ?? ''),
-            'primary_phone' => $this->cleanPhoneNumber($record['identifier'] ?? ''),
-            'transaction_phone' => $this->cleanPhoneNumber($record['identifier'] ?? ''),
-            'location' => $this->cleanLocation($record['location'] ?? ''),
-            'gender' => $this->inferGender($record['full_name'] ?? ''),
-            'ranking' => $this->inferRanking($record),
-            'status' => 'pending'
-        ];
-    }
-
-    private function cleanName(string $name): string
-    {
-        // Remove extra spaces, fix capitalization
-        $cleaned = trim($name);
-        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
-        $cleaned = mb_convert_case($cleaned, MB_CASE_TITLE, 'UTF-8');
-
-        // Handle common name variations
-        $cleaned = str_replace(['  ', ' .', '. '], [' ', '.', '. '], $cleaned);
-
-        return $cleaned;
-    }
-
-    private function cleanNidaNumber(string $identifier): ?string
-    {
-        // Clean identifier that might be NIDA number
+        // Remove all non-numeric characters
         $cleaned = preg_replace('/[^0-9]/', '', $identifier);
 
-        // Tanzania NIDA numbers are typically 20 digits
-        if (strlen($cleaned) === 20 && ctype_digit($cleaned)) {
-            return $cleaned;
+        // Handle empty or very short numbers
+        if (strlen($cleaned) < 9) {
+            return '';
         }
 
-        return null;
-    }
+        // Handle different formats
+        if (strlen($cleaned) == 12 && str_starts_with($cleaned, '255')) {
+            return $cleaned; // Already correct format
+        }
 
-    private function cleanPhoneNumber(string $identifier): string
-    {
-        // Clean and format phone number
-        $cleaned = preg_replace('/[^0-9+]/', '', $identifier);
+        if (strlen($cleaned) == 10 && str_starts_with($cleaned, '0')) {
+            return '255' . substr($cleaned, 1); // Convert 07... to 2557...
+        }
 
-        // Handle different phone number formats
-        if (preg_match('/^255\d{9}$/', $cleaned)) {
-            return $cleaned; // Already in correct format
-        } elseif (preg_match('/^0\d{9}$/', $cleaned)) {
-            return '255' . substr($cleaned, 1); // Convert from 0... to 255...
-        } elseif (preg_match('/^\d{9}$/', $cleaned)) {
+        if (strlen($cleaned) == 9) {
             return '255' . $cleaned; // Add country code
         }
 
-        return $cleaned;
-    }
-
-    private function cleanLocation(string $location): string
-    {
-        $cleaned = trim($location);
-        $cleaned = mb_convert_case($cleaned, MB_CASE_TITLE, 'UTF-8');
-
-        // Fix common location name variations
-        $locationMappings = [
-            'dar es salaam' => 'Dar es Salaam',
-            'dar-es-salaam' => 'Dar es Salaam',
-            'dares salaam' => 'Dar es Salaam',
-            'morogoro' => 'Morogoro',
-            'tanga' => 'Tanga',
-            'mbeya' => 'Mbeya',
-            'mbezi' => 'Mbezi',
-            'ilala' => 'Ilala',
-            'tunduma' => 'Tunduma'
-        ];
-
-        $lowerLocation = strtolower($cleaned);
-        return $locationMappings[$lowerLocation] ?? $cleaned;
-    }
-
-    private function inferGender(string $name): string
-    {
-        // Simple gender inference based on common Tanzanian names
-        $maleNames = ['james', 'david', 'william', 'robert', 'johnson', 'steven', 'kenneth', 'abdala'];
-        $femaleNames = ['lucy', 'yohana', 'obet'];
-
-        $firstName = strtolower(explode(' ', trim($name))[0] ?? '');
-
-        if (in_array($firstName, $maleNames)) {
-            return 'male';
-        } elseif (in_array($firstName, $femaleNames)) {
-            return 'female';
+        // For longer numbers, try to extract a valid phone number
+        if (strlen($cleaned) > 12) {
+            // Look for pattern that starts with 255
+            if (preg_match('/255(\d{9})/', $cleaned, $matches)) {
+                return '255' . $matches[1];
+            }
+            // Try to get last 12 digits if they start with 255
+            $last12 = substr($cleaned, -12);
+            if (str_starts_with($last12, '255')) {
+                return $last12;
+            }
         }
 
-        // Default to male if uncertain (you might want to change this logic)
-        return 'male';
-    }
-
-    private function inferRanking(array $record): string
-    {
-        // You can implement logic to infer ranking based on data patterns
-        // For now, defaulting to 'fundi_msaidizi'
-        return 'fundi_msaidizi';
-    }
-
-    private function validateRecord(array $data, int $lineNumber): \Illuminate\Validation\Validator
-    {
-        $rules = [
-            'name' => 'required|string|min:2|max:255',
-            'gender' => 'required|in:male,female,other',
-            'nida_number' => 'nullable|string|size:20|regex:/^[0-9]{20}$/',
-            'primary_phone' => 'required|string|min:10|max:20|regex:/^255[0-9]{9}$/',
-            'transaction_phone' => 'nullable|string|min:10|max:20|regex:/^255[0-9]{9}$/',
-            'ranking' => 'required|in:fundi_kuu,fundi_msaidizi',
-            'status' => 'required|in:active,inactive,pending'
-        ];
-
-        $messages = [
-            'name.required' => 'Name is required',
-            'name.min' => 'Name must be at least 2 characters',
-            'primary_phone.required' => 'Primary phone is required',
-            'primary_phone.regex' => 'Phone number must be in format 255XXXXXXXXX',
-            'nida_number.size' => 'NIDA number must be exactly 20 digits',
-            'nida_number.regex' => 'NIDA number must contain only digits'
-        ];
-
-        return Validator::make($data, $rules, $messages);
+        return $cleaned; // Return as is if we can't parse it
     }
 
     private function processChunk(array $records, bool $isDryRun)
@@ -277,8 +206,8 @@ class ImportLegacyData extends Command
 
         try {
             foreach ($records as $record) {
-                // Check for duplicates
-                if ($this->isDuplicate($record)) {
+                // Simple duplicate check - only by phone number
+                if ($this->isDuplicate($record['primary_phone'])) {
                     $this->stats['duplicates_found']++;
                     continue;
                 }
@@ -295,46 +224,14 @@ class ImportLegacyData extends Command
         }
     }
 
-    private function isDuplicate(array $record): bool
+    private function isDuplicate(string $primaryPhone): bool
     {
-        $query = LegacyFundi::query();
-
-        // Check for duplicate by NIDA number if available
-        if (!empty($record['nida_number'])) {
-            if ($query->where('nida_number', $record['nida_number'])->exists()) {
-                return true;
-            }
+        // Only check for duplicate phone numbers
+        if (empty($primaryPhone)) {
+            return false;
         }
 
-        // Check for duplicate by phone number
-        if ($query->where('primary_phone', $record['primary_phone'])->exists()) {
-            return true;
-        }
-
-        // Check for duplicate by name and similar phone (in case of slight variations)
-        $similarPhonePattern = substr($record['primary_phone'], -9); // Last 9 digits
-        if ($query->where('name', $record['name'])
-            ->where('primary_phone', 'LIKE', '%' . $similarPhonePattern)
-            ->exists()
-        ) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function logValidationErrors(array $errors, int $lineNumber, array $data)
-    {
-        $this->warn("Validation errors on line {$lineNumber}:");
-        foreach ($errors as $error) {
-            $this->warn("  - {$error}");
-        }
-
-        Log::warning("Validation errors during import", [
-            'line' => $lineNumber,
-            'errors' => $errors,
-            'data' => $data
-        ]);
+        return LegacyFundi::where('primary_phone', $primaryPhone)->exists();
     }
 
     private function displayResults()
@@ -349,7 +246,6 @@ class ImportLegacyData extends Command
                 ['Total Records Processed', $this->stats['total_records']],
                 ['Successful Imports', $this->stats['successful_imports']],
                 ['Duplicates Found', $this->stats['duplicates_found']],
-                ['Validation Errors', $this->stats['validation_errors']],
                 ['Processing Errors', $this->stats['processing_errors']]
             ]
         );
@@ -360,8 +256,12 @@ class ImportLegacyData extends Command
 
         $this->info("Success Rate: {$successRate}%");
 
-        if ($this->stats['validation_errors'] > 0 || $this->stats['processing_errors'] > 0) {
-            $this->warn('Check the logs for detailed error information.');
+        if ($this->stats['processing_errors'] > 0) {
+            $this->warn('Some records had processing errors - check the logs for details.');
+        }
+
+        if ($this->stats['duplicates_found'] > 0) {
+            $this->info("{$this->stats['duplicates_found']} duplicate phone numbers were skipped.");
         }
     }
 }
