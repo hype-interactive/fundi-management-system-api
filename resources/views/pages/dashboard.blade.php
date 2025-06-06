@@ -8,7 +8,6 @@
                 <p>Welcome back!</p>
             </div>
             <div class="body">
-
                 <livewire:platform-summary>
             </div>
         </div>
