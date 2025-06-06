@@ -14,7 +14,7 @@
             <i class="fas fa-clock me-1"></i>
             Time Period
         </label>
-        <select wire:model.live="selectedTimeRange" id="timeRange" class="form-control">
+        <select wire:model.live="selectedTimeRange" id="timeRange" class="form-control" disabled>
             <option value="3_months">Last 3 Months</option>
             <option value="6_months">Last 6 Months</option>
             <option value="12_months">Last 12 Months</option>
@@ -49,7 +49,7 @@
             <i class="fas fa-chart-area me-1"></i>
             Display Charts
         </label>
-        <select wire:model.live="selectedChartType" id="chartType" class="form-control">
+        <select wire:model.live="selectedChartType" id="chartType" class="form-control" disabled>
             <option value="both">Both Charts</option>
             <option value="fundi">Fundi Only</option>
             <option value="visits">Visits Only</option>
@@ -62,7 +62,7 @@
             <i class="fas fa-calculator me-1"></i>
             Metric Type
         </label>
-        <select wire:model.live="selectedMetric" id="metricType" class="form-control">
+        <select wire:model.live="selectedMetric" id="metricType" class="form-control" disabled>
             <option value="count">Monthly Count</option>
             <option value="cumulative">Cumulative</option>
         </select>
@@ -70,7 +70,8 @@
 
     <!-- Reset Filters -->
     <div class="filter-actions mt-4">
-        <button wire:click="resetFilters" class="reset-btn">
+        {{-- <button wire:click="resetFilters" class="reset-btn"> --}}
+        <button onclick="location.reload()" class="reset-btn">
             <i class="fas fa-undo me-2"></i>
             Reset All Filters
         </button>

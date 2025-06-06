@@ -20,28 +20,55 @@
     </div>
 
     <script>
-        document.addEventListener('livewire:init', function() {
+        document.addEventListener('DOMContentLoaded', function() {
             let fundiChart = null;
             let siteVisitChart = null;
 
-            // Initialize charts
+            // // Get initial data from Livewire
+            // let fundiData = @this.fundiData || {
+            //     labels: [],
+            //     data: []
+            // };
+            // let siteVisitData = @this.siteVisitData || {
+            //     labels: [],
+            //     data: []
+            // };
+
+            // Initialize data
+            let fundiData = {
+                labels: @json($fundiData['labels'] ?? []),
+                data: @json($fundiData['data'] ?? [])
+            };
+            
+            let siteVisitData = {
+                labels: @json($siteVisitData['labels'] ?? []),
+                data: @json($siteVisitData['data'] ?? [])
+            };
+
             function initializeCharts() {
                 const fundiCtx = document.getElementById('fundiChart');
                 const siteVisitCtx = document.getElementById('siteVisitChart');
 
-                if (fundiCtx && siteVisitCtx) {
-                    createCharts();
+                if (fundiCtx) {
+                    createFundiChart();
+                }
+
+                if (siteVisitCtx) {
+                    createSiteVisitChart();
                 }
             }
 
-            function createCharts() {
-                // Destroy existing charts
-                if (fundiChart) fundiChart.destroy();
-                if (siteVisitChart) siteVisitChart.destroy();
+            function createFundiChart() {
+                const fundiCtx = document.getElementById('fundiChart');
+                if (!fundiCtx) return;
 
-                // Fundi Registration Chart
-                const fundiCtx = document.getElementById('fundiChart').getContext('2d');
-                fundiChart = new Chart(fundiCtx, {
+                // Destroy existing chart
+                if (fundiChart) {
+                    fundiChart.destroy();
+                    fundiChart = null;
+                }
+
+                fundiChart = new Chart(fundiCtx.getContext('2d'), {
                     type: 'line',
                     data: {
                         labels: @json($fundiData['labels'] ?? []),
@@ -101,10 +128,19 @@
                         }
                     }
                 });
+            }
 
-                // Site Visit Chart
-                const siteVisitCtx = document.getElementById('siteVisitChart').getContext('2d');
-                siteVisitChart = new Chart(siteVisitCtx, {
+            function createSiteVisitChart() {
+                const siteVisitCtx = document.getElementById('siteVisitChart');
+                if (!siteVisitCtx) return;
+
+                // Destroy existing chart
+                if (siteVisitChart) {
+                    siteVisitChart.destroy();
+                    siteVisitChart = null;
+                }
+
+                siteVisitChart = new Chart(siteVisitCtx.getContext('2d'), {
                     type: 'bar',
                     data: {
                         labels: @json($siteVisitData['labels'] ?? []),
@@ -161,27 +197,50 @@
                 });
             }
 
-            // Listen for chart updates
-            Livewire.on('updateCharts', function(fundiData, siteVisitData) {
-                if (fundiChart && siteVisitChart) {
-                    // Update Fundi chart
-                    fundiChart.data.labels = fundiData.labels;
-                    fundiChart.data.datasets[0].data = fundiData.data;
-                    fundiChart.update('active');
+            function updateCharts(newFundiData, newSiteVisitData) {
+                // Update data
+                fundiData = newFundiData || {
+                    labels: [],
+                    data: []
+                };
+                siteVisitData = newSiteVisitData || {
+                    labels: [],
+                    data: []
+                };
 
-                    // Update Site Visit chart
-                    siteVisitChart.data.labels = siteVisitData.labels;
-                    siteVisitChart.data.datasets[0].data = siteVisitData.data;
-                    siteVisitChart.update('active');
+                // Update charts if they exist
+                if (fundiChart && document.getElementById('fundiChart')) {
+                    fundiChart.data.labels = fundiData.labels || [];
+                    fundiChart.data.datasets[0].data = fundiData.data || [];
+                    fundiChart.update('active');
+                } else if (document.getElementById('fundiChart')) {
+                    createFundiChart();
                 }
+
+                if (siteVisitChart && document.getElementById('siteVisitChart')) {
+                    siteVisitChart.data.labels = siteVisitData.labels || [];
+                    siteVisitChart.data.datasets[0].data = siteVisitData.data || [];
+                    siteVisitChart.update('active');
+                } else if (document.getElementById('siteVisitChart')) {
+                    createSiteVisitChart();
+                }
+            }
+
+            // Initialize charts
+            initializeCharts();
+
+            // Listen for Livewire updates
+            document.addEventListener('livewire:init', function() {
+                Livewire.on('updateCharts', function(event) {
+                    const [newFundiData, newSiteVisitData] = event;
+                    updateCharts(newFundiData, newSiteVisitData);
+                });
             });
 
-            // Initialize charts when DOM is ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initializeCharts);
-            } else {
-                initializeCharts();
-            }
+            // Re-initialize charts when Livewire updates the DOM
+            document.addEventListener('livewire:navigated', function() {
+                setTimeout(initializeCharts, 100);
+            });
         });
     </script>
 </div>

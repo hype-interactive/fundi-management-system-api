@@ -23,6 +23,11 @@ class Charts extends Component
     {
         $this->dateFrom = Carbon::now()->subMonths(12)->format('Y-m-d');
         $this->dateTo = Carbon::now()->format('Y-m-d');
+
+        // Initialize data arrays to prevent undefined errors
+        $this->fundiData = ['labels' => [], 'data' => []];
+        $this->siteVisitData = ['labels' => [], 'data' => []];
+
         $this->loadChartData();
     }
 
@@ -30,21 +35,31 @@ class Charts extends Component
     {
         $this->setDateRange();
         $this->loadChartData();
+        $this->dispatch('updateCharts', $this->fundiData, $this->siteVisitData);
     }
 
     public function updatedDateFrom()
     {
         $this->loadChartData();
+        $this->dispatch('updateCharts', $this->fundiData, $this->siteVisitData);
     }
 
     public function updatedDateTo()
     {
         $this->loadChartData();
+        $this->dispatch('updateCharts', $this->fundiData, $this->siteVisitData);
     }
 
     public function updatedSelectedMetric()
     {
         $this->loadChartData();
+        $this->dispatch('updateCharts', $this->fundiData, $this->siteVisitData);
+    }
+
+    public function updatedSelectedChartType()
+    {
+        // Just dispatch the event for chart type changes
+        $this->dispatch('updateCharts', $this->fundiData, $this->siteVisitData);
     }
 
     private function setDateRange()
