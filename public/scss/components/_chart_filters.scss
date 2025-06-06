@@ -1,0 +1,78 @@
+.filter {
+    .filter-header h6 {
+        color: rgba(255, 255, 255, 0.95);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0;
+    }
+
+    hr {
+        border-color: rgba(255, 255, 255, 0.2);
+        margin: 1rem 0;
+    }
+
+    .filter-group {
+        label {
+            display: block;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+
+            i {
+                opacity: 0.8;
+            }
+        }
+
+        .form-control {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: white;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+
+            &:focus {
+                background: rgba(255, 255, 255, 0.15);
+                border-color: rgba(255, 255, 255, 0.4);
+                box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1);
+                color: white;
+            }
+
+            option {
+                background: #2d3748;
+                color: white;
+            }
+        }
+    }
+
+    .filter-actions {
+        .reset-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 0.75rem;
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+
+            &:hover {
+                background: rgba(239, 68, 68, 0.3);
+                border-color: rgba(239, 68, 68, 0.4);
+                transform: translateY(-1px);
+            }
+        }
+    }
+}

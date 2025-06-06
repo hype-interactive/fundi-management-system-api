@@ -15,15 +15,14 @@
                 <div class="text-semi-bold">{{ $type }}</div>
                 <div class="separator"></div>
                 @if ($status)
-                <div class="text-success text-semi-bold">
-                    {{ number_format($difference) }}
-                </div>
+                    <div class="text-success text-semi-bold">
+                        {{ number_format($difference) }}
+                    </div>
                 @else
-                <div class="text-fail text-semi-bold">
-                    {{ number_format($difference) }}
-                </div>
+                    <div class="text-fail text-semi-bold">
+                        {{ number_format($difference) }}
+                    </div>
                 @endif
-
             </div>
         </div>
     </div>

@@ -8,7 +8,6 @@
                 <p>Welcome back!</p>
             </div>
             <div class="body">
-
                 <livewire:platform-summary>
             </div>
         </div>
@@ -19,5 +18,7 @@
         </div>
     </div>
     <div class="mt-4"></div>
+
+    <livewire:charts />
 </div>
 @endsection

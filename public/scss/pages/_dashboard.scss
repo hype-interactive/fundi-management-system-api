@@ -3,6 +3,7 @@
     padding-top: 1rem;
     padding-bottom: 1rem;
     color: color(dark);
+
     .header {
         h2 {
             @include font-family(bold);
@@ -18,6 +19,7 @@
         .notifications {
             margin-bottom: 1rem;
             margin-top: 1rem;
+
             .tile {
                 @include display-flex(space-between);
                 width: 100%;
@@ -53,29 +55,151 @@
                 }
             }
         }
+
         .divider {
             border-top: 0.01rem solid grey;
         }
+
         .filter {
             border-radius: 0.25rem;
             padding: 1rem;
-            background: white;
+            // background: white;
             margin-top: 3rem;
             font-size: 14px;
             select{
                 padding: 0.3rem;
                 font-size: 14px;
+                border-radius: 0.5rem;
+                transition: all 0.3s ease;
 
+                &:focus {
+                    outline: none;
+                    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+                }
             }
         }
     }
 
-    .dark-bg{
-        background: -webkit-linear-gradient(to bottom, color(primary),color(primary), color(dark)); /* Chrome 10-25, Safari 5.1-6 */
-        background: linear-gradient(to bottom, color(primary),color(primary), color(dark));
+    .dark-bg {
+        background: linear-gradient(135deg, color(primary) 0%, color(primary) 50%, color(dark) 100%);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        border-radius: 1rem;
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+            pointer-events: none;
+        }
     }
-    .light-bg{
-        background: -webkit-linear-gradient(to bottom, color(primary_light), color(primary)); /* Chrome 10-25, Safari 5.1-6 */
-        background: linear-gradient(to bottom, color(primary_light), color(primary));
+
+    .light-bg {
+        background: linear-gradient(135deg, color(primary_light) 0%, color(primary) 100%);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border-radius: 1rem;
+    }
+
+    // Enhanced chart container styles
+    .charts-container {
+        .chart-card {
+            position: relative;
+            overflow: hidden;
+
+            &::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, color(primary), color(dark));
+                z-index: 1;
+            }
+
+            .chart-content {
+                background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.02), transparent 50%);
+            }
+        }
+    }
+
+    // Responsive enhancements
+    @media (max-width: 768px) {
+        .summary {
+            .notifications .tile {
+                flex-direction: column;
+                text-align: center;
+                padding: 1.5rem;
+
+                .icon {
+                    margin-bottom: 1rem;
+                }
+
+                .title {
+                    width: 100%;
+                    align-items: center;
+                }
+            }
+        }
+
+        .filter {
+            margin-top: 1rem !important;
+        }
+    }
+
+    // Animation classes
+    .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .slide-up {
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    // Loading states
+    .loading-skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    // Print styles
+    @media print {
+        .summary, .filter {
+            display: none !important;
+        }
+
+        .charts-container {
+            .chart-card {
+                break-inside: avoid;
+                margin-bottom: 2rem;
+            }
+        }
     }
 }

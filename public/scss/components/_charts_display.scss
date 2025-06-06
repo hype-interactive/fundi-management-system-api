@@ -1,0 +1,97 @@
+.charts-container {
+    .chart-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(229, 231, 235, 0.8);
+
+        &:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem 0.75rem;
+        border-bottom: 1px solid #f3f4f6;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+
+    .chart-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+        display: flex;
+        align-items: center;
+
+        .chart-icon {
+            margin-right: 0.5rem;
+            color: #6366f1;
+        }
+    }
+
+    .chart-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-chart-action {
+        background: none;
+        border: none;
+        padding: 0.5rem;
+        border-radius: 6px;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+    }
+
+    .chart-content {
+        height: 300px;
+        padding: 1.5rem;
+        position: relative;
+    }
+
+    .chart-footer {
+        padding: 0.75rem 1.5rem 1.25rem;
+        background: #f9fafb;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .chart-stats {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .stat-item {
+        text-align: center;
+
+        .stat-label {
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-top: 0.25rem;
+        }
+    }
+}
