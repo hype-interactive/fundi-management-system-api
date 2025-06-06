@@ -19,5 +19,7 @@
         </div>
     </div>
     <div class="mt-4"></div>
+
+    <livewire:charts />
 </div>
 @endsection
