@@ -6,8 +6,6 @@ use App\Models\Fundi;
 use App\Models\User;
 use App\Models\SiteVisit;
 use App\Models\Transaction;
-use App\Models\DisbursementBatch;
-use App\Models\SmsCampaign;
 use App\Traits\DateTimeTrait;
 use Illuminate\Support\Facades\DB;
 
