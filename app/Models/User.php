@@ -7,11 +7,12 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -29,6 +30,10 @@ class User extends Authenticatable
         'profile_photo_url',
         'profile_photo_public_id',
         'password',
+        'last_login_at',
+        'device_token',
+        'device_info',
+        'api_active',
     ];
 
     /**
