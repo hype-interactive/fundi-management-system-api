@@ -84,3 +84,19 @@ if (! function_exists('assetToBase64')) {
         return 'data:image/' . $type . ';base64,' . base64_encode($data);
     }
 }
+
+/**
+ * Format a number as a currency string.
+ *
+ * This function formats a given number into a currency string with two decimal places.
+ * It uses the current locale's currency formatting rules.
+ *
+ * @param float $amount The amount to format.
+ * @return string The formatted currency string.
+ */
+if (! function_exists('formatCurrency')) {
+    function formatCurrency(float $amount): string
+    {
+        return number_format($amount, 2, '.', ',');
+    }
+}
