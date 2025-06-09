@@ -40,6 +40,14 @@ Route::prefix('v1')->middleware(['auth:api'])->group(function () {
         Route::get('/search', [FundiController::class, 'searchForSiteVisit']);
         Route::get('/{fundi}', [FundiController::class, 'show']);
         Route::put('/{fundi}', [FundiController::class, 'update']);
+        Route::delete('/{fundi}', [FundiController::class, 'destroy']);
+
+        // Approval/Rejection routes
+        Route::patch('/{fundi}/approve', [FundiController::class, 'approve']);
+        Route::patch('/{fundi}/reject', [FundiController::class, 'reject']);
+
+        // Optional: Restore soft deleted fundi (if needed)
+        Route::patch('/{fundi}/restore', [FundiController::class, 'restore']);
     });
 
     // Site Visits
