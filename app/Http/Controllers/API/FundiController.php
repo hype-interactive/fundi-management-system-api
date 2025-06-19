@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Resources\FundiResource;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\FundiMinimalResource;
+use Illuminate\Support\Facades\Log;
 
 class FundiController extends BaseAPIController
 {
@@ -21,39 +22,54 @@ class FundiController extends BaseAPIController
                 $q->whereIn('id', $this->getOperatorDistricts());
             });
 
-        // Filters
+        // Status filter (active/inactive)
         if ($request->status) {
             $query->where('status', $request->status);
         }
 
+        // Approval status filter using the model scopes
         if ($request->approval_status) {
-            switch ($request->approval_status) {
+            switch (strtolower($request->approval_status)) {
                 case 'approved':
-                    $query->whereNotNull('approved_at');
+                    $query->approved();
                     break;
                 case 'rejected':
-                    $query->whereNotNull('rejected_at');
+                    $query->rejected();
                     break;
                 case 'pending':
-                    $query->whereNull('approved_at')->whereNull('rejected_at');
+                    $query->pending();
+                    break;
+                default:
+                    Log::warning('Invalid approval status filter provided', [
+                        'status' => $request->approval_status,
+                        'user_id' => $this->getOperator()->id,
+                    ]);
                     break;
             }
         }
 
+        // Ward filter
         if ($request->ward_id) {
             $query->where('ward_id', $request->ward_id);
         }
 
+        // Search filter
         if ($request->search) {
             $search = '%' . $request->search . '%';
             $query->where(function ($q) use ($search) {
                 $q->where('fname', 'like', $search)
+                    ->orWhere('mname', 'like', $search)  // Added middle name
                     ->orWhere('lname', 'like', $search)
                     ->orWhere('unique_id', 'like', $search)
                     ->orWhere('primary_phone', 'like', $search)
-                    ->orWhere('nida_number', 'like', $search);
+                    ->orWhere('nida_number', 'like', $search)
+                    // Search full name as well
+                    ->orWhereRaw("CONCAT(COALESCE(fname, ''), ' ', COALESCE(mname, ''), ' ', COALESCE(lname, '')) LIKE ?", [$search]);
             });
         }
+
+        // Add sorting for better user experience
+        $query->orderBy('created_at', 'desc');
 
         $fundis = $query->paginate($request->per_page ?? 15);
 
@@ -64,6 +80,8 @@ class FundiController extends BaseAPIController
                 'last_page' => $fundis->lastPage(),
                 'per_page' => $fundis->perPage(),
                 'total' => $fundis->total(),
+                // 'from' => $fundis->firstItem(),
+                // 'to' => $fundis->lastItem(),
             ],
         ]);
     }
