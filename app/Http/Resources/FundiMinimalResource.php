@@ -21,6 +21,7 @@ class FundiMinimalResource extends BaseResource
             'ward_name' => $this->ward->name ?? null,
             'status' => $this->status,
             'approval_status' => $this->approval_status,
+            'created_at' => $this->created_at,
         ];
     }
 }
