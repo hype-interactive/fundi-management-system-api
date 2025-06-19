@@ -44,13 +44,102 @@ class Fundi extends Model
         return trim("{$this->fname} {$this->mname} {$this->lname}");
     }
 
+    /**
+     * Get the approval status with proper priority handling
+     * Priority order: Rejected > Approved > Pending
+     */
     public function getApprovalStatusAttribute(): string
     {
-        return match (true) {
-            $this->rejected_at => 'Rejected',
-            $this->approved_at => 'Approved',
-            default => 'Pending',
-        };
+        // Check for rejection first (highest priority)
+        // A fundi is rejected if they have either rejected_at timestamp OR rejected_by user
+        if ($this->rejected_at !== null || $this->rejected_by !== null) {
+            return 'Rejected';
+        }
+
+        // Check for approval (second priority)
+        // A fundi is approved if they have both approved_at timestamp AND approved_by user
+        if ($this->approved_at !== null && $this->approved_by !== null) {
+            return 'Approved';
+        }
+
+        // Default to pending if neither rejected nor fully approved
+        return 'Pending';
+    }
+
+    /**
+     * Alternative method if you want more granular status checking
+     */
+    public function getDetailedApprovalStatusAttribute(): string
+    {
+        // Most recent action takes precedence based on timestamps
+        $rejectedTime = $this->rejected_at?->timestamp ?? 0;
+        $approvedTime = $this->approved_at?->timestamp ?? 0;
+
+        // If both timestamps exist, compare them
+        if ($rejectedTime > 0 && $approvedTime > 0) {
+            return $rejectedTime > $approvedTime ? 'Rejected' : 'Approved';
+        }
+
+        // Single action checks
+        if ($rejectedTime > 0 || $this->rejected_by !== null) {
+            return 'Rejected';
+        }
+
+        if ($approvedTime > 0 && $this->approved_by !== null) {
+            return 'Approved';
+        }
+
+        return 'Pending';
+    }
+
+    /**
+     * Helper methods for status checking
+     */
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'Approved';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->approval_status === 'Rejected';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->approval_status === 'Pending';
+    }
+
+    /**
+     * Scope methods for querying by approval status
+     */
+    public function scopeApproved($query)
+    {
+        return $query->whereNotNull('approved_at')
+            ->whereNotNull('approved_by')
+            ->where(function ($q) {
+                $q->whereNull('rejected_at')
+                    ->whereNull('rejected_by');
+            });
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNotNull('rejected_at')
+                ->orWhereNotNull('rejected_by');
+        });
+    }
+
+    public function scopePending($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('approved_at')
+                ->orWhereNull('approved_by');
+        })->where(function ($q) {
+            $q->whereNull('rejected_at')
+                ->whereNull('rejected_by');
+        });
     }
 
     public function ward()
