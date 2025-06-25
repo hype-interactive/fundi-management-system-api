@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class Fundi extends Model
 {
@@ -21,7 +22,8 @@ class Fundi extends Model
         'transaction_phone',
         'ward_id',
         'ranking',
-        'profile_photo',
+        'profile_photo_url',
+        'profile_photo_public_id',
         'status',
         'created_by',
         'approved_by',
@@ -186,5 +188,33 @@ class Fundi extends Model
     public function region()
     {
         return $this->ward->district->region();
+    }
+
+    public function getProfilePhotoThumbnailAttribute()
+    {
+        if ($this->profile_photo_public_id) {
+            return Cloudinary::url($this->profile_photo_public_id, [
+                'width' => 150,
+                'height' => 150,
+                'crop' => 'fill',
+                'quality' => 'auto',
+                'fetch_format' => 'auto'
+            ]);
+        }
+        return null;
+    }
+
+    public function getProfilePhotoAvatarAttribute()
+    {
+        if ($this->profile_photo_public_id) {
+            return Cloudinary::url($this->profile_photo_public_id, [
+                'width' => 50,
+                'height' => 50,
+                'crop' => 'fill',
+                'quality' => 'auto',
+                'fetch_format' => 'auto'
+            ]);
+        }
+        return null;
     }
 }
