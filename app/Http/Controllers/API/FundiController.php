@@ -8,13 +8,21 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Resources\FundiResource;
 use Illuminate\Support\Facades\Storage;
+use App\Services\CloudinaryImageService;
 use App\Http\Resources\FundiMinimalResource;
-use Illuminate\Support\Facades\Log;
 
 class FundiController extends BaseAPIController
 {
+    protected $cloudinaryService;
+
+    public function __construct(CloudinaryImageService $cloudinaryService)
+    {
+        $this->cloudinaryService = $cloudinaryService;
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Fundi::with(['ward.district.region', 'creator'])
@@ -133,6 +141,8 @@ class FundiController extends BaseAPIController
             ],
             'ranking' => 'nullable|string|in:fundi_kuu,fundi_msaidizi',
             'profile_photo' => 'nullable|image|max:2048',
+            'profile_photo_url' => 'nullable|string|url', // For Cloudinary URL from Flutter
+            'profile_photo_public_id' => 'nullable|string', // For Cloudinary public_id from Flutter
         ]);
 
         DB::beginTransaction();
@@ -142,10 +152,32 @@ class FundiController extends BaseAPIController
             $data['created_by'] = $this->getOperator()->id;
             $data['status'] = 'active';
 
-            // Handle profile photo upload
-            if ($request->hasFile('profile_photo')) {
-                $data['profile_photo'] = $request->file('profile_photo')
-                    ->store('fundis/profiles', 'public');
+            // Handle profile photo
+            $profilePhotoUrl = null;
+            $profilePhotoPublicId = null;
+
+            // Priority 1: Use Cloudinary URL and public_id from Flutter (direct upload)
+            if ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id')) {
+                $profilePhotoUrl = $request->profile_photo_url;
+                $profilePhotoPublicId = $request->profile_photo_public_id;
+            }
+            // Priority 2: Upload file to Cloudinary if provided
+            elseif ($request->hasFile('profile_photo')) {
+                $uploadResult = $this->cloudinaryService->upload(
+                    $request->file('profile_photo'),
+                    'FundiApp/Fundis'
+                );
+
+                if ($uploadResult) {
+                    $profilePhotoUrl = $uploadResult['url'];
+                    $profilePhotoPublicId = $uploadResult['public_id'];
+                }
+            }
+
+            // Save profile photo data if available
+            if ($profilePhotoUrl) {
+                $data['profile_photo'] = $profilePhotoUrl;
+                $data['profile_photo_public_id'] = $profilePhotoPublicId;
             }
 
             $fundi = Fundi::create($data);
@@ -210,6 +242,8 @@ class FundiController extends BaseAPIController
             ],
             'ranking' => 'nullable|string|in:fundi_kuu,fundi_msaidizi',
             'profile_photo' => 'nullable|image|max:2048',
+            'profile_photo_url' => 'nullable|string|url', // For Cloudinary URL from Flutter
+            'profile_photo_public_id' => 'nullable|string', // For Cloudinary public_id from Flutter
             'status' => 'sometimes|required|in:active,inactive',
         ]);
 
@@ -217,15 +251,43 @@ class FundiController extends BaseAPIController
         try {
             $data = $request->except('profile_photo');
 
-            // Handle profile photo upload
-            if ($request->hasFile('profile_photo')) {
-                // Delete old profile photo if exists
-                if ($fundi->profile_photo && Storage::disk('public')->exists($fundi->profile_photo)) {
-                    Storage::disk('public')->delete($fundi->profile_photo);
+            // Handle profile photo update
+            $profilePhotoUrl = $fundi->profile_photo_url;
+            $profilePhotoPublicId = $fundi->profile_photo_public_id;
+
+            // Priority 1: Use new Cloudinary URL and public_id from Flutter
+            if ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id')) {
+                // If there's a new image, delete the old one
+                if ($fundi->profile_photo_public_id &&
+                    $fundi->profile_photo_public_id !== $request->profile_photo_public_id) {
+                    $this->cloudinaryService->delete($fundi->profile_photo_public_id);
                 }
 
-                $data['profile_photo'] = $request->file('profile_photo')
-                    ->store('fundis/profiles', 'public');
+                $profilePhotoUrl = $request->profile_photo_url;
+                $profilePhotoPublicId = $request->profile_photo_public_id;
+            }
+            // Priority 2: Upload new file to Cloudinary if provided
+            elseif ($request->hasFile('profile_photo')) {
+                $uploadResult = $this->cloudinaryService->update(
+                    $request->file('profile_photo'),
+                    $fundi->profile_photo_public_id, // This will delete the old image
+                    'FundiApp/Fundis'
+                );
+
+                if ($uploadResult) {
+                    $profilePhotoUrl = $uploadResult['url'];
+                    $profilePhotoPublicId = $uploadResult['public_id'];
+                }
+            }
+
+            // Save profile photo data if available
+            if ($profilePhotoUrl) {
+                $data['profile_photo'] = $profilePhotoUrl;
+                $data['profile_photo_public_id'] = $profilePhotoPublicId;
+            } else {
+                // If no new photo is provided, keep the existing one
+                $data['profile_photo'] = $fundi->profile_photo;
+                $data['profile_photo_public_id'] = $fundi->profile_photo_public_id;
             }
 
             $fundi->update($data);
@@ -335,9 +397,9 @@ class FundiController extends BaseAPIController
 
         DB::beginTransaction();
         try {
-            // Delete profile photo if exists
-            if ($fundi->profile_photo && Storage::disk('public')->exists($fundi->profile_photo)) {
-                Storage::disk('public')->delete($fundi->profile_photo);
+            // Delete profile photo from Cloudinary if exists
+            if ($fundi->profile_photo_public_id) {
+                $this->cloudinaryService->delete($fundi->profile_photo_public_id);
             }
 
             $fundi->delete(); // This will soft delete due to SoftDeletes trait

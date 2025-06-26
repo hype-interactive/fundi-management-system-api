@@ -7,10 +7,14 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Services\CloudinaryImageService;
 
 class FundiForm extends Component
 {
     use WithFileUploads;
+
+    // Inject CloudinaryImageService
+    protected $cloudinaryService;
 
     // Fundi form properties
     public $fundi_id = null;
@@ -28,6 +32,10 @@ class FundiForm extends Component
     public $status = 'active';
     public $legacy_match = false;
     public $legacy_id = '';
+
+    // Cloudinary properties
+    public $profile_photo_url = null;
+    public $profile_photo_public_id = null;
 
     // Component compatibility
     public $ward = null;
@@ -52,6 +60,11 @@ class FundiForm extends Component
         'createNewFundi' => 'resetForm',
         'resetValidation' => 'resetValidation',
     ];
+
+    public function boot()
+    {
+        $this->cloudinaryService = app(CloudinaryImageService::class);
+    }
 
     public function mount($fundi = null)
     {
@@ -96,9 +109,12 @@ class FundiForm extends Component
         $this->legacy_match = $fundi->legacy_match;
         $this->legacy_id = $fundi->legacy_id;
 
-        // Handle existing photo
-        if ($fundi->profile_photo) {
-            $this->existing_photo = Storage::url($fundi->profile_photo);
+        // Handle existing Cloudinary photo
+        $this->profile_photo_url = $fundi->profile_photo_url;
+        $this->profile_photo_public_id = $fundi->profile_photo_public_id;
+
+        if ($fundi->profile_photo_url) {
+            $this->existing_photo = $fundi->profile_photo_url;
             $this->remove_photo = false;
         } else {
             $this->existing_photo = null;
@@ -179,6 +195,8 @@ class FundiForm extends Component
             'ward_id',
             'ranking',
             'profile_photo',
+            'profile_photo_url',
+            'profile_photo_public_id',
             'status',
             'legacy_match',
             'legacy_id',
@@ -209,36 +227,7 @@ class FundiForm extends Component
 
         $this->resetForm();
 
-        $this->fundi_id = $fundi->id;
-        $this->fname = $fundi->fname;
-        $this->mname = $fundi->mname;
-        $this->lname = $fundi->lname;
-        $this->gender = $fundi->gender;
-        $this->nida_number = $fundi->nida_number;
-        $this->primary_phone = $fundi->primary_phone;
-        $this->transaction_phone = $fundi->transaction_phone;
-
-        // Set district first to load wards correctly
-        $this->district = $fundi->ward->district->id;
-        $this->loadWards();
-        $this->ward_id = $fundi->ward_id;
-        $this->ward = $fundi->ward_id;
-
-        $this->ranking = $fundi->ranking;
-        $this->status = $fundi->status ?: 'active';
-        $this->legacy_match = $fundi->legacy_match;
-        $this->legacy_id = $fundi->legacy_id;
-
-        // Handle existing photo
-        if ($fundi->profile_photo) {
-            $this->existing_photo = Storage::url($fundi->profile_photo);
-            $this->remove_photo = false;
-        } else {
-            $this->existing_photo = null;
-        }
-
-        $this->action_text = 'Update';
-        $this->editing = true;
+        $this->loadFundiData($fundi);
     }
 
     /**
@@ -248,6 +237,8 @@ class FundiForm extends Component
     {
         $this->remove_photo = true;
         $this->existing_photo = null;
+        $this->profile_photo_url = null;
+        $this->profile_photo_public_id = null;
     }
 
     /**
@@ -273,52 +264,77 @@ class FundiForm extends Component
 
         $this->validate($rules);
 
-        // Generate a unique ID if this is a new fundi
-        $unique_id = $this->fundi_id ? null : 'F' . date('Ymd') . rand(1000, 9999);
-
-        // Handle profile photo upload
-        $photo_path = null;
-        if ($this->profile_photo) {
-            $photo_path = $this->profile_photo->store('fundis', 'public');
-        } elseif ($this->editing && !$this->remove_photo) {
-            // Keep existing photo if editing and not removing
-            $photo_path = Fundi::find($this->fundi_id)->profile_photo;
-        }
-
-        // Ensure ward_id is set from ward if it exists
-        if (empty($this->ward_id) && !empty($this->ward)) {
-            $this->ward_id = $this->ward;
-        }
-
         $isCreating = empty($this->fundi_id);
+
+        // Handle profile photo upload to Cloudinary
+        $photo_url = $this->profile_photo_url;
+        $photo_public_id = $this->profile_photo_public_id;
+
+        if ($this->profile_photo) {
+            if ($this->editing && $this->profile_photo_public_id) {
+                // Update existing image (delete old, upload new)
+                $uploadResult = $this->cloudinaryService->update(
+                    $this->profile_photo,
+                    $this->profile_photo_public_id,
+                    'FundiApp/Fundis'
+                );
+            } else {
+                // Upload new image
+                $uploadResult = $this->cloudinaryService->upload(
+                    $this->profile_photo,
+                    'FundiApp/Fundis'
+                );
+            }
+
+            if ($uploadResult) {
+                $photo_url = $uploadResult['url'];
+                $photo_public_id = $uploadResult['public_id'];
+            } else {
+                session()->flash('error', 'Failed to upload profile photo');
+                return;
+            }
+        } elseif ($this->remove_photo && $this->editing) {
+            // Remove existing photo
+            if ($this->profile_photo_public_id) {
+                $this->cloudinaryService->delete($this->profile_photo_public_id);
+            }
+            $photo_url = null;
+            $photo_public_id = null;
+        }
+
+        // Prepare data for create/update
+        $fundiData = [
+            'fname' => $this->fname,
+            'mname' => $this->mname,
+            'lname' => $this->lname,
+            'gender' => $this->gender,
+            'nida_number' => $this->nida_number,
+            'primary_phone' => $this->primary_phone,
+            'transaction_phone' => $this->transaction_phone,
+            'ward_id' => $this->ward_id,
+            'ranking' => $this->ranking,
+            'profile_photo_url' => $photo_url,
+            'profile_photo_public_id' => $photo_public_id,
+            'status' => $isCreating ? 'pending' : $this->status,
+            'legacy_match' => $this->legacy_match,
+            'legacy_id' => $this->legacy_match ? $this->legacy_id : null,
+        ];
+
+        // Only add unique_id and created_by for new records
+        if ($isCreating) {
+            $fundiData['unique_id'] = 'F' . date('Ymd') . rand(1000, 9999);
+            $fundiData['created_by'] = Auth::id();
+        }
 
         // Create or update the fundi
         $fundi = Fundi::updateOrCreate(
             ['id' => $this->fundi_id],
-            [
-                'unique_id' => $unique_id,
-                'fname' => $this->fname,
-                'mname' => $this->mname,
-                'lname' => $this->lname,
-                'gender' => $this->gender,
-                'nida_number' => $this->nida_number,
-                'primary_phone' => $this->primary_phone,
-                'transaction_phone' => $this->transaction_phone,
-                'ward_id' => $this->ward_id,
-                'ranking' => $this->ranking,
-                'profile_photo' => $photo_path,
-                'status' => $isCreating ? 'pending' : $this->status, // Set status to pending if creating new
-                'created_by' => $this->fundi_id ? null : Auth::id(), // Only set if creating new
-                'legacy_match' => $this->legacy_match,
-                'legacy_id' => $this->legacy_match ? $this->legacy_id : null,
-            ]
+            $fundiData
         );
 
         if ($fundi) {
             // Handle different modes differently
             if ($this->mode === 'create') {
-                // Close modal using JS for create mode
-                // $this->dispatchBrowserEvent('closeModal', ['modalId' => 'addFundiForm']);
                 // Reset form after saving
                 $this->resetForm();
                 $this->loadDistricts();

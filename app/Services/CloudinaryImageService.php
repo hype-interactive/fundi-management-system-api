@@ -4,6 +4,7 @@ namespace App\Services;
 
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\UploadedFile;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -12,38 +13,92 @@ class CloudinaryImageService
     /**
      * Upload an image to Cloudinary
      *
-     * @param UploadedFile $file
+     * @param UploadedFile|TemporaryUploadedFile $file
      * @param string $folder
      * @param array $options
      * @return array|null
      */
-    public function upload(UploadedFile $file, string $folder = 'uploads', array $options = []): ?array
+    public function upload($file, string $folder = 'uploads', array $options = []): ?array
     {
         try {
+            // Validate file
+            if (!$file || !$file->isValid()) {
+                Log::error('Invalid file provided for upload');
+                return null;
+            }
+
             // Default options
             $defaultOptions = [
-                'transformation' => [
-                    'quality' => 'auto',
-                    'fetch_format' => 'auto'
-                ]
+                'folder' => $folder,
+                'quality' => 'auto',
+                'fetch_format' => 'auto'
             ];
 
             // Merge with provided options
             $uploadOptions = array_merge($defaultOptions, $options);
 
-            // Upload to Cloudinary
-            $cloudinaryImage = $file->storeOnCloudinary($folder, $uploadOptions);
+            Log::info('Attempting Cloudinary upload', [
+                'file_type' => get_class($file),
+                'file_size' => $file->getSize(),
+                'mime_type' => $file->getMimeType(),
+                'folder' => $folder
+            ]);
 
-            return [
-                'url' => $cloudinaryImage->getSecurePath(),
-                'public_id' => $cloudinaryImage->getPublicId(),
-                'original_filename' => $file->getClientOriginalName(),
-                'size' => $file->getSize(),
-                'mime_type' => $file->getMimeType()
-            ];
+            // Handle Livewire TemporaryUploadedFile
+            if ($file instanceof TemporaryUploadedFile) {
+                // Get the real path of the temporary file
+                $filePath = $file->getRealPath();
+
+                if (!$filePath || !file_exists($filePath)) {
+                    throw new Exception('Temporary file path not found or file does not exist');
+                }
+
+                Log::info('Uploading TemporaryUploadedFile', ['path' => $filePath]);
+
+                // Upload using Cloudinary's uploadApi
+                $result = Cloudinary::uploadApi()->upload($filePath, $uploadOptions);
+
+                Log::info('Cloudinary upload result', ['result' => $result]);
+
+                if (!$result || !isset($result['secure_url']) || !isset($result['public_id'])) {
+                    throw new Exception('Invalid response from Cloudinary: ' . json_encode($result));
+                }
+
+                return [
+                    'url' => $result['secure_url'],
+                    'public_id' => $result['public_id'],
+                    'original_filename' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType()
+                ];
+            }
+            // Handle regular UploadedFile
+            elseif ($file instanceof UploadedFile) {
+                Log::info('Uploading regular UploadedFile');
+
+                // Use the storeOnCloudinary method for regular uploaded files
+                $cloudinaryImage = $file->storeOnCloudinary($folder, $uploadOptions);
+
+                if (!$cloudinaryImage) {
+                    throw new Exception('Failed to upload file to Cloudinary');
+                }
+
+                return [
+                    'url' => $cloudinaryImage->getSecurePath(),
+                    'public_id' => $cloudinaryImage->getPublicId(),
+                    'original_filename' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType()
+                ];
+            }
+
+            throw new Exception('Unsupported file type: ' . get_class($file));
 
         } catch (Exception $e) {
-            Log::error('Cloudinary upload failed: ' . $e->getMessage());
+            Log::error('Cloudinary upload failed: ' . $e->getMessage(), [
+                'file_type' => isset($file) ? get_class($file) : 'null',
+                'trace' => $e->getTraceAsString()
+            ]);
             return null;
         }
     }
@@ -51,13 +106,13 @@ class CloudinaryImageService
     /**
      * Update an image (delete old and upload new)
      *
-     * @param UploadedFile $newFile
+     * @param UploadedFile|TemporaryUploadedFile $newFile
      * @param string|null $oldPublicId
      * @param string $folder
      * @param array $options
      * @return array|null
      */
-    public function update(UploadedFile $newFile, ?string $oldPublicId = null, string $folder = 'uploads', array $options = []): ?array
+    public function update($newFile, ?string $oldPublicId = null, string $folder = 'uploads', array $options = []): ?array
     {
         try {
             // Delete old image if exists
@@ -131,7 +186,7 @@ class CloudinaryImageService
         $results = [];
 
         foreach ($files as $file) {
-            if ($file instanceof UploadedFile) {
+            if ($file instanceof UploadedFile || $file instanceof TemporaryUploadedFile) {
                 $result = $this->upload($file, $folder, $options);
                 if ($result) {
                     $results[] = $result;
