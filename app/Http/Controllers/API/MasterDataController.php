@@ -26,11 +26,19 @@ class MasterDataController extends BaseAPIController
         );
     }
 
-    public function products(): JsonResponse
+    public function products(Request $request): JsonResponse
     {
-        $products = Product::where('is_active', true)
-            ->orderBy('name')
-            ->get();
+        $query = Product::where('visibility', 'public');
+
+        // Optional availability filter
+        if ($request->has('availability')) {
+            $query->where('availability', $request->availability);
+        } else {
+            // Default to available only
+            $query->where('availability', 'available');
+        }
+
+        $products = $query->orderBy('name')->get();
 
         return $this->successResponse(
             ProductResource::collection($products),
