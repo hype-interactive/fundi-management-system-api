@@ -15,8 +15,8 @@ class SiteVisitPhotoResource extends BaseResource
     {
         return [
             'id' => $this->id,
-            'photo_path' => $this->photo_path,
-            'photo_url' => asset('storage/' . $this->photo_path), // Adjust based on your storage setup
+            'photo_url' => $this->photo_url,
+            'photo_public_id' => $this->photo_public_id,
         ];
     }
 }

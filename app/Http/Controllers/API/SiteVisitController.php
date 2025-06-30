@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\SiteVisitResource;
 use App\Http\Resources\SiteVisitListResource;
@@ -130,7 +131,8 @@ class SiteVisitController extends BaseAPIController
             'gps_latitude' => 'nullable|numeric|between:-90,90',
             'gps_longitude' => 'nullable|numeric|between:-180,180',
             'photos' => 'required|array|min:1',
-            'photos.*' => 'image|max:5120', // 5MB max per photo
+            'photos.*.photo_url' => 'required|url|max:500',
+            'photos.*.photo_public_id' => 'required|string|max:255',
             'products' => 'required|array|min:1',
             'products.*.product_id' => 'required|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
@@ -154,30 +156,57 @@ class SiteVisitController extends BaseAPIController
                 'status' => 'pending',
             ]);
 
-            // Upload and attach photos
-            foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('site-visits/photos', 'public');
-                $siteVisit->photos()->create(['photo_path' => $path]);
+            // Store Cloudinary photo URLs and public IDs
+            $photoCount = 0;
+            foreach ($request->photos as $photoData) {
+                $photo = $siteVisit->photos()->create([
+                    'photo_url' => $photoData['photo_url'],
+                    'photo_public_id' => $photoData['photo_public_id'],
+                ]);
+
+                Log::info('Photo attached to site visit', [
+                    'site_visit_id' => $siteVisit->id,
+                    'photo_id' => $photo->id,
+                    'photo_url' => $photoData['photo_url'],
+                    'photo_public_id' => $photoData['photo_public_id'],
+                ]);
+
+                $photoCount++;
             }
 
+            Log::info("Successfully stored {$photoCount} photos for site visit {$siteVisit->id}");
+
             // Attach products
+            $productCount = 0;
             foreach ($request->products as $product) {
                 $siteVisit->products()->attach($product['product_id'], [
                     'quantity' => $product['quantity'],
                     'notes' => $product['notes'] ?? null,
                 ]);
+
+                $productCount++;
             }
 
             // Attach fundis
+            $fundiCount = 0;
             foreach ($request->fundis as $fundi) {
                 $siteVisit->fundis()->attach($fundi['fundi_id'], [
                     'notes' => $fundi['notes'] ?? null,
                 ]);
+
+                $fundiCount++;
             }
 
             $siteVisit->load(['ward.district', 'photos', 'products', 'fundis']);
 
             DB::commit();
+
+            Log::info('Site visit creation completed successfully', [
+                'site_visit_id' => $siteVisit->id,
+                'photos_count' => $photoCount,
+                'products_count' => $productCount,
+                'fundis_count' => $fundiCount,
+            ]);
 
             return $this->successResponse(
                 new SiteVisitResource($siteVisit),

@@ -11,7 +11,8 @@ class SiteVisitPhoto extends Model
 
     protected $fillable = [
         'site_visit_id',
-        'photo_path',
+        'photo_url',
+        'photo_public_id',
     ];
 
     public $timestamps = false;
