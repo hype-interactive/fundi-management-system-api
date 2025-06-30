@@ -3,9 +3,29 @@
         @if ($siteVisit->photos->count() > 0)
             <div class="photos-grid">
                 @foreach ($siteVisit->photos as $photo)
+                    @php
+                        // Determine the correct photo URL based on storage type
+                        $photoUrl = '';
+                        $isCloudinary = false;
+
+                        if (!empty($photo->photo_url)) {
+                            // Cloudinary photo - use direct URL
+                            $photoUrl = $photo->photo_url;
+                            $isCloudinary = true;
+                        } elseif (!empty($photo->photo_path)) {
+                            // Legacy photo - use Laravel Storage
+                            $photoUrl = Storage::url($photo->photo_path);
+                            $isCloudinary = false;
+                        } else {
+                            // Fallback - no valid photo URL
+                            $photoUrl = asset('images/placeholder-photo.jpg'); // Add a placeholder image
+                        }
+                    @endphp
                     <div class="photo-item">
-                        <img src="{{ Storage::url($photo->photo_path) }}" alt="Site visit photo" class="img-fluid rounded"
-                            data-bs-toggle="modal" data-bs-target="#photoModal{{ $photo->id }}">
+                        <img src="{{ $photoUrl }}" alt="Site visit photo" class="img-fluid rounded photo-thumbnail"
+                            data-bs-toggle="modal" data-bs-target="#photoModal{{ $photo->id }}" loading="lazy"
+                            onerror="this.onerror=null; this.src='{{ asset('images/placeholder-photo.jpg') }}';">
+
                         <div class="photo-overlay">
                             <i class="fa-solid fa-search-plus"></i>
                         </div>
@@ -20,8 +40,11 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body text-center">
-                                    <img src="{{ Storage::url($photo->photo_path) }}" alt="Site visit photo"
-                                        class="img-fluid">
+                                    <div class="photo-container">
+                                        <img src="{{ $photoUrl }}" alt="Site visit photo"
+                                            class="img-fluid modal-photo" loading="lazy"
+                                            onerror="this.onerror=null; this.src='{{ asset('images/placeholder-photo.jpg') }}';">
+                                    </div>
                                 </div>
                             </div>
                         </div>
