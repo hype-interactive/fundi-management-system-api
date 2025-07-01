@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Fundi;
+use App\Traits\HasAlerts;
 use Livewire\Component;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
@@ -10,7 +11,7 @@ use App\Traits\LocationTrait;
 
 class FundisTable extends Component
 {
-    use WithPagination, LocationTrait;
+    use WithPagination, LocationTrait, HasAlerts;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -58,6 +59,32 @@ class FundisTable extends Component
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
     public $compactView = false;
+
+    public function mount()
+    {
+        // For non-admin/root users, set their primary location
+        if (!$this->isAdminOrRoot()) {
+            $primaryDistrict = $this->getUserPrimaryDistrict();
+            $primaryRegion = $this->getUserPrimaryRegion();
+
+            if ($primaryDistrict) {
+                $this->district = $primaryDistrict->id;
+            }
+
+            if ($primaryRegion) {
+                $this->region = $primaryRegion->id;
+            }
+        }
+
+        // Auto-hide mobile filters initially on mobile
+        $this->showMobileFilters = false;
+
+        // Set compact view based on screen size (you can add logic to detect this)
+        $this->compactView = false;
+
+        // Display any flashed alerts
+        $this->displayFlashedAlerts();
+    }
 
     public function updatedRegion($value)
     {
@@ -217,6 +244,15 @@ class FundisTable extends Component
     }
 
     /**
+     * Handle fundi updated event
+     */
+    public function handleFundiUpdated($message = 'Fundi updated successfully.')
+    {
+        $this->showSuccessAlert('Success', $message);
+        $this->refreshData();
+    }
+
+    /**
      * Download the PDF of fundis
      */
     public function downloadFundiPDF()
@@ -313,29 +349,6 @@ class FundisTable extends Component
         ]);
     }
 
-    public function mount()
-    {
-        // For non-admin/root users, set their primary location
-        if (!$this->isAdminOrRoot()) {
-            $primaryDistrict = $this->getUserPrimaryDistrict();
-            $primaryRegion = $this->getUserPrimaryRegion();
-
-            if ($primaryDistrict) {
-                $this->district = $primaryDistrict->id;
-            }
-
-            if ($primaryRegion) {
-                $this->region = $primaryRegion->id;
-            }
-        }
-
-        // Auto-hide mobile filters initially on mobile
-        $this->showMobileFilters = false;
-
-        // Set compact view based on screen size (you can add logic to detect this)
-        $this->compactView = false;
-    }
-
     public function refresh()
     {
         $this->reset([
@@ -356,6 +369,8 @@ class FundisTable extends Component
 
         // Hide mobile filters after refresh
         $this->showMobileFilters = false;
+
+        $this->showInfoAlert('Filters Cleared', 'All filters have been reset.');
     }
 
     public function render()

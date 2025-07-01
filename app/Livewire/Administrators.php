@@ -3,14 +3,14 @@
 namespace App\Livewire;
 
 use App\Models\User;
+use App\Traits\HasAlerts;
 use Livewire\Component;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Auth;
-use Jantinnerezo\LivewireAlert\Facades\LivewireAlert;
 
 class Administrators extends Component
 {
-    use LocationTrait;
+    use LocationTrait, HasAlerts;
 
     public $districts;
     public $district;
@@ -49,12 +49,8 @@ class Administrators extends Component
         $this->district = $firstDistrict?->id;
         $this->district_name = $firstDistrict?->name ?? 'NIL';
 
-        if (session()->has('saved')) {
-            LivewireAlert::title(session('saved.title'))
-                ->text(session('saved.text'))
-                ->{session('saved.title') === 'Error' ? 'error' : 'success'}()
-                ->show();
-        }
+        // Display any flashed alerts
+        $this->displayFlashedAlerts();
     }
 
     /**
@@ -108,39 +104,42 @@ class Administrators extends Component
             'district' => 'required|exists:districts,id',
         ]);
 
-        $admin = User::updateOrCreate(
-            ['id' => $this->admin_id],
-            [
-                'fname' => $this->fname,
-                'mname' => $this->mname,
-                'lname' => $this->lname,
-                'email' => $this->email,
-                'phone' => $this->phone,
-                'role_id' => $this->role,
-                'status' => 'active',
-                'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
-            ]
+        // Use the handleOperationWithFlash method for cleaner code
+        $result = $this->handleOperationWithFlash(
+            function () {
+                $admin = User::updateOrCreate(
+                    ['id' => $this->admin_id],
+                    [
+                        'fname' => $this->fname,
+                        'mname' => $this->mname,
+                        'lname' => $this->lname,
+                        'email' => $this->email,
+                        'phone' => $this->phone,
+                        'role_id' => $this->role,
+                        'status' => 'active',
+                        'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
+                    ]
+                );
+
+                if ($admin) {
+                    $admin->districts()->sync([$this->district]);
+                    return true;
+                }
+                return false;
+            },
+            'Success',
+            'Administrator ' . strtolower($this->action_text) . 'd successfully.',
+            'Error',
+            'Failed to ' . strtolower($this->action_text) . ' administrator.'
         );
 
-        if ($admin) {
-            $admin->districts()->sync([$this->district]);
+        if ($result) {
+            // Reset form fields
+            $this->reset(['fname', 'mname', 'lname', 'email', 'phone']);
 
-            session()->flash('saved', [
-                'title' => 'Success',
-                'text'  => 'Administrator ' . $this->action_text . 'd successfully.',
-            ]);
-        } else {
-            session()->flash('saved', [
-                'title' => 'Error',
-                'text'  => 'Failed to ' . $this->action_text . ' administrator.',
-            ]);
+            // Redirect to /administrators where the alert will be shown in mount()
+            return redirect('/administrators');
         }
-
-        // Reset form fields
-        $this->reset(['fname', 'mname', 'lname', 'email', 'phone']);
-
-        // Redirect to /administrators where the alert will be shown in mount()
-        return redirect('/administrators');
     }
 
     /**
