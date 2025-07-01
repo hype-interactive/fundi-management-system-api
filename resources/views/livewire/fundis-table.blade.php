@@ -103,9 +103,9 @@
                                 <a href="{{ route('fundi', $fundi) }}" class="text-decoration-none">
                                     <div class="fundi-name">
                                         <span class="fw-semibold">{{ $fundi->fname }} {{ $fundi->lname }}</span>
-                                        @if ($fundi->mname)
+                                        {{-- @if ($fundi->mname)
                                             <small class="text-muted d-block">{{ $fundi->mname }}</small>
-                                        @endif
+                                        @endif --}}
                                     </div>
                                 </a>
                             </td>

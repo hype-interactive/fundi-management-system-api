@@ -155,11 +155,11 @@
                                 <a href="{{ route('site-visit', $visit) }}" class="text-decoration-none">
                                     <div class="visit-details">
                                         <span class="fw-semibold site-name">{{ $visit->site_name }}</span>
-                                        @if ($visit->site_description)
+                                        {{-- @if ($visit->site_description)
                                             <small class="text-muted d-block site-description">
                                                 {{ Str::limit($visit->site_description, 50) }}
                                             </small>
-                                        @endif
+                                        @endif --}}
                                     </div>
                                 </a>
                             </td>
