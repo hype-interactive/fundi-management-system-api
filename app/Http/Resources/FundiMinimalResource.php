@@ -18,6 +18,7 @@ class FundiMinimalResource extends BaseResource
             'unique_id' => $this->unique_id,
             'name' => $this->full_name,
             'primary_phone' => $this->primary_phone,
+            'profile_photo_url' => $this->profile_photo_url,
             'ward_name' => $this->ward->name ?? null,
             'status' => $this->status,
             'approval_status' => $this->approval_status,
