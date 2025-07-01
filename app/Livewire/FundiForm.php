@@ -2,9 +2,11 @@
 
 namespace App\Livewire;
 
+use Exception;
 use App\Models\Fundi;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Services\CloudinaryImageService;
@@ -271,35 +273,67 @@ class FundiForm extends Component
         $photo_public_id = $this->profile_photo_public_id;
 
         if ($this->profile_photo) {
-            if ($this->editing && $this->profile_photo_public_id) {
-                // Update existing image (delete old, upload new)
-                $uploadResult = $this->cloudinaryService->update(
-                    $this->profile_photo,
-                    $this->profile_photo_public_id,
-                    'FundiApp/Fundis'
-                );
-            } else {
-                // Upload new image
-                $uploadResult = $this->cloudinaryService->upload(
-                    $this->profile_photo,
-                    'FundiApp/Fundis'
-                );
-            }
+            try {
+                // Test Cloudinary connection first
+                if (!$this->cloudinaryService->testConnection()) {
+                    session()->flash('error', 'Unable to connect to image storage service. Please try again later.');
+                    return;
+                }
 
-            if ($uploadResult) {
-                $photo_url = $uploadResult['url'];
-                $photo_public_id = $uploadResult['public_id'];
-            } else {
-                session()->flash('error', 'Failed to upload profile photo');
+                if ($this->editing && $this->profile_photo_public_id) {
+                    // Update existing image (delete old, upload new)
+                    $uploadResult = $this->cloudinaryService->update(
+                        $this->profile_photo,
+                        $this->profile_photo_public_id,
+                        'FundiApp/Fundis'
+                    );
+                } else {
+                    // Upload new image
+                    $uploadResult = $this->cloudinaryService->upload(
+                        $this->profile_photo,
+                        'FundiApp/Fundis'
+                    );
+                }
+
+                if ($uploadResult && isset($uploadResult['url']) && isset($uploadResult['public_id'])) {
+                    $photo_url = $uploadResult['url'];
+                    $photo_public_id = $uploadResult['public_id'];
+
+                    Log::info('Photo uploaded successfully', [
+                        'url' => $photo_url,
+                        'public_id' => $photo_public_id
+                    ]);
+                } else {
+                    Log::error('Photo upload failed - invalid result', [
+                        'result' => $uploadResult
+                    ]);
+                    session()->flash('error', 'Failed to upload profile photo. Please try again or contact support.');
+                    return;
+                }
+            } catch (Exception $e) {
+                Log::error('Photo upload exception: ' . $e->getMessage());
+                session()->flash('error', 'An error occurred while uploading the photo. Please try again.');
                 return;
             }
         } elseif ($this->remove_photo && $this->editing) {
             // Remove existing photo
-            if ($this->profile_photo_public_id) {
-                $this->cloudinaryService->delete($this->profile_photo_public_id);
+            try {
+                if ($this->profile_photo_public_id) {
+                    $deleteResult = $this->cloudinaryService->delete($this->profile_photo_public_id);
+                    if (!$deleteResult) {
+                        Log::warning('Failed to delete old photo', [
+                            'public_id' => $this->profile_photo_public_id
+                        ]);
+                    }
+                }
+                $photo_url = null;
+                $photo_public_id = null;
+            } catch (Exception $e) {
+                Log::error('Photo deletion exception: ' . $e->getMessage());
+                // Continue with saving even if deletion fails
+                $photo_url = null;
+                $photo_public_id = null;
             }
-            $photo_url = null;
-            $photo_public_id = null;
         }
 
         // Prepare data for create/update
@@ -326,38 +360,38 @@ class FundiForm extends Component
             $fundiData['created_by'] = Auth::id();
         }
 
-        // Create or update the fundi
-        $fundi = Fundi::updateOrCreate(
-            ['id' => $this->fundi_id],
-            $fundiData
-        );
+        try {
+            // Create or update the fundi
+            $fundi = Fundi::updateOrCreate(
+                ['id' => $this->fundi_id],
+                $fundiData
+            );
 
-        if ($fundi) {
-            // Handle different modes differently
-            if ($this->mode === 'create') {
-                // Reset form after saving
-                $this->resetForm();
-                $this->loadDistricts();
-                // Redirect to fundi list page
-                return redirect('/fundis');
+            if ($fundi) {
+                $action = $this->editing ? 'updated' : 'created';
+                session()->flash('success', "Fundi {$action} successfully!");
+
+                // Handle different modes differently
+                if ($this->mode === 'create') {
+                    // Reset form after saving
+                    $this->resetForm();
+                    $this->loadDistricts();
+                    // Redirect to fundi list page
+                    return redirect('/fundis');
+                } else {
+                    // For edit mode, reload the fundi data
+                    $this->loadFundiData($fundi);
+                    return; // Stay on the same page
+                }
             } else {
-                // For edit mode, just show success message and stay on page
-                // Optionally reload the fundi data
-                $this->loadFundiData($fundi);
+                session()->flash('error', 'Failed to ' . ($this->editing ? 'update' : 'create') . ' fundi.');
+                return;
             }
-        } else {
-            session()->flash('saved', [
-                'title' => 'Error',
-                'text' => 'Failed to ' . ($this->editing ? 'update' : 'create') . ' fundi.',
-            ]);
+        } catch (Exception $e) {
+            Log::error('Database error while saving fundi: ' . $e->getMessage());
+            session()->flash('error', 'An error occurred while saving. Please try again.');
+            return;
         }
-
-        // Reset form after saving
-        $this->resetForm();
-        $this->loadDistricts();
-
-        // Redirect to fundi list page
-        return redirect('/fundis');
     }
 
     public function render()

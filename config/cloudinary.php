@@ -34,6 +34,16 @@ return [
     'cloud_url' => env('CLOUDINARY_URL', 'cloudinary://'.env('CLOUDINARY_KEY').':'.env('CLOUDINARY_SECRET').'@'.env('CLOUDINARY_CLOUD_NAME')),
 
     /**
+     * Cloudinary API Key
+     */
+    'api_key' => env('CLOUDINARY_KEY', env('CLOUDINARY_API_KEY')),
+
+    /**
+     * Cloudinary API Secret
+     */
+    'api_secret' => env('CLOUDINARY_SECRET', env('CLOUDINARY_API_SECRET')),
+
+    /**
      * Upload Preset From Cloudinary Dashboard
      */
     'upload_preset' => env('CLOUDINARY_UPLOAD_PRESET'),
