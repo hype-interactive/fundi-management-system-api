@@ -5,7 +5,11 @@
         <div class="col-md-9">
             <div class="header mb-1">
                 <h2>Hello {{ Auth::user()->fname }}</h2>
-                <p>Welcome back!</p>
+                <p>Welcome back! Here's your monthly performance overview.</p>
+                <small class="text-muted">
+                    <i class="fas fa-calendar-alt me-1"></i>
+                    All metrics display monthly trend data
+                </small>
             </div>
             <div class="body">
                 <livewire:platform-summary>

@@ -369,8 +369,6 @@ class FundisTable extends Component
 
         // Hide mobile filters after refresh
         $this->showMobileFilters = false;
-
-        $this->showInfoAlert('Filters Cleared', 'All filters have been reset.');
     }
 
     public function render()
