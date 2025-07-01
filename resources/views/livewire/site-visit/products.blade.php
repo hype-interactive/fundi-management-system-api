@@ -8,12 +8,12 @@
                             <h6 class="product-name">{{ $product->name }}</h6>
                             <div class="product-details">
                                 <span class="quantity">
-                                    <i class="fa-solid fa-boxes me-1"></i>
+                                    <i class="fa-solid fa-boxes mr-1"></i>
                                     Quantity: {{ $product->pivot->quantity }}
                                 </span>
                                 @if ($product->pivot->notes)
                                     <span class="notes">
-                                        <i class="fa-solid fa-sticky-note me-1"></i>
+                                        <i class="fa-solid fa-sticky-note mr-1"></i>
                                         {{ $product->pivot->notes }}
                                     </span>
                                 @endif
