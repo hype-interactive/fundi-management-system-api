@@ -19,6 +19,8 @@ class ProductResource extends BaseResource
             'description' => $this->description,
             'visibility' => $this->visibility,
             'availability' => $this->availability,
+            'photo_url' => $this->photo_url,
+            'photo_public_id' => $this->photo_public_id,
         ];
     }
 }
