@@ -54,6 +54,8 @@
                                         class="fa-solid fa-user-group"></i></a>
                                 <a href="/legacy-data" class="btn btn-custom inner-btn mt-3">Legacy Data <i
                                         class="fa-regular fa-folder-open"></i></a>
+                                <a href="/products" class="btn btn-custom inner-btn mt-3">Products <i
+                                        class="fa-solid fa-shopping-bag"></i></a>
                             </div>
                         </div>
                     </li>

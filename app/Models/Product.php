@@ -14,6 +14,8 @@ class Product extends Model
         'description',
         'visibility',
         'availability',
+        'photo_url',
+        'photo_public_id',
     ];
 
     public function siteVisits()

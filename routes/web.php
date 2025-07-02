@@ -1,11 +1,12 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\FundiController;
-use App\Http\Controllers\OperatorController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SiteVisitController;
+use App\Livewire\Products;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FundiController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\OperatorController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SiteVisitController;
 
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -52,6 +53,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/legacy-data', function () {
         return view('pages.under-construction');
     })->name('legacy-data');
+
+    Route::get('/products', function () {
+        return view('pages.products');
+    })->name('products');
 
     Route::get('/logs', function () {
         return view('pages.activity-logs');
