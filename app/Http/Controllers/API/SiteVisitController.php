@@ -126,7 +126,7 @@ class SiteVisitController extends BaseAPIController
                 },
             ],
             'site_name' => 'required|string|max:255',
-            'site_description' => 'required|string',
+            'site_description' => 'nullable|string',
             'visit_date' => 'required|date|before_or_equal:today',
             'gps_latitude' => 'nullable|numeric|between:-90,90',
             'gps_longitude' => 'nullable|numeric|between:-180,180',
