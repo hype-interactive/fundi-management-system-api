@@ -226,7 +226,7 @@ class FundiForm extends Component
             $this->loadWards();
         }
 
-        $this->showInfoAlert('Form Reset', 'Form has been reset to default values.');
+        // $this->showInfoAlert('Form Reset', 'Form has been reset to default values.');
     }
 
     /**

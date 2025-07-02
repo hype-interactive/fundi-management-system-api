@@ -3,9 +3,11 @@
 namespace App\Livewire;
 
 use App\Models\Fundi;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use App\Services\SmsService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class FundiProfile extends Component
 {
@@ -14,6 +16,13 @@ class FundiProfile extends Component
     public $siteVisits;
     public $legacyMatch = false;
     public $legacyData = null;
+
+    protected $smsService;
+
+    public function boot(SmsService $smsService)
+    {
+        $this->smsService = $smsService;
+    }
 
     public function mount(Fundi $fundi)
     {
@@ -107,6 +116,9 @@ class FundiProfile extends Component
             'approved_by' => Auth::id(),
         ]);
 
+        // Send welcome SMS message
+        $this->sendWelcomeSms();
+
         $this->dispatch('fundiStatusChanged');
         session()->flash('message', 'Fundi approved successfully.');
     }
@@ -126,8 +138,127 @@ class FundiProfile extends Component
             'rejected_by' => Auth::id(),
         ]);
 
+        // Optionally send rejection SMS
+        // $this->sendRejectionSms($reason);
+
         $this->dispatch('fundiStatusChanged');
         session()->flash('message', 'Fundi rejected successfully.');
+    }
+
+    /**
+     * Send welcome SMS to newly approved fundi
+     */
+    private function sendWelcomeSms()
+    {
+        try {
+            // Get the primary phone number
+            $phoneNumber = $this->getValidPhoneNumber();
+
+            if (!$phoneNumber) {
+                Log::warning("No valid phone number found for fundi ID: {$this->fundi->id}");
+                return;
+            }
+
+            // Create personalized welcome message
+            $message = $this->generateWelcomeMessage();
+
+            // Send SMS using the SmsService
+            $result = $this->smsService->sendSms($phoneNumber, $message);
+
+            // Log the result
+            if ($result['success']) {
+                Log::info("Welcome SMS sent successfully to fundi {$this->fundi->full_name} ({$phoneNumber})");
+            } else {
+                Log::error("Failed to send welcome SMS to fundi {$this->fundi->full_name}: " . ($result['error'] ?? 'Unknown error'));
+            }
+        } catch (\Exception $e) {
+            Log::error("Exception sending welcome SMS to fundi {$this->fundi->id}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Send rejection SMS to fundi (optional)
+     */
+    private function sendRejectionSms($reason = null)
+    {
+        try {
+            $phoneNumber = $this->getValidPhoneNumber();
+
+            if (!$phoneNumber) {
+                return;
+            }
+
+            $message = $this->generateRejectionMessage($reason);
+            $result = $this->smsService->sendSms($phoneNumber, $message);
+
+            if ($result['success']) {
+                Log::info("Rejection SMS sent to fundi {$this->fundi->full_name} ({$phoneNumber})");
+            } else {
+                Log::error("Failed to send rejection SMS to fundi {$this->fundi->full_name}: " . ($result['error'] ?? 'Unknown error'));
+            }
+        } catch (\Exception $e) {
+            Log::error("Exception sending rejection SMS to fundi {$this->fundi->id}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get valid phone number for the fundi
+     */
+    private function getValidPhoneNumber(): ?string
+    {
+        // Try primary phone first, then transaction phone
+        $phoneNumber = $this->fundi->primary_phone ?? $this->fundi->transaction_phone;
+
+        if (!$phoneNumber) {
+            return null;
+        }
+
+        // Clean and format phone number
+        $phoneNumber = preg_replace('/[^\d+]/', '', $phoneNumber);
+
+        // Ensure it starts with +255 for Tanzania
+        if (!str_starts_with($phoneNumber, '+')) {
+            if (str_starts_with($phoneNumber, '0')) {
+                $phoneNumber = '+255' . substr($phoneNumber, 1);
+            } elseif (str_starts_with($phoneNumber, '255')) {
+                $phoneNumber = '+' . $phoneNumber;
+            } elseif (str_starts_with($phoneNumber, '7') && strlen($phoneNumber) == 9) {
+                $phoneNumber = '+255' . $phoneNumber;
+            }
+        }
+
+        return $phoneNumber;
+    }
+
+    /**
+     * Generate personalized welcome message
+     */
+    private function generateWelcomeMessage(): string
+    {
+        $name = $this->fundi->fname ?? explode(' ', $this->fundi->full_name)[0] ?? 'Fundi';
+        $ranking = $this->fundi->ranking == 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi';
+        $wardName = $this->fundi->ward?->name ?? 'your area';
+
+        return "Hongera {$name}! Umeidhinishwa rasmi kama {$ranking} katika kata ya {$wardName}. " .
+            "Sasa unaweza kuanza kufanya kazi. Kwa maelezo zaidi wasiliana nasi. Asante!";
+    }
+
+    /**
+     * Generate rejection message
+     */
+    private function generateRejectionMessage($reason = null): string
+    {
+        $name = $this->fundi->fname ?? explode(' ', $this->fundi->full_name)[0] ?? 'Fundi';
+
+        $message = "Samahani {$name}, ombi lako la kuidhinishwa kama fundi halikukubaliwa.";
+
+        if ($reason) {
+            $message .= " Sababu: {$reason}.";
+        }
+
+        $message .= " Unaweza kujaribu tena baadaye. Asante.";
+
+        return $message;
     }
 
     public function render()
