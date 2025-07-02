@@ -3,23 +3,38 @@
 namespace App\Livewire;
 
 use App\Models\Product;
-use Livewire\Component;
 use App\Traits\HasAlerts;
-use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Log;
 use App\Services\CloudinaryImageService;
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use Livewire\WithPagination;
+use Livewire\Attributes\Url;
+use Illuminate\Support\Facades\Log;
 
 class Products extends Component
 {
-    use HasAlerts, WithFileUploads;
+    use HasAlerts, WithFileUploads, WithPagination;
 
-    public $products;
+    protected $paginationTheme = 'bootstrap';
+
+    // Search and filters
+    #[Url]
+    public $search_key = '';
+
+    #[Url]
+    public $visibility_filter = '';
+
+    #[Url]
+    public $availability_filter = '';
+
+    public $perPage = 6; // Good number for product grid
+
+    // Product form properties
     public $product;
     public $product_id;
-
     public $name;
     public $description;
-    public $visibility = 'visible';
+    public $visibility = 'public';
     public $availability = 'available';
     public $photo;
     public $current_photo_url;
@@ -27,6 +42,10 @@ class Products extends Component
 
     public $action_text;
     public $is_editing = false;
+
+    // Mobile responsiveness
+    public $showMobileFilters = false;
+    public $compactView = false;
 
     protected CloudinaryImageService $cloudinaryService;
 
@@ -46,7 +65,7 @@ class Products extends Component
     protected $rules = [
         'name' => 'required|string|max:255',
         'description' => 'nullable|string|max:1000',
-        'visibility' => 'required|in:visible,hidden',
+        'visibility' => 'required|in:public,private',
         'availability' => 'required|in:available,unavailable',
         'photo' => 'nullable|image|max:5120', // 5MB max
     ];
@@ -58,6 +77,58 @@ class Products extends Component
         'availability' => 'availability',
         'photo' => 'product photo',
     ];
+
+    // Pagination reset methods
+    public function updatedSearchKey()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedVisibilityFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedAvailabilityFilter()
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Get products query with filters and pagination
+     */
+    public function getProductsQuery()
+    {
+        $query = Product::query();
+
+        // Apply search filter
+        if ($this->search_key) {
+            $query->where(function ($subQuery) {
+                $subQuery->where('name', 'like', '%' . $this->search_key . '%')
+                    ->orWhere('description', 'like', '%' . $this->search_key . '%');
+            });
+        }
+
+        // Apply visibility filter
+        if ($this->visibility_filter) {
+            $query->where('visibility', $this->visibility_filter);
+        }
+
+        // Apply availability filter
+        if ($this->availability_filter) {
+            $query->where('availability', $this->availability_filter);
+        }
+
+        return $query->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Fetch paginated products
+     */
+    public function getProducts()
+    {
+        return $this->getProductsQuery()->paginate($this->perPage);
+    }
 
     /**
      * Refresh form - reset to create mode
@@ -77,8 +148,37 @@ class Products extends Component
         $this->action_text = "Create";
         $this->product_id = null;
         $this->is_editing = false;
-        $this->visibility = 'visible';
+        $this->visibility = 'public';
         $this->availability = 'available';
+    }
+
+    /**
+     * Clear all filters
+     */
+    public function clearFilters()
+    {
+        $this->reset([
+            'search_key',
+            'visibility_filter',
+            'availability_filter'
+        ]);
+        $this->showMobileFilters = false;
+    }
+
+    /**
+     * Toggle mobile filters
+     */
+    public function toggleMobileFilters()
+    {
+        $this->showMobileFilters = !$this->showMobileFilters;
+    }
+
+    /**
+     * Toggle compact view
+     */
+    public function toggleCompactView()
+    {
+        $this->compactView = !$this->compactView;
     }
 
     /**
@@ -196,7 +296,6 @@ class Products extends Component
             }
 
             return $uploadResult;
-
         } catch (\Exception $e) {
             Log::error('Error handling product photo upload: ' . $e->getMessage());
             return false;
@@ -229,7 +328,6 @@ class Products extends Component
             // Delete the product
             $product->delete();
             session()->flash('message', "Product deleted successfully.");
-
         } catch (\Exception $e) {
             Log::error('Error deleting product: ' . $e->getMessage());
             session()->flash('error', "Failed to delete product.");
@@ -245,10 +343,10 @@ class Products extends Component
             $product = Product::find($productId);
 
             if ($product) {
-                $product->visibility = $product->visibility === 'visible' ? 'hidden' : 'visible';
+                $product->visibility = $product->visibility === 'public' ? 'private' : 'public';
                 $product->save();
 
-                $status = $product->visibility === 'visible' ? 'shown' : 'hidden';
+                $status = $product->visibility === 'public' ? 'shown' : 'hidden';
                 session()->flash('message', "Product {$status} successfully.");
             } else {
                 session()->flash('error', "Product not found.");
@@ -296,8 +394,8 @@ class Products extends Component
 
     public function render()
     {
-        $this->products = Product::orderBy('created_at', 'desc')->get();
-
-        return view('livewire.products');
+        return view('livewire.products', [
+            'products' => $this->getProducts(),
+        ]);
     }
 }

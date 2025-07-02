@@ -2,7 +2,7 @@
     <div class="card-header">
         @if ($product->photo_url)
             <div class="product-image">
-                <img src="{{ $getThumbnail($product->photo_public_id, 300, 200) ?: $product->photo_url }}"
+                <img src="{{ $this->getThumbnail($product->photo_public_id, 300, 200) ?: $product->photo_url }}"
                     alt="{{ $product->name }}" class="img-fluid">
             </div>
         @else
@@ -12,8 +12,8 @@
         @endif
 
         <div class="product-badges">
-            <span class="badge badge-{{ $product->visibility === 'visible' ? 'success' : 'secondary' }}">
-                {{ $product->visibility === 'visible' ? 'Visible' : 'Hidden' }}
+            <span class="badge badge-{{ $product->visibility === 'public' ? 'success' : 'secondary' }}">
+                {{ $product->visibility === 'public' ? 'Public' : 'Private' }}
             </span>
             <span class="badge badge-{{ $product->availability === 'available' ? 'primary' : 'warning' }}">
                 {{ $product->availability === 'available' ? 'Available' : 'Unavailable' }}
@@ -43,10 +43,10 @@
             </button>
 
             <button type="button"
-                class="btn btn-sm btn-outline-{{ $product->visibility === 'visible' ? 'secondary' : 'success' }}"
+                class="btn btn-sm btn-outline-{{ $product->visibility === 'public' ? 'secondary' : 'success' }}"
                 wire:click.stop="toggleVisibility({{ $product->id }})"
-                title="{{ $product->visibility === 'visible' ? 'Hide Product' : 'Show Product' }}">
-                <i class="fa-solid fa-{{ $product->visibility === 'visible' ? 'eye-slash' : 'eye' }}"></i>
+                title="{{ $product->visibility === 'public' ? 'Hide Product' : 'Show Product' }}">
+                <i class="fa-solid fa-{{ $product->visibility === 'public' ? 'eye-slash' : 'eye' }}"></i>
             </button>
 
             <button type="button"

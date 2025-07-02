@@ -334,8 +334,11 @@ class CloudinaryImageService
 
             $transformations = array_merge($defaultTransformations, $transformations);
 
-            // Use Cloudinary's URL generation
-            return Cloudinary::url($publicId, $transformations);
+            // WRONG - This causes the error:
+            // return Cloudinary::url($publicId, $transformations);
+
+            // CORRECT - Use cloudinary_url instead:
+            return Cloudinary::image($publicId, $transformations);
 
         } catch (Exception $e) {
             Log::error('Failed to generate optimized URL: ' . $e->getMessage());

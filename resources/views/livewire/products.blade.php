@@ -27,6 +27,11 @@
                         @endforelse
                     </div>
                 </div>
+
+                <!-- Pagination -->
+                <div class="pagination-wrapper d-flex justify-content-center mt-4">
+                    {{ $products->links() }}
+                </div>
             </div>
             <div class="col-md-4">
                 <div class="section-right profile">
@@ -56,7 +61,7 @@
                                 <div class="col-sm-9">
                                     <div class="title">
                                         <span
-                                            class="badge badge-{{ $product->visibility === 'visible' ? 'success' : 'secondary' }}">
+                                            class="badge badge-{{ $product->visibility === 'public' ? 'success' : 'secondary' }}">
                                             {{ ucfirst($product->visibility) }}
                                         </span>
                                     </div>
@@ -82,7 +87,7 @@
                                     </div>
                                     <div class="col-sm-9">
                                         <div class="title">
-                                            <img src="{{ $getThumbnail($product->photo_public_id, 150, 150) ?: $product->photo_url }}"
+                                            <img src="{{ $this->getThumbnail($product->photo_public_id, 150, 150) ?: $product->photo_url }}"
                                                 alt="{{ $product->name }}" class="img-thumbnail"
                                                 style="max-height: 100px;">
                                         </div>

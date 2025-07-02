@@ -10,7 +10,8 @@ $(document).ready(function () {
         if (
             current == "/administrators" ||
             current == "/operators" ||
-            current == "/legacy-data"
+            current == "/legacy-data" ||
+            current == "/products"
         ) {
             $(".management").addClass("active");
         }
