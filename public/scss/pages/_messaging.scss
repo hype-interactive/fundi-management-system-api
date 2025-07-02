@@ -1,0 +1,195 @@
+.sms-campaigns-wrapper {
+
+    .messaging-tabs {
+        margin-top: 1rem;
+        .nav-tabs-custom {
+            @include display-flex(space-between);
+            button {
+                border: none;
+                text-align: start;
+                background-color: transparent;
+                @include font-family(semi_bold);
+                color: grey;
+                padding-left: 0;
+                font-size: 18px;
+                padding-bottom: 0.1rem;
+                width: 45%;
+            }
+            *:focus {
+                outline: none;
+                border: none;
+            }
+            .active {
+                color: color(dark);
+                border-bottom: 0.1rem solid color(primary);
+            }
+        }
+    }
+
+    // Mobile tabs
+    .mobile-tabs {
+        .btn-group {
+            .btn {
+                border-radius: 8px;
+                font-size: 14px;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+
+                &:first-child {
+                    border-top-right-radius: 0;
+                    border-bottom-right-radius: 0;
+                }
+
+                &:last-child {
+                    border-top-left-radius: 0;
+                    border-bottom-left-radius: 0;
+                }
+
+                &:not(:first-child):not(:last-child) {
+                    border-radius: 0;
+                }
+            }
+        }
+    }
+
+    // Campaign cards (mobile)
+    .campaign-card {
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            }
+
+            .card-header {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-bottom: 1px solid #e9ecef;
+                padding: 1rem;
+
+                h6 {
+                    color: color(dark);
+                    margin: 0;
+                    font-weight: 600;
+                }
+            }
+
+            .card-body {
+                padding: 1rem;
+
+                .card-text {
+                    color: color(dark_70);
+                    font-size: 14px;
+                    line-height: 1.5;
+                    margin-bottom: 1rem;
+                }
+
+                .campaign-meta {
+                    small {
+                        font-size: 12px;
+                        margin-bottom: 0.25rem;
+
+                        i {
+                            width: 14px;
+                            color: color(dark_50);
+                        }
+                    }
+                }
+            }
+
+            .card-footer {
+                background: #f8f9fa;
+                border-top: 1px solid #e9ecef;
+                padding: 0.75rem 1rem;
+
+                .btn {
+                    padding: 0.375rem 0.75rem;
+                    font-size: 12px;
+                    border-radius: 6px;
+                }
+            }
+        }
+    }
+
+    // Empty state styling
+    .empty-state {
+        padding: 3rem 1rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+        i {
+            opacity: 0.5;
+            color: color(dark_30);
+        }
+
+        h5 {
+            color: color(dark_60);
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        p {
+            color: color(dark_50);
+            font-size: 14px;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+        }
+    }
+
+    // Loading states
+    .btn {
+        &[wire\:loading] {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    }
+
+    // Responsive utilities
+    @media (max-width: 767.98px) {
+        .campaign-actions {
+            padding: 0.75rem;
+
+            .search-wrapper input {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+
+        .modal-dialog {
+            margin: 0.5rem;
+        }
+
+        .modal-body {
+            padding: 1rem;
+        }
+
+        .custom-table {
+            margin: 0 -0.5rem;
+            border-radius: 8px;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .d-lg-table-cell {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 1199.98px) {
+        .d-xl-table-cell {
+            display: none !important;
+        }
+    }
+}

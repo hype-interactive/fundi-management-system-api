@@ -35,7 +35,7 @@ Route::middleware('auth')->group(function () {
     })->name('financials');
 
     Route::get('/messaging', function () {
-        return view('pages.under-construction');
+        return view('pages.messaging');
     })->name('messaging');
 
     // Routes under management
