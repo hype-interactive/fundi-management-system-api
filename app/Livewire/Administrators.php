@@ -117,7 +117,8 @@ class Administrators extends Component
                         'phone' => $this->phone,
                         'role_id' => $this->role,
                         'status' => 'active',
-                        'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
+                        // 'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
+                        'password' => bcrypt('Fundi@2025'),
                     ]
                 );
 
