@@ -114,7 +114,7 @@ class Administrators extends Component
                         'mname' => $this->mname,
                         'lname' => $this->lname,
                         'email' => $this->email,
-                        'phone' => $this->phone,
+                        'phone' => $this->formatTanzanianNumber($this->phone),
                         'role_id' => $this->role,
                         'status' => 'active',
                         // 'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
@@ -164,5 +164,22 @@ class Administrators extends Component
         $this->admins = User::where('role_id', "!=", 3)->orWhereNull('role_id')->get(); // Assuming 3 is the role_id for 'operator'
 
         return view('livewire.administrators');
+    }
+
+    public static function formatTanzanianNumber($phoneNumber)
+    {
+        // Remove all non-digit characters
+        $digitsOnly = preg_replace('/\D/', '', $phoneNumber);
+        
+        // Check if we have at least 9 digits
+        if (strlen($digitsOnly) < 9) {
+            return null; // or throw an exception
+        }
+        
+        // Take the last 9 digits
+        $lastNineDigits = substr($digitsOnly, -9);
+        
+        // Format with +255 prefix
+        return '+255' . $lastNineDigits;
     }
 }
