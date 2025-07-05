@@ -50,7 +50,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/operators/{operator}', [OperatorController::class, 'show'])->name('operator');
 
     Route::get('/legacy-data', function () {
-        return view('pages.under-construction');
+        return view('pages.legacy-fundis');
     })->name('legacy-data');
 
     Route::get('/logs', function () {

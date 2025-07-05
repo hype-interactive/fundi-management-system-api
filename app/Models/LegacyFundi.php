@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class LegacyFundi extends Model
 {
@@ -20,143 +19,122 @@ class LegacyFundi extends Model
         'transaction_phone',
         'ranking',
         'profile_photo',
-        'status'
+        'status',
+        'region',
+        'district',
+        'ward',
     ];
 
-    protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime'
-    ];
-
-    // Scopes for common queries
-    public function scopeActive(Builder $query): Builder
+    public function getFullNameAttribute()
     {
-        return $query->where('status', 'active');
+        return $this->name;
     }
 
-    public function scopePending(Builder $query): Builder
+    /**
+     * Find potential matches in the main fundis table
+     */
+    public function findPotentialMatches()
     {
-        return $query->where('status', 'pending');
-    }
+        $query = Fundi::query();
 
-    public function scopeInactive(Builder $query): Builder
-    {
-        return $query->where('status', 'inactive');
-    }
+        $matches = collect();
 
-    public function scopeByRanking(Builder $query, string $ranking): Builder
-    {
-        return $query->where('ranking', $ranking);
-    }
-
-    public function scopeByGender(Builder $query, string $gender): Builder
-    {
-        return $query->where('gender', $gender);
-    }
-
-    // Accessors
-    public function getFormattedPhoneAttribute(): string
-    {
-        return $this->formatPhoneNumber($this->primary_phone);
-    }
-
-    public function getFormattedTransactionPhoneAttribute(): ?string
-    {
-        return $this->transaction_phone ? $this->formatPhoneNumber($this->transaction_phone) : null;
-    }
-
-    // Mutators
-    public function setPrimaryPhoneAttribute($value): void
-    {
-        $this->attributes['primary_phone'] = $this->cleanPhoneNumber($value);
-    }
-
-    public function setTransactionPhoneAttribute($value): void
-    {
-        $this->attributes['transaction_phone'] = $value ? $this->cleanPhoneNumber($value) : null;
-    }
-
-    public function setNameAttribute($value): void
-    {
-        $this->attributes['name'] = $this->cleanName($value);
-    }
-
-    // Helper methods
-    private function formatPhoneNumber(string $phone): string
-    {
-        // Format phone number for display (e.g., +255 XXX XXX XXX)
-        if (preg_match('/^255(\d{3})(\d{3})(\d{3})$/', $phone, $matches)) {
-            return "+255 {$matches[1]} {$matches[2]} {$matches[3]}";
+        // Exact NIDA match (highest priority)
+        if ($this->nida_number) {
+            $nidaMatch = $query->where('nida_number', $this->nida_number)->first();
+            if ($nidaMatch) {
+                $matches->push([
+                    'fundi' => $nidaMatch,
+                    'match_type' => 'nida',
+                    'confidence' => 95,
+                    'details' => 'NIDA number match'
+                ]);
+            }
         }
 
-        return $phone;
-    }
+        // Phone number matches
+        if ($this->primary_phone) {
+            $phoneMatches = Fundi::where(function ($q) {
+                $q->where('primary_phone', $this->primary_phone)
+                    ->orWhere('transaction_phone', $this->primary_phone);
+            })->get();
 
-    private function cleanPhoneNumber(string $phone): string
-    {
-        // Remove non-numeric characters except +
-        $cleaned = preg_replace('/[^0-9+]/', '', $phone);
-
-        // Convert to standard format (255XXXXXXXXX)
-        if (preg_match('/^\+?255(\d{9})$/', $cleaned, $matches)) {
-            return '255' . $matches[1];
-        } elseif (preg_match('/^0(\d{9})$/', $cleaned, $matches)) {
-            return '255' . $matches[1];
-        } elseif (preg_match('/^(\d{9})$/', $cleaned, $matches)) {
-            return '255' . $matches[1];
+            foreach ($phoneMatches as $match) {
+                if (!$matches->where('fundi.id', $match->id)->count()) {
+                    $matches->push([
+                        'fundi' => $match,
+                        'match_type' => 'phone',
+                        'confidence' => 85,
+                        'details' => 'Phone number match'
+                    ]);
+                }
+            }
         }
 
-        return $cleaned;
+        // Name similarity match (fuzzy matching)
+        $nameMatches = Fundi::whereRaw("MATCH(fname, mname, lname) AGAINST(? IN BOOLEAN MODE)", [$this->name])
+            ->orWhereRaw("CONCAT(fname, ' ', IFNULL(mname, ''), ' ', lname) LIKE ?", ['%' . $this->name . '%'])
+            ->get();
+
+        foreach ($nameMatches as $match) {
+            if (!$matches->where('fundi.id', $match->id)->count()) {
+                $similarity = $this->calculateNameSimilarity($this->name, $match->full_name);
+                if ($similarity > 70) {
+                    $matches->push([
+                        'fundi' => $match,
+                        'match_type' => 'name',
+                        'confidence' => $similarity,
+                        'details' => "Name similarity: {$similarity}%"
+                    ]);
+                }
+            }
+        }
+
+        return $matches->sortByDesc('confidence');
     }
 
-    private function cleanName(string $name): string
+    /**
+     * Calculate name similarity percentage
+     */
+    private function calculateNameSimilarity($name1, $name2)
     {
-        // Clean and format name
-        $cleaned = trim($name);
-        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
-        return mb_convert_case($cleaned, MB_CASE_TITLE, 'UTF-8');
+        $name1 = strtolower(trim($name1));
+        $name2 = strtolower(trim($name2));
+
+        similar_text($name1, $name2, $percent);
+        return round($percent, 2);
     }
 
-    // Static methods for data analysis
-    public static function getDuplicatesByPhone(): array
+    /**
+     * Check if this legacy fundi has been matched
+     */
+    public function getMatchedFundiAttribute()
     {
-        return self::select('primary_phone')
-            ->groupBy('primary_phone')
-            ->havingRaw('COUNT(*) > 1')
-            ->pluck('primary_phone')
-            ->toArray();
+        return Fundi::where('legacy_id', $this->id)->first();
     }
 
-    public static function getDuplicatesByNida(): array
+    /**
+     * Check if this legacy fundi is matched
+     */
+    public function getIsMatchedAttribute()
     {
-        return self::select('nida_number')
-            ->whereNotNull('nida_number')
-            ->groupBy('nida_number')
-            ->havingRaw('COUNT(*) > 1')
-            ->pluck('nida_number')
-            ->toArray();
+        return $this->matchedFundi !== null;
     }
 
-    public static function getStatsByLocation(): array
+    /**
+     * Get match status for display
+     */
+    public function getMatchStatusAttribute()
     {
-        // This would require adding a location field to your migration
-        // or extracting location from another field
-        return [];
-    }
+        if ($this->is_matched) {
+            return 'matched';
+        }
 
-    public static function getImportStats(): array
-    {
-        return [
-            'total_records' => self::count(),
-            'active_records' => self::active()->count(),
-            'pending_records' => self::pending()->count(),
-            'inactive_records' => self::inactive()->count(),
-            'male_count' => self::byGender('male')->count(),
-            'female_count' => self::byGender('female')->count(),
-            'fundi_kuu_count' => self::byRanking('fundi_kuu')->count(),
-            'fundi_msaidizi_count' => self::byRanking('fundi_msaidizi')->count(),
-            'with_nida' => self::whereNotNull('nida_number')->count(),
-            'without_nida' => self::whereNull('nida_number')->count()
-        ];
+        $potentialMatches = $this->findPotentialMatches();
+        if ($potentialMatches->count() > 0) {
+            return 'potential';
+        }
+
+        return 'unmatched';
     }
 }
