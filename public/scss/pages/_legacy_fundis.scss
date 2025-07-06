@@ -5,51 +5,9 @@
     .filter {
         padding-top: 2rem;
         padding-bottom: 1rem;
-        background: white;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-        margin-bottom: 1rem;
 
         @media (max-width: 767.98px) {
             padding: 1rem;
-        }
-
-        .search {
-            position: relative;
-
-            input {
-                width: 100%;
-                padding: 0.75rem 2.5rem 0.75rem 1rem;
-                border: 1px solid #ddd;
-                border-radius: 6px;
-                font-size: 14px;
-
-                &:focus {
-                    outline: none;
-                    border-color: color(primary);
-                    box-shadow: 0 0 0 0.2rem rgba(color(primary), 0.25);
-                }
-            }
-
-            i {
-                position: absolute;
-                right: 0.75rem;
-                top: 50%;
-                transform: translateY(-50%);
-                color: #6c757d;
-            }
-        }
-
-        .form-select {
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-
-            &:focus {
-                border-color: color(primary);
-                box-shadow: 0 0 0 0.2rem rgba(color(primary), 0.25);
-            }
         }
     }
 

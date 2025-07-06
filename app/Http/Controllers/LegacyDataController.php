@@ -10,14 +10,14 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\LegacyFundiImport;
 
-class LegacyFundiController extends Controller
+class LegacyDataController extends Controller
 {
     /**
      * Display the legacy fundis management page
      */
     public function index()
     {
-        return view('legacy-fundis.index');
+        return view('pages.legacy-fundis');
     }
 
     /**
@@ -25,6 +25,7 @@ class LegacyFundiController extends Controller
      */
     public function import(Request $request)
     {
+        dd('Importing legacy data...');
         $request->validate([
             'legacy_file' => 'required|file|mimes:csv,xlsx,xls|max:10240', // 10MB max
             'auto_match' => 'boolean'

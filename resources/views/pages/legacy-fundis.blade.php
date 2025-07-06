@@ -33,7 +33,7 @@
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="fa-solid fa-check-circle me-2"></i>
                 {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="close" data-dismiss="alert"></button>
             </div>
         @endif
 
@@ -41,7 +41,7 @@
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <i class="fa-solid fa-exclamation-circle me-2"></i>
                 {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="close" data-dismiss="alert"></button>
             </div>
         @endif
 
@@ -50,10 +50,10 @@
             <div class="row">
                 <div class="col-md-8">
                     <div class="overview-content">
-                        <h4>
+                        {{-- <h4>
                             <i class="fa-solid fa-info-circle me-2 text-primary"></i>
                             Legacy Data Cross-Check System
-                        </h4>
+                        </h4> --}}
                         <p class="text-muted mb-0">
                             This system helps you identify and manage legacy fundi records,
                             cross-reference them with current data, and resolve duplicates through intelligent matching.
@@ -78,7 +78,7 @@
         @livewire('legacy-fundis-table')
 
         <!-- Import Legacy Data Modal -->
-        <div class="modal fade" id="importLegacyModal" tabindex="-1">
+        <div class="modal fade" id="importLegacyModal" tabindex="-1" aria-hidden="true" aria-labelledby="importLegacyModalLabel">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -86,11 +86,13 @@
                             <i class="fa-solid fa-cloud-arrow-up me-2"></i>
                             Import Legacy Data
                         </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                     <div class="modal-body">
-                        {{-- <form action="{{ route('legacy-fundis.import') }}" method="POST" enctype="multipart/form-data"> --}}
-                        <form enctype="multipart/form-data">
+                        <form action="{{ route('legacy-fundis.import') }}" method="POST" enctype="multipart/form-data">
+                        {{-- <form enctype="multipart/form-data"> --}}
                             @csrf
                             <div class="mb-3">
                                 <label for="legacy_file" class="form-label">
@@ -133,7 +135,7 @@
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary" form="importForm">
                             <i class="fa-solid fa-upload me-1"></i>
                             Import Data
@@ -152,7 +154,9 @@
                             <i class="fa-solid fa-question-circle me-2"></i>
                             Legacy Data Matching Guide
                         </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                     <div class="modal-body">
                         <div class="help-content">
@@ -216,7 +220,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal">Got it!</button>
                     </div>
                 </div>
             </div>

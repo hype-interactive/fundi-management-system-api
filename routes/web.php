@@ -1,11 +1,12 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\FundiController;
-use App\Http\Controllers\OperatorController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SiteVisitController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FundiController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\OperatorController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SiteVisitController;
+use App\Http\Controllers\LegacyDataController;
 
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -49,9 +50,17 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/operators/{operator}', [OperatorController::class, 'show'])->name('operator');
 
-    Route::get('/legacy-data', function () {
-        return view('pages.legacy-fundis');
-    })->name('legacy-data');
+    // Route::get('/legacy-data', function () {
+    //     return view('pages.legacy-fundis');
+    // })->name('legacy-data');
+
+    // Main legacy fundis page
+    Route::get('/legacy-data', [LegacyDataController::class, 'index'])
+        ->name('legacy-fundis.index');
+
+    // Import legacy data
+    Route::post('/legacy-fundis/import', [LegacyDataController::class, 'import'])
+        ->name('legacy-fundis.import');
 
     Route::get('/logs', function () {
         return view('pages.activity-logs');

@@ -11,7 +11,7 @@
             <div class="col-md-9">
                 <div class="row">
                     <div class="col">
-                        <select wire:model.live="region" class="form-select">
+                        <select wire:model.live="region" class="select">
                             <option value="">All Regions</option>
                             @foreach($regions as $region)
                                 <option value="{{ $region }}">{{ $region }}</option>
@@ -19,7 +19,7 @@
                         </select>
                     </div>
                     <div class="col">
-                        <select wire:model.live="district" class="form-select">
+                        <select wire:model.live="district" class="select">
                             <option value="">All Districts</option>
                             @foreach($districts as $district)
                                 <option value="{{ $district }}">{{ $district }}</option>
@@ -27,7 +27,7 @@
                         </select>
                     </div>
                     <div class="col">
-                        <select wire:model.live="ward" class="form-select">
+                        <select wire:model.live="ward" class="select">
                             <option value="">All Wards</option>
                             @foreach($wards as $ward)
                                 <option value="{{ $ward }}">{{ $ward }}</option>
@@ -35,7 +35,7 @@
                         </select>
                     </div>
                     <div class="col">
-                        <select wire:model.live="match_status" class="form-select">
+                        <select wire:model.live="match_status" class="select">
                             <option value="">All Match Status</option>
                             @foreach($match_status_options as $key => $label)
                                 <option value="{{ $key }}">{{ $label }}</option>
@@ -43,37 +43,6 @@
                         </select>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Additional Filters Row -->
-        <div class="row mt-2">
-            <div class="col-md-3">
-                <select wire:model.live="gender" class="form-select">
-                    <option value="">All Genders</option>
-                    @foreach($gender_options as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select wire:model.live="ranking" class="form-select">
-                    <option value="">All Rankings</option>
-                    @foreach($ranking_options as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select wire:model.live="status" class="form-select">
-                    <option value="">All Status</option>
-                    @foreach($status_options as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <!-- Empty for balance -->
             </div>
         </div>
     </div>
@@ -410,7 +379,7 @@
                             <i class="fa-solid fa-search me-2"></i>
                             Potential Matches for Legacy Fundi #{{ $selectedLegacyId }}
                         </h5>
-                        <button type="button" class="btn-close" wire:click="closeMatches"></button>
+                        <button type="button" class="close" wire:click="closeMatches"></button>
                     </div>
                     <div class="modal-body">
                         @if (count($potentialMatches) > 0)
