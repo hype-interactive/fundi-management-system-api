@@ -66,12 +66,12 @@
                 </div>
                 <div class="col-md-4">
                     <div class="quick-actions">
-                        <button class="btn btn-primary btn-sm me-2" data-toggle="modal" data-target="#importLegacyModal">
-                            <i class="fa-solid fa-upload me-1"></i>
+                        <button class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#importLegacyModal">
+                            <i class="fa-solid fa-upload mr-1"></i>
                             Import Legacy
                         </button>
                         <button class="btn btn-info btn-sm" data-toggle="modal" data-target="#matchingHelpModal">
-                            <i class="fa-solid fa-question me-1"></i>
+                            <i class="fa-solid fa-question mr-1"></i>
                             Help
                         </button>
                     </div>
@@ -88,7 +88,7 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <i class="fa-solid fa-cloud-arrow-up me-2"></i>
+                            <i class="fa-solid fa-cloud-arrow-up mr-2"></i>
                             Import Legacy Data
                         </h5>
                         <button type="button" class="close" data-dismiss="modal">
@@ -100,7 +100,7 @@
                         @livewire('import-progress')
 
                         <div class="alert alert-info mt-3">
-                            <h6><i class="fa-solid fa-info-circle me-1"></i> Expected File Format:</h6>
+                            <h6><i class="fa-solid fa-info-circle mr-1"></i> Expected File Format:</h6>
                             <div class="row">
                                 <div class="col-md-6">
                                     <ul class="mb-0">
@@ -123,7 +123,7 @@
                         </div>
 
                         <div class="alert alert-warning">
-                            <h6><i class="fa-solid fa-exclamation-triangle me-1"></i> Important Notes:</h6>
+                            <h6><i class="fa-solid fa-exclamation-triangle mr-1"></i> Important Notes:</h6>
                             <ul class="mb-0">
                                 <li>Large files will be processed in the background</li>
                                 <li>You can monitor progress in real-time</li>
@@ -145,7 +145,7 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <i class="fa-solid fa-question-circle me-2"></i>
+                            <i class="fa-solid fa-question-circle mr-2"></i>
                             Legacy Data Matching Guide
                         </h5>
                         <button type="button" class="close" data-dismiss="modal">
@@ -154,55 +154,55 @@
                     </div>
                     <div class="modal-body">
                         <div class="help-content">
-                            <h6><i class="fa-solid fa-search me-1"></i> How Matching Works</h6>
+                            <h6><i class="fa-solid fa-search mr-1"></i> How Matching Works</h6>
                             <p>The system uses multiple criteria to find potential matches with clear priority:</p>
 
                             <div class="matching-criteria">
                                 <div class="criteria-item mb-3">
-                                    <span class="badge bg-success me-2">95% Confidence</span>
+                                    <span class="badge badge-success mr-2">95% Confidence</span>
                                     <strong>NIDA Number Match</strong>
                                     <p class="mb-0">Exact match of NIDA numbers provides the highest confidence and enables auto-linking.</p>
                                 </div>
 
                                 <div class="criteria-item mb-3">
-                                    <span class="badge bg-warning me-2">85% Confidence</span>
+                                    <span class="badge badge-warning mr-2">85% Confidence</span>
                                     <strong>Phone Number Match</strong>
                                     <p class="mb-0">Exact match of primary or transaction phone numbers.</p>
                                 </div>
 
                                 <div class="criteria-item mb-3">
-                                    <span class="badge bg-info me-2">60-80% Confidence</span>
+                                    <span class="badge badge-info mr-2">60-80% Confidence</span>
                                     <strong>Name Similarity</strong>
                                     <p class="mb-0">Fuzzy matching of names using text similarity algorithms, enhanced by location proximity.</p>
                                 </div>
                             </div>
 
-                            <h6 class="mt-4"><i class="fa-solid fa-cogs me-1"></i> Match Status Types</h6>
+                            <h6 class="mt-4"><i class="fa-solid fa-cogs mr-1"></i> Match Status Types</h6>
                             <div class="status-explanations">
                                 <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-success me-2">Matched</span>
+                                    <span class="badge badge-success mr-2">Matched</span>
                                     <p class="mb-0">Legacy record has been linked to a current fundi record.</p>
                                 </div>
 
                                 <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-warning me-2">Potential Matches</span>
+                                    <span class="badge badge-warning mr-2">Potential Matches</span>
                                     <p class="mb-0">System found one or more possible matches that need manual review.</p>
                                 </div>
 
                                 <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-danger me-2">No Matches</span>
+                                    <span class="badge badge-danger mr-2">No Matches</span>
                                     <p class="mb-0">No potential matches found - may be a unique legacy record.</p>
                                 </div>
                             </div>
 
-                            <h6 class="mt-4"><i class="fa-solid fa-magic me-1"></i> Auto-Matching</h6>
+                            <h6 class="mt-4"><i class="fa-solid fa-magic mr-1"></i> Auto-Matching</h6>
                             <p>
                                 The auto-match feature automatically links legacy records with current fundis
                                 when the confidence level is 90% or higher (typically NIDA number matches).
                                 This can be enabled during import or run manually afterwards.
                             </p>
 
-                            <h6 class="mt-4"><i class="fa-solid fa-cog me-1"></i> Performance Features</h6>
+                            <h6 class="mt-4"><i class="fa-solid fa-cog mr-1"></i> Performance Features</h6>
                             <ul>
                                 <li><strong>Background Processing:</strong> Large imports are processed in queues</li>
                                 <li><strong>Caching:</strong> Match counts are cached for faster page loads</li>
@@ -211,7 +211,7 @@
                             </ul>
 
                             <div class="alert alert-warning mt-3">
-                                <h6><i class="fa-solid fa-exclamation-triangle me-1"></i> Best Practices</h6>
+                                <h6><i class="fa-solid fa-exclamation-triangle mr-1"></i> Best Practices</h6>
                                 <ul class="mb-0">
                                     <li>Always review potential matches before linking</li>
                                     <li>Use bulk auto-match for high-confidence matches only</li>
@@ -236,10 +236,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-close import modal when import starts
     Livewire.on('importStarted', () => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('importLegacyModal'));
-        if (modal) {
-            modal.hide();
-        }
+        $('#importLegacyModal').modal('hide');
     });
 
     // Refresh table when import completes

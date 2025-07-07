@@ -5,14 +5,14 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3">
-                        <div class="search-box">
+                        <div class="search">
                             <input wire:model.live.debounce.300ms="search" type="text" class="form-control"
                                 placeholder="Search name, phone, NIDA...">
                             <i class="fa-solid fa-search"></i>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <select wire:model.live="region" class="form-select">
+                        <select wire:model.live="region" class="select">
                             <option value="">All Regions</option>
                             @foreach ($regions as $region)
                                 <option value="{{ $region }}">{{ $region }}</option>
@@ -20,7 +20,7 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <select wire:model.live="district" class="form-select">
+                        <select wire:model.live="district" class="select">
                             <option value="">All Districts</option>
                             @foreach ($districts as $district)
                                 <option value="{{ $district }}">{{ $district }}</option>
@@ -28,7 +28,7 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <select wire:model.live="status" class="form-select">
+                        <select wire:model.live="status" class="select">
                             <option value="">All Status</option>
                             @foreach ($statusOptions as $key => $label)
                                 <option value="{{ $key }}">{{ $label }}</option>
@@ -36,7 +36,7 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <select wire:model.live="matchStatus" class="form-select">
+                        <select wire:model.live="matchStatus" class="select">
                             <option value="">All Matches</option>
                             @foreach ($matchStatusOptions as $key => $label)
                                 <option value="{{ $key }}">{{ $label }}</option>
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="stats-section mb-4">
+    <div class="stats-cards mb-4">
         <div class="row">
             <div class="col-md-3">
                 <div class="stat-card matched">
@@ -112,7 +112,7 @@
                     <div class="bulk-actions">
                         <span class="badge bg-primary">{{ count($selectedItems) }} selected</span>
                         <button wire:click="bulkLink" class="btn btn-sm btn-success ms-2">
-                            <i class="fa-solid fa-link me-1"></i>
+                            <i class="fa-solid fa-link mr-1"></i>
                             Bulk Link
                         </button>
                     </div>
@@ -121,7 +121,7 @@
                 <!-- View Toggle -->
                 <button wire:click="$toggle('compactView')"
                     class="btn btn-sm {{ $compactView ? 'btn-primary' : 'btn-outline-primary' }}">
-                    <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }} me-1"></i>
+                    <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }} mr-1"></i>
                     {{ $compactView ? 'Expand' : 'Compact' }}
                 </button>
             </div>
@@ -130,13 +130,13 @@
                 <!-- Auto Match -->
                 <button wire:click="runBulkAutoMatch" class="btn btn-sm btn-success"
                     onclick="return confirm('Run auto-matching for high confidence matches?')">
-                    <i class="fa-solid fa-magic me-1"></i>
+                    <i class="fa-solid fa-magic mr-1"></i>
                     Auto Match
                 </button>
 
                 <!-- Export -->
                 <button wire:click="export" class="btn btn-sm btn-outline-primary">
-                    <i class="fa-solid fa-download me-1"></i>
+                    <i class="fa-solid fa-download mr-1"></i>
                     Export
                 </button>
             </div>
@@ -144,7 +144,7 @@
     </div>
 
     <!-- Table -->
-    <div class="table-responsive">
+    <div class="table-responsive custom-table">
         <table class="table table-hover">
             <thead class="table-light">
                 <tr>
@@ -229,7 +229,7 @@
                             @if ($legacy->is_matched)
                                 <div class="match-status-display">
                                     <span class="badge bg-success mb-1">
-                                        <i class="fa-solid fa-check me-1"></i>
+                                        <i class="fa-solid fa-check mr-1"></i>
                                         Matched
                                     </span>
                                     <small class="d-block text-muted">
@@ -246,12 +246,12 @@
                                 @endphp
                                 @if ($potentialCount > 0)
                                     <span class="badge bg-warning">
-                                        <i class="fa-solid fa-exclamation-triangle me-1"></i>
+                                        <i class="fa-solid fa-exclamation-triangle mr-1"></i>
                                         {{ $potentialCount }} Potential
                                     </span>
                                 @else
                                     <span class="badge bg-danger">
-                                        <i class="fa-solid fa-times me-1"></i>
+                                        <i class="fa-solid fa-times mr-1"></i>
                                         No Matches
                                     </span>
                                 @endif
@@ -269,7 +269,7 @@
                                     @if ($legacy->getPotentialMatchesCount() > 0)
                                         <button wire:click="showMatches({{ $legacy->id }})"
                                             class="btn btn-sm btn-outline-primary" title="View Matches">
-                                            <i class="fa-solid fa-search me-1"></i>
+                                            <i class="fa-solid fa-search mr-1"></i>
                                             View
                                         </button>
                                     @else
@@ -318,7 +318,7 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">
-                            <i class="fa-solid fa-search me-2"></i>
+                            <i class="fa-solid fa-search mr-2"></i>
                             Potential Matches for Legacy Fundi #{{ $selectedLegacyId }}
                         </h5>
                         <button type="button" class="btn-close" wire:click="closeMatches"></button>
@@ -364,7 +364,7 @@
                                                     wire:click="linkFundis({{ $selectedLegacyId }}, {{ $fundi->id }})"
                                                     class="btn btn-success btn-sm"
                                                     onclick="return confirm('Link this legacy fundi with {{ $fundi->full_name }}?')">
-                                                    <i class="fa-solid fa-link me-1"></i>
+                                                    <i class="fa-solid fa-link mr-1"></i>
                                                     Link
                                                 </button>
                                             </div>
@@ -426,11 +426,12 @@
             <p class="mt-2">Processing...</p>
         </div>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
 </div>
 
-<!-- Toast Container -->
-<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
-
+@push('scripts')
 <script>
     document.addEventListener('livewire:initialized', () => {
         // Handle toast notifications
@@ -445,8 +446,8 @@
             const toastHtml = `
             <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header">
-                    <i class="fa-solid fa-${getToastIcon(type)} text-${type} me-2"></i>
-                    <strong class="me-auto">${getToastTitle(type)}</strong>
+                    <i class="fa-solid fa-${getToastIcon(type)} text-${type} mr-2"></i>
+                    <strong class="mr-auto">${getToastTitle(type)}</strong>
                     <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
                 </div>
                 <div class="toast-body">
@@ -458,16 +459,18 @@
             toastContainer.insertAdjacentHTML('beforeend', toastHtml);
 
             const toastElement = document.getElementById(toastId);
-            const toast = new bootstrap.Toast(toastElement, {
+
+            // Use Bootstrap 4 toast initialization since you're using Bootstrap 4
+            $(toastElement).toast({
                 autohide: true,
                 delay: type === 'error' ? 5000 : 3000
             });
 
-            toast.show();
+            $(toastElement).toast('show');
 
             // Remove toast element after it's hidden
-            toastElement.addEventListener('hidden.bs.toast', () => {
-                toastElement.remove();
+            $(toastElement).on('hidden.bs.toast', function () {
+                $(this).remove();
             });
         }
 
@@ -492,3 +495,4 @@
         }
     });
 </script>
+@endpush
