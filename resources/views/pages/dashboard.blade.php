@@ -16,7 +16,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="section-right summary light-bg ">
+            <div class="light-bg section-right summary">
                 @livewire('dashboard.company-summary')
             </div>
         </div>

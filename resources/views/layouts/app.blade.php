@@ -6,9 +6,9 @@
                 <div class="brand-logo">
                     <img src="{{ asset('images/logo.png') }}" width="100" alt="">
                     @if (isRoot())
-                        <h6> Super User</h6>
+                        <p> Super User</p>
                     @else
-                        <h6>Administrator</h6>
+                        <p>Administrator</p>
                     @endif
                 </div>
 

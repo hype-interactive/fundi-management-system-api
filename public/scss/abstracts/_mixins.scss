@@ -4,7 +4,45 @@
     flex-direction: row;
 }
 
-// Font Family
+// Font Family Mixin - Fixed Version
 @mixin font-family($elem) {
-	font-family: unquote(get-font-family($elem));
+	$font: get-font-family($elem);
+	
+	// Check if the font value exists and is not null
+	@if $font != null {
+		font-family: unquote($font);
+	} @else {
+		// Fallback to a default font family or show a warning
+		font-family: sans-serif; // Default fallback
+		@warn "Font family for '#{$elem}' not found. Using default sans-serif.";
+	}
+}
+
+// Alternative version with more robust checking
+@mixin font-family-robust($elem) {
+	$font: get-font-family($elem);
+	
+	// Check if the font value exists, is not null, and is a string
+	@if $font != null and type-of($font) == string and $font != '' {
+		font-family: unquote($font);
+	} @else {
+		// Fallback to a default font family with warning
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		@warn "Invalid or missing font family for '#{$elem}'. Check your font map. Using system default.";
+	}
+}
+
+// Example font map (make sure this exists in your SASS)
+$font-families: (
+	'primary': '"Helvetica Neue", Helvetica, Arial, sans-serif',
+	'secondary': '"Georgia", serif',
+	'monospace': '"Monaco", "Menlo", monospace'
+) !default;
+
+// Example get-font-family function (if you don't have one)
+@function get-font-family($elem) {
+	@if map-has-key($font-families, $elem) {
+		@return map-get($font-families, $elem);
+	}
+	@return null;
 }
