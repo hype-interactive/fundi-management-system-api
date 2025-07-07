@@ -11,17 +11,21 @@
                 <div class="dropdown">
                     <i class="fa-solid fa-bars icon" data-toggle="dropdown" aria-expanded="false"></i>
                     <div class="dropdown-menu">
-                        <a href="{{ route('fundis') }}" class="">
-                            <i class="fa-solid fa-users mr-4"></i>
+                        <a href="{{ route('fundis') }}" class="dropdown-item">
+                            <i class="fa-solid fa-users me-2"></i>
                             Current Fundis
                         </a>
-                        <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#importLegacyModal">
-                            <i class="fa-solid fa-cloud-arrow-up mr-4"></i>
+                        <a class="dropdown-item" data-toggle="modal" data-target="#importLegacyModal">
+                            <i class="fa-solid fa-cloud-arrow-up me-2"></i>
                             Import Legacy Data
                         </a>
-                        <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#matchingHelpModal">
-                            <i class="fa-solid fa-question-circle mr-4"></i>
+                        <a class="dropdown-item" data-toggle="modal" data-target="#matchingHelpModal">
+                            <i class="fa-solid fa-question-circle me-2"></i>
                             Matching Help
+                        </a>
+                        <a href="{{ route('legacy-fundis.export-analysis') }}" class="dropdown-item">
+                            <i class="fa-solid fa-download me-2"></i>
+                            Export Analysis
                         </a>
                     </div>
                 </div>
@@ -33,7 +37,9 @@
             <div class="alert alert-success alert-dismissible fade show" role="alert">
                 <i class="fa-solid fa-check-circle me-2"></i>
                 {{ session('success') }}
-                <button type="button" class="close" data-dismiss="alert"></button>
+                <button type="button" class="close" data-dismiss="alert">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
         @endif
 
@@ -41,7 +47,9 @@
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <i class="fa-solid fa-exclamation-circle me-2"></i>
                 {{ session('error') }}
-                <button type="button" class="close" data-dismiss="alert"></button>
+                <button type="button" class="close" data-dismiss="alert">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
         @endif
 
@@ -50,10 +58,6 @@
             <div class="row">
                 <div class="col-md-8">
                     <div class="overview-content">
-                        {{-- <h4>
-                            <i class="fa-solid fa-info-circle me-2 text-primary"></i>
-                            Legacy Data Cross-Check System
-                        </h4> --}}
                         <p class="text-muted mb-0">
                             This system helps you identify and manage legacy fundi records,
                             cross-reference them with current data, and resolve duplicates through intelligent matching.
@@ -75,6 +79,7 @@
             </div>
         </div>
 
+        <!-- Main Table Component -->
         @livewire('legacy-fundis-table')
 
         <!-- Import Legacy Data Modal -->
@@ -91,55 +96,44 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <form action="{{ route('legacy-fundis.import') }}" method="POST" enctype="multipart/form-data">
-                        {{-- <form enctype="multipart/form-data"> --}}
-                            @csrf
-                            <div class="mb-3">
-                                <label for="legacy_file" class="form-label">
-                                    <i class="fa-solid fa-file-excel me-1"></i>
-                                    Select Legacy Data File
-                                </label>
-                                <input type="file" class="form-control" id="legacy_file" name="legacy_file"
-                                    accept=".csv,.xlsx,.xls" required>
-                                <div class="form-text">
-                                    Supported formats: CSV, Excel (.xlsx, .xls).
-                                    File should contain columns: name, gender, primary_phone, ranking, etc.
-                                </div>
-                            </div>
+                        <!-- Import Progress Component -->
+                        @livewire('import-progress')
 
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="auto_match" name="auto_match">
-                                    <label class="form-check-label" for="auto_match">
-                                        Run automatic matching after import
-                                    </label>
+                        <div class="alert alert-info mt-3">
+                            <h6><i class="fa-solid fa-info-circle me-1"></i> Expected File Format:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul class="mb-0">
+                                        <li><strong>identifier</strong> - Phone number (column A)</li>
+                                        <li><strong>full_name</strong> - Full name of the fundi (column B)</li>
+                                        <li><strong>location</strong> - Region/District/Ward (column C)</li>
+                                    </ul>
                                 </div>
-                                <div class="form-text">
-                                    This will automatically link legacy records with high confidence matches (90%+).
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <strong>Sample CSV format:</strong><br>
+                                        <code>
+                                            identifier,full_name,location<br>
+                                            255717588599,James Belushi,TANGA<br>
+                                            255658032005,Kayage,ILALA
+                                        </code>
+                                    </small>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="alert alert-info">
-                                <h6><i class="fa-solid fa-info-circle me-1"></i> Expected File Format:</h6>
-                                <ul class="mb-0">
-                                    <li><strong>name</strong> - Full name of the fundi</li>
-                                    <li><strong>gender</strong> - male, female, or other</li>
-                                    <li><strong>primary_phone</strong> - Primary phone number</li>
-                                    <li><strong>transaction_phone</strong> - Transaction phone (optional)</li>
-                                    <li><strong>nida_number</strong> - NIDA number (optional)</li>
-                                    <li><strong>ranking</strong> - fundi_kuu or fundi_msaidizi</li>
-                                    <li><strong>region, district, ward</strong> - Location information</li>
-                                    <li><strong>status</strong> - active, inactive, or pending</li>
-                                </ul>
-                            </div>
-                        </form>
+                        <div class="alert alert-warning">
+                            <h6><i class="fa-solid fa-exclamation-triangle me-1"></i> Important Notes:</h6>
+                            <ul class="mb-0">
+                                <li>Large files will be processed in the background</li>
+                                <li>You can monitor progress in real-time</li>
+                                <li>Don't close the browser during import</li>
+                                <li>Duplicate records will be automatically skipped</li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" form="importForm">
-                            <i class="fa-solid fa-upload me-1"></i>
-                            Import Data
-                        </button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
@@ -161,60 +155,69 @@
                     <div class="modal-body">
                         <div class="help-content">
                             <h6><i class="fa-solid fa-search me-1"></i> How Matching Works</h6>
-                            <p>The system uses multiple criteria to find potential matches:</p>
+                            <p>The system uses multiple criteria to find potential matches with clear priority:</p>
 
                             <div class="matching-criteria">
-                                <div class="criteria-item">
-                                    <span class="badge bg-success">95% Confidence</span>
+                                <div class="criteria-item mb-3">
+                                    <span class="badge bg-success me-2">95% Confidence</span>
                                     <strong>NIDA Number Match</strong>
-                                    <p>Exact match of NIDA numbers provides the highest confidence.</p>
+                                    <p class="mb-0">Exact match of NIDA numbers provides the highest confidence and enables auto-linking.</p>
                                 </div>
 
-                                <div class="criteria-item">
-                                    <span class="badge bg-warning">85% Confidence</span>
+                                <div class="criteria-item mb-3">
+                                    <span class="badge bg-warning me-2">85% Confidence</span>
                                     <strong>Phone Number Match</strong>
-                                    <p>Exact match of primary or transaction phone numbers.</p>
+                                    <p class="mb-0">Exact match of primary or transaction phone numbers.</p>
                                 </div>
 
-                                <div class="criteria-item">
-                                    <span class="badge bg-info">70%+ Confidence</span>
+                                <div class="criteria-item mb-3">
+                                    <span class="badge bg-info me-2">60-80% Confidence</span>
                                     <strong>Name Similarity</strong>
-                                    <p>Fuzzy matching of names using text similarity algorithms.</p>
+                                    <p class="mb-0">Fuzzy matching of names using text similarity algorithms, enhanced by location proximity.</p>
                                 </div>
                             </div>
 
                             <h6 class="mt-4"><i class="fa-solid fa-cogs me-1"></i> Match Status Types</h6>
                             <div class="status-explanations">
-                                <div class="status-item matched">
-                                    <span class="badge bg-success">Matched</span>
-                                    <p>Legacy record has been linked to a current fundi record.</p>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-success me-2">Matched</span>
+                                    <p class="mb-0">Legacy record has been linked to a current fundi record.</p>
                                 </div>
 
-                                <div class="status-item potential">
-                                    <span class="badge bg-warning">Potential Matches</span>
-                                    <p>System found one or more possible matches that need manual review.</p>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-warning me-2">Potential Matches</span>
+                                    <p class="mb-0">System found one or more possible matches that need manual review.</p>
                                 </div>
 
-                                <div class="status-item unmatched">
-                                    <span class="badge bg-danger">Unmatched</span>
-                                    <p>No potential matches found - may be a unique legacy record.</p>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="badge bg-danger me-2">No Matches</span>
+                                    <p class="mb-0">No potential matches found - may be a unique legacy record.</p>
                                 </div>
                             </div>
 
                             <h6 class="mt-4"><i class="fa-solid fa-magic me-1"></i> Auto-Matching</h6>
                             <p>
                                 The auto-match feature automatically links legacy records with current fundis
-                                when the confidence level is 90% or higher. This is typically triggered by
-                                exact NIDA number matches.
+                                when the confidence level is 90% or higher (typically NIDA number matches).
+                                This can be enabled during import or run manually afterwards.
                             </p>
 
-                            <div class="alert alert-warning">
-                                <h6><i class="fa-solid fa-exclamation-triangle me-1"></i> Important Notes</h6>
+                            <h6 class="mt-4"><i class="fa-solid fa-cog me-1"></i> Performance Features</h6>
+                            <ul>
+                                <li><strong>Background Processing:</strong> Large imports are processed in queues</li>
+                                <li><strong>Caching:</strong> Match counts are cached for faster page loads</li>
+                                <li><strong>Batch Operations:</strong> Bulk linking and processing capabilities</li>
+                                <li><strong>Real-time Progress:</strong> Live updates during import operations</li>
+                            </ul>
+
+                            <div class="alert alert-warning mt-3">
+                                <h6><i class="fa-solid fa-exclamation-triangle me-1"></i> Best Practices</h6>
                                 <ul class="mb-0">
                                     <li>Always review potential matches before linking</li>
-                                    <li>Auto-matching cannot be undone automatically</li>
+                                    <li>Use bulk auto-match for high-confidence matches only</li>
                                     <li>Manual unlinking is possible if mistakes are made</li>
-                                    <li>Regular backups are recommended before bulk operations</li>
+                                    <li>Export analysis data for external review if needed</li>
+                                    <li>Run imports during off-peak hours for large files</li>
                                 </ul>
                             </div>
                         </div>
@@ -227,3 +230,22 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-close import modal when import starts
+    Livewire.on('importStarted', () => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('importLegacyModal'));
+        if (modal) {
+            modal.hide();
+        }
+    });
+
+    // Refresh table when import completes
+    Livewire.on('importCompleted', () => {
+        Livewire.dispatch('refreshTable');
+    });
+});
+</script>
+@endpush

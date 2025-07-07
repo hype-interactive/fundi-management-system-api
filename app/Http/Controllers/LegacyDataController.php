@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\LegacyFundi;
 use App\Models\Fundi;
+use App\Models\LegacyFundi;
 use Illuminate\Http\Request;
+use App\Imports\LegacyFundiImport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\ProcessLegacyImportJob;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Imports\LegacyFundiImport;
 
 class LegacyDataController extends Controller
 {
@@ -21,124 +23,85 @@ class LegacyDataController extends Controller
     }
 
     /**
-     * Import legacy data from file
+     * Import legacy data with queue processing
      */
     public function import(Request $request)
     {
-        dd('Importing legacy data...');
         $request->validate([
-            'legacy_file' => 'required|file|mimes:csv,xlsx,xls|max:10240', // 10MB max
+            'legacy_file' => 'required|file|mimes:csv,xlsx,xls|max:20480', // 20MB max
             'auto_match' => 'boolean'
         ]);
 
         try {
-            DB::beginTransaction();
-
             $file = $request->file('legacy_file');
             $autoMatch = $request->boolean('auto_match');
 
-            // Import the data
-            $import = new LegacyFundiImport();
-            Excel::import($import, $file);
+            // Store the file temporarily
+            $filePath = $file->store('imports', 'local');
 
-            $importedCount = $import->getImportedCount();
+            // Generate unique job ID
+            $jobId = 'import_' . uniqid() . '_' . Auth::id();
 
-            // Run auto-matching if requested
-            $matchedCount = 0;
-            if ($autoMatch) {
-                $matchedCount = $this->runAutoMatch();
-            }
+            // Dispatch the job
+            ProcessLegacyImportJob::dispatch(
+                $filePath,
+                Auth::id(),
+                $autoMatch,
+                $jobId
+            );
 
-            DB::commit();
-
-            $message = "Successfully imported {$importedCount} legacy records.";
-            if ($matchedCount > 0) {
-                $message .= " Auto-matched {$matchedCount} records.";
-            }
-
-            return redirect()->route('legacy-fundis.index')
-                ->with('success', $message);
-
+            return response()->json([
+                'success' => true,
+                'job_id' => $jobId,
+                'message' => 'Import started successfully. You can monitor the progress below.'
+            ]);
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Legacy import failed: ' . $e->getMessage());
+            Log::error('Legacy import dispatch failed: ' . $e->getMessage());
 
-            return redirect()->route('legacy-fundis.index')
-                ->with('error', 'Import failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to start import: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Run automatic matching for high confidence matches
+     * Check import progress
      */
-    private function runAutoMatch()
+    public function importProgress($jobId)
     {
-        $legacyFundis = LegacyFundi::whereNotIn('id', function($query) {
-            $query->select('legacy_id')
-                ->from('fundis')
-                ->whereNotNull('legacy_id');
-        })->get();
+        $progress = cache()->get("import_progress_{$jobId}");
 
-        $matchedCount = 0;
-
-        foreach ($legacyFundis as $legacy) {
-            $matches = $legacy->findPotentialMatches();
-            $highConfidenceMatch = $matches->where('confidence', '>=', 90)->first();
-
-            if ($highConfidenceMatch && $highConfidenceMatch['match_type'] === 'nida') {
-                $fundi = $highConfidenceMatch['fundi'];
-
-                // Double check that this fundi isn't already linked
-                if (!$fundi->legacy_match) {
-                    $fundi->update([
-                        'legacy_match' => true,
-                        'legacy_id' => $legacy->id,
-                    ]);
-                    $matchedCount++;
-                }
-            }
+        if (!$progress) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Import progress not found.'
+            ], 404);
         }
 
-        return $matchedCount;
+        return response()->json([
+            'success' => true,
+            'progress' => $progress
+        ]);
     }
 
     /**
-     * Get legacy data statistics
+     * Get dashboard statistics
      */
     public function statistics()
     {
         $stats = [
             'total' => LegacyFundi::count(),
-            'matched' => LegacyFundi::whereIn('id', function($query) {
-                $query->select('legacy_id')
-                    ->from('fundis')
-                    ->whereNotNull('legacy_id');
-            })->count(),
-            'unmatched' => 0,
-            'potential' => 0,
+            'matched' => LegacyFundi::matched()->count(),
+            'unmatched' => LegacyFundi::unmatched()->count(),
+            'potential' => LegacyFundi::withPotentialMatches()->count(),
         ];
-
-        // Calculate potential matches (this might be slow for large datasets)
-        $unmatched = LegacyFundi::whereNotIn('id', function($query) {
-            $query->select('legacy_id')
-                ->from('fundis')
-                ->whereNotNull('legacy_id');
-        })->get();
-
-        foreach ($unmatched as $legacy) {
-            $potentialCount = $legacy->findPotentialMatches()->count();
-            if ($potentialCount > 0) {
-                $stats['potential']++;
-            } else {
-                $stats['unmatched']++;
-            }
-        }
 
         return response()->json($stats);
     }
 
     /**
-     * Manual link operation
+     * Link a legacy fundi with an existing fundi
      */
     public function link(Request $request)
     {
@@ -151,24 +114,17 @@ class LegacyDataController extends Controller
             $legacyFundi = LegacyFundi::findOrFail($request->legacy_id);
             $fundi = Fundi::findOrFail($request->fundi_id);
 
-            // Check if fundi is already linked
-            if ($fundi->legacy_match) {
+            if (!$legacyFundi->linkWith($fundi)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'This fundi is already linked to another legacy record.'
                 ], 400);
             }
 
-            $fundi->update([
-                'legacy_match' => true,
-                'legacy_id' => $legacyFundi->id,
-            ]);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Legacy fundi linked successfully!'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Legacy link failed: ' . $e->getMessage());
 
@@ -180,7 +136,7 @@ class LegacyDataController extends Controller
     }
 
     /**
-     * Manual unlink operation
+     * Unlink a legacy fundi
      */
     public function unlink(Request $request)
     {
@@ -189,25 +145,19 @@ class LegacyDataController extends Controller
         ]);
 
         try {
-            $fundi = Fundi::where('legacy_id', $request->legacy_id)->first();
+            $legacyFundi = LegacyFundi::findOrFail($request->legacy_id);
 
-            if (!$fundi) {
+            if (!$legacyFundi->unlink()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No linked fundi found for this legacy record.'
                 ], 404);
             }
 
-            $fundi->update([
-                'legacy_match' => false,
-                'legacy_id' => null,
-            ]);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Legacy fundi unlinked successfully!'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Legacy unlink failed: ' . $e->getMessage());
 
@@ -230,7 +180,7 @@ class LegacyDataController extends Controller
             return response()->json([
                 'success' => true,
                 'legacy_fundi' => $legacyFundi,
-                'matches' => $matches->map(function($match) {
+                'matches' => $matches->map(function ($match) {
                     return [
                         'fundi' => $match['fundi']->load('ward.district.region'),
                         'match_type' => $match['match_type'],
@@ -239,7 +189,6 @@ class LegacyDataController extends Controller
                     ];
                 })
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -249,109 +198,128 @@ class LegacyDataController extends Controller
     }
 
     /**
-     * Bulk operations
+     * Run bulk auto-matching
      */
-    public function bulkMatch(Request $request)
+    public function bulkAutoMatch(Request $request)
     {
         $request->validate([
-            'confidence_threshold' => 'required|integer|min:70|max:100',
+            'confidence_threshold' => 'integer|min:70|max:100',
         ]);
 
         try {
-            $threshold = $request->confidence_threshold;
-            $matchedCount = 0;
-
-            $legacyFundis = LegacyFundi::whereNotIn('id', function($query) {
-                $query->select('legacy_id')
-                    ->from('fundis')
-                    ->whereNotNull('legacy_id');
-            })->get();
-
-            foreach ($legacyFundis as $legacy) {
-                $matches = $legacy->findPotentialMatches();
-                $highConfidenceMatch = $matches->where('confidence', '>=', $threshold)->first();
-
-                if ($highConfidenceMatch) {
-                    $fundi = $highConfidenceMatch['fundi'];
-
-                    if (!$fundi->legacy_match) {
-                        $fundi->update([
-                            'legacy_match' => true,
-                            'legacy_id' => $legacy->id,
-                        ]);
-                        $matchedCount++;
-                    }
-                }
-            }
+            $threshold = $request->get('confidence_threshold', 90);
+            $matchedCount = $this->runBulkAutoMatch($threshold);
 
             return response()->json([
                 'success' => true,
-                'message' => "Successfully matched {$matchedCount} legacy records with {$threshold}% confidence threshold."
+                'message' => "Successfully auto-matched {$matchedCount} legacy records."
             ]);
-
         } catch (\Exception $e) {
-            Log::error('Bulk match failed: ' . $e->getMessage());
+            Log::error('Bulk auto-match failed: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Bulk match failed: ' . $e->getMessage()
+                'message' => 'Bulk auto-match failed: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Export unmatched legacy data
+     * Cancel import job
      */
-    public function exportUnmatched()
+    public function cancelImport(Request $request)
     {
-        $unmatchedLegacy = LegacyFundi::whereNotIn('id', function($query) {
-            $query->select('legacy_id')
-                ->from('fundis')
-                ->whereNotNull('legacy_id');
-        })->get();
+        $request->validate([
+            'job_id' => 'required|string'
+        ]);
 
-        return response()->streamDownload(function () use ($unmatchedLegacy) {
-            $headers = [
+        $jobId = $request->job_id;
+
+        // Mark as cancelled in cache
+        cache()->put("import_progress_{$jobId}", [
+            'job_id' => $jobId,
+            'user_id' => Auth::id(),
+            'percentage' => 0,
+            'message' => 'Import cancelled by user.',
+            'status' => 'cancelled',
+            'stats' => [],
+            'updated_at' => now()->toISOString(),
+        ], now()->addHour());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Import cancelled successfully.'
+        ]);
+    }
+
+    /**
+     * Private method to run auto-matching
+     */
+    private function runBulkAutoMatch(int $threshold = 90): int
+    {
+        $unmatchedLegacy = LegacyFundi::unmatched()->get();
+        $matchedCount = 0;
+
+        foreach ($unmatchedLegacy as $legacy) {
+            $matches = $legacy->findPotentialMatches();
+            $highConfidenceMatch = $matches->where('confidence', '>=', $threshold)->first();
+
+            if ($highConfidenceMatch && $highConfidenceMatch['match_type'] === 'nida') {
+                if ($legacy->autoLink()) {
+                    $matchedCount++;
+                }
+            }
+        }
+
+        return $matchedCount;
+    }
+
+    /**
+     * Export analysis data
+     */
+    public function exportAnalysis()
+    {
+        $filename = 'legacy_fundis_analysis_' . date('Y-m-d_H-i-s') . '.csv';
+
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'w');
+
+            // Headers
+            fputcsv($handle, [
                 'Legacy ID',
                 'Name',
-                'Gender',
                 'Primary Phone',
-                'Transaction Phone',
                 'NIDA Number',
                 'Region',
                 'District',
                 'Ward',
-                'Ranking',
-                'Status',
+                'Match Status',
+                'Matched Fundi ID',
                 'Potential Matches Count',
                 'Created At'
-            ];
+            ]);
 
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, $headers);
-
-            foreach ($unmatchedLegacy as $legacy) {
-                $potentialMatches = $legacy->findPotentialMatches();
-
-                fputcsv($handle, [
-                    $legacy->id,
-                    $legacy->name,
-                    ucfirst($legacy->gender),
-                    $legacy->primary_phone,
-                    $legacy->transaction_phone,
-                    $legacy->nida_number,
-                    $legacy->region,
-                    $legacy->district,
-                    $legacy->ward,
-                    $legacy->ranking === 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi',
-                    ucfirst($legacy->status),
-                    $potentialMatches->count(),
-                    $legacy->created_at->format('Y-m-d H:i:s')
-                ]);
-            }
+            // Data
+            LegacyFundi::with('matchedFundi')->chunk(500, function ($legacyFundis) use ($handle) {
+                foreach ($legacyFundis as $legacy) {
+                    fputcsv($handle, [
+                        $legacy->id,
+                        $legacy->name,
+                        $legacy->primary_phone,
+                        $legacy->nida_number ?? 'N/A',
+                        $legacy->region ?? 'N/A',
+                        $legacy->district ?? 'N/A',
+                        $legacy->ward ?? 'N/A',
+                        ucfirst($legacy->match_status),
+                        $legacy->matchedFundi?->id ?? 'N/A',
+                        $legacy->getPotentialMatchesCount(),
+                        $legacy->created_at->format('Y-m-d H:i:s')
+                    ]);
+                }
+            });
 
             fclose($handle);
-        }, 'unmatched_legacy_fundis_' . date('Y-m-d_H-i-s') . '.csv', [
+        }, $filename, [
             'Content-Type' => 'text/csv',
         ]);
     }

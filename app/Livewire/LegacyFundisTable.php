@@ -7,6 +7,7 @@ use Livewire\Component;
 use App\Models\LegacyFundi;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Cache;
 
 class LegacyFundisTable extends Component
 {
@@ -15,71 +16,149 @@ class LegacyFundisTable extends Component
     protected $paginationTheme = 'bootstrap';
 
     #[Url]
-    public $search_key = '';
-
-    public $perPage = 15;
+    public $search = '';
 
     #[Url]
-    public $region = null;
+    public $region = '';
 
     #[Url]
-    public $district = null;
+    public $district = '';
 
     #[Url]
-    public $ward = null;
+    public $status = '';
 
     #[Url]
-    public $gender = null;
+    public $matchStatus = '';
 
-    #[Url]
-    public $ranking = null;
-
-    #[Url]
-    public $status = null;
-
-    #[Url]
-    public $match_status = null; // matched, potential, unmatched
-
-    public $regions = [];
-    public $districts = [];
-    public $wards = [];
-    public $gender_options = [];
-    public $ranking_options = [];
-    public $status_options = [];
-    public $match_status_options = [];
-
-    // Cross-checking properties
-    public $showMatches = false;
-    public $selectedLegacyId = null;
-    public $potentialMatches = [];
+    public $perPage = 25;
     public $compactView = false;
 
-    public function updatedSearchKey()
+    // Modal states
+    public $showMatchesModal = false;
+    public $selectedLegacyId = null;
+    public $potentialMatches = [];
+    public $loadingMatches = false;
+
+    // Filter options
+    public $regions = [];
+    public $districts = [];
+    public $statusOptions = [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'pending' => 'Pending'
+    ];
+    public $matchStatusOptions = [
+        'matched' => 'Matched',
+        'potential' => 'Has Potential Matches',
+        'unmatched' => 'No Matches'
+    ];
+
+    // Bulk operations
+    public $selectedItems = [];
+    public $selectAll = false;
+
+    protected $listeners = [
+        'refreshTable' => '$refresh',
+        'closeMatchesModal' => 'closeMatches'
+    ];
+
+    public function mount()
+    {
+        $this->loadFilterOptions();
+    }
+
+    public function render()
+    {
+        return view('livewire.legacy-fundis-table', [
+            'legacyFundis' => $this->getLegacyFundis(),
+            'stats' => $this->getStats(),
+        ]);
+    }
+
+    /**
+     * Get paginated legacy fundis with filters applied
+     */
+    public function getLegacyFundis()
+    {
+        $query = LegacyFundi::query()
+            ->with('matchedFundi')
+            ->when($this->search, function ($q) {
+                $q->where(function ($subQuery) {
+                    $subQuery->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhere('primary_phone', 'like', '%' . $this->search . '%')
+                        ->orWhere('nida_number', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->region, fn($q) => $q->where('region', $this->region))
+            ->when($this->district, fn($q) => $q->where('district', $this->district))
+            ->when($this->status, fn($q) => $q->where('status', $this->status))
+            ->when($this->matchStatus, function ($q) {
+                match($this->matchStatus) {
+                    'matched' => $q->matched(),
+                    'unmatched' => $q->unmatched(),
+                    'potential' => $q->withPotentialMatches(),
+                    default => $q
+                };
+            })
+            ->latest('created_at');
+
+        return $query->paginate($this->perPage);
+    }
+
+    /**
+     * Get dashboard statistics
+     */
+    public function getStats()
+    {
+        return Cache::remember('legacy_fundis_stats', now()->addMinutes(5), function () {
+            return [
+                'total' => LegacyFundi::count(),
+                'matched' => LegacyFundi::matched()->count(),
+                'unmatched' => LegacyFundi::unmatched()->count(),
+                'potential' => LegacyFundi::withPotentialMatches()->count(),
+            ];
+        });
+    }
+
+    /**
+     * Load filter options
+     */
+    public function loadFilterOptions()
+    {
+        $this->regions = LegacyFundi::whereNotNull('region')
+            ->distinct()
+            ->pluck('region')
+            ->filter()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        $this->districts = LegacyFundi::when($this->region, fn($q) => $q->where('region', $this->region))
+            ->whereNotNull('district')
+            ->distinct()
+            ->pluck('district')
+            ->filter()
+            ->sort()
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Updated methods to reset pagination and reload data
+     */
+    public function updatedSearch()
     {
         $this->resetPage();
     }
 
     public function updatedRegion()
     {
+        $this->district = '';
+        $this->loadFilterOptions();
         $this->resetPage();
     }
 
     public function updatedDistrict()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedWard()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedGender()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedRanking()
     {
         $this->resetPage();
     }
@@ -94,116 +173,43 @@ class LegacyFundisTable extends Component
         $this->resetPage();
     }
 
-    public function fetch()
-    {
-        return $this->getLegacyFundiQuery()->paginate($this->perPage);
-    }
-
-    public function getLegacyFundiQuery()
-    {
-        $this->loadData();
-
-        $query = LegacyFundi::query();
-
-        return $query
-            ->when($this->search_key, function ($query, $search_key) {
-                $query->where('name', 'like', '%' . $search_key . '%')
-                    ->orWhere('primary_phone', 'like', '%' . $search_key . '%')
-                    ->orWhere('transaction_phone', 'like', '%' . $search_key . '%')
-                    ->orWhere('nida_number', 'like', '%' . $search_key . '%');
-            })
-            ->when($this->region, function ($query, $region) {
-                $query->where('region', 'like', '%' . $region . '%');
-            })
-            ->when($this->district, function ($query, $district) {
-                $query->where('district', 'like', '%' . $district . '%');
-            })
-            ->when($this->ward, function ($query, $ward) {
-                $query->where('ward', 'like', '%' . $ward . '%');
-            })
-            ->when($this->gender, function ($query, $gender) {
-                $query->where('gender', $gender);
-            })
-            ->when($this->ranking, function ($query, $ranking) {
-                $query->where('ranking', $ranking);
-            })
-            ->when($this->status, function ($query, $status) {
-                $query->where('status', $status);
-            })
-            ->when($this->match_status, function ($query, $match_status) {
-                if ($match_status === 'matched') {
-                    $query->whereIn('id', function($subQuery) {
-                        $subQuery->select('legacy_id')
-                            ->from('fundis')
-                            ->whereNotNull('legacy_id');
-                    });
-                } elseif ($match_status === 'unmatched') {
-                    $query->whereNotIn('id', function($subQuery) {
-                        $subQuery->select('legacy_id')
-                            ->from('fundis')
-                            ->whereNotNull('legacy_id');
-                    });
-                }
-                // For 'potential', we'll handle this in the view
-            })
-            ->latest('created_at');
-    }
-
-    public function loadData()
-    {
-        // Get unique values from legacy data for filters
-        $this->regions = LegacyFundi::whereNotNull('region')
-            ->distinct()
-            ->pluck('region')
-            ->filter()
-            ->sort()
-            ->values()
-            ->toArray();
-
-        $this->districts = LegacyFundi::when($this->region, function($query) {
-                return $query->where('region', 'like', '%' . $this->region . '%');
-            })
-            ->whereNotNull('district')
-            ->distinct()
-            ->pluck('district')
-            ->filter()
-            ->sort()
-            ->values()
-            ->toArray();
-
-        $this->wards = LegacyFundi::when($this->district, function($query) {
-                return $query->where('district', 'like', '%' . $this->district . '%');
-            })
-            ->whereNotNull('ward')
-            ->distinct()
-            ->pluck('ward')
-            ->filter()
-            ->sort()
-            ->values()
-            ->toArray();
-
-        $this->gender_options = ['male' => 'Male', 'female' => 'Female', 'other' => 'Other'];
-        $this->ranking_options = ['fundi_kuu' => 'Fundi Mkuu', 'fundi_msaidizi' => 'Fundi'];
-        $this->status_options = ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending'];
-        $this->match_status_options = [
-            'matched' => 'Matched',
-            'potential' => 'Has Potential Matches',
-            'unmatched' => 'Unmatched'
-        ];
-    }
-
     /**
-     * Show potential matches for a legacy fundi
+     * Show potential matches modal
      */
     public function showMatches($legacyFundiId)
     {
         $this->selectedLegacyId = $legacyFundiId;
-        $legacyFundi = LegacyFundi::find($legacyFundiId);
+        $this->loadingMatches = true;
+        $this->showMatchesModal = true;
+        $this->potentialMatches = [];
+
+        // Load matches asynchronously
+        $this->loadPotentialMatches();
+    }
+
+    /**
+     * Load potential matches for selected legacy fundi
+     */
+    public function loadPotentialMatches()
+    {
+        if (!$this->selectedLegacyId) return;
+
+        $legacyFundi = LegacyFundi::find($this->selectedLegacyId);
 
         if ($legacyFundi) {
-            $this->potentialMatches = $legacyFundi->findPotentialMatches()->toArray();
-            $this->showMatches = true;
+            $matches = $legacyFundi->findPotentialMatches();
+
+            $this->potentialMatches = $matches->map(function ($match) {
+                return [
+                    'fundi' => $match['fundi']->load('ward.district.region'),
+                    'match_type' => $match['match_type'],
+                    'confidence' => $match['confidence'],
+                    'details' => $match['details'],
+                ];
+            })->toArray();
         }
+
+        $this->loadingMatches = false;
     }
 
     /**
@@ -211,158 +217,210 @@ class LegacyFundisTable extends Component
      */
     public function closeMatches()
     {
-        $this->showMatches = false;
+        $this->showMatchesModal = false;
         $this->selectedLegacyId = null;
         $this->potentialMatches = [];
+        $this->loadingMatches = false;
     }
 
     /**
-     * Link a legacy fundi with an existing fundi
+     * Link legacy fundi with current fundi
      */
     public function linkFundis($legacyFundiId, $fundiId)
     {
-        $legacyFundi = LegacyFundi::find($legacyFundiId);
-        $fundi = Fundi::find($fundiId);
+        try {
+            $legacyFundi = LegacyFundi::findOrFail($legacyFundiId);
+            $fundi = Fundi::findOrFail($fundiId);
 
-        if ($legacyFundi && $fundi) {
-            $fundi->update([
-                'legacy_match' => true,
-                'legacy_id' => $legacyFundiId,
+            if ($legacyFundi->linkWith($fundi)) {
+                $this->closeMatches();
+                $this->dispatch('showToast', [
+                    'type' => 'success',
+                    'message' => 'Legacy fundi linked successfully!'
+                ]);
+
+                // Clear stats cache
+                Cache::forget('legacy_fundis_stats');
+            } else {
+                $this->dispatch('showToast', [
+                    'type' => 'error',
+                    'message' => 'This fundi is already linked to another legacy record.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('showToast', [
+                'type' => 'error',
+                'message' => 'Failed to link: ' . $e->getMessage()
             ]);
-
-            $this->closeMatches();
-            session()->flash('success', 'Legacy fundi linked successfully!');
         }
     }
 
     /**
-     * Unlink a legacy fundi
+     * Unlink legacy fundi
      */
     public function unlinkFundi($legacyFundiId)
     {
-        $fundi = Fundi::where('legacy_id', $legacyFundiId)->first();
+        try {
+            $legacyFundi = LegacyFundi::findOrFail($legacyFundiId);
 
-        if ($fundi) {
-            $fundi->update([
-                'legacy_match' => false,
-                'legacy_id' => null,
+            if ($legacyFundi->unlink()) {
+                $this->dispatch('showToast', [
+                    'type' => 'success',
+                    'message' => 'Legacy fundi unlinked successfully!'
+                ]);
+
+                // Clear stats cache
+                Cache::forget('legacy_fundis_stats');
+            } else {
+                $this->dispatch('showToast', [
+                    'type' => 'error',
+                    'message' => 'No linked fundi found for this legacy record.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('showToast', [
+                'type' => 'error',
+                'message' => 'Failed to unlink: ' . $e->getMessage()
             ]);
-
-            session()->flash('success', 'Legacy fundi unlinked successfully!');
         }
     }
 
     /**
-     * Export legacy data analysis
+     * Run bulk auto-matching
      */
-    public function exportAnalysis()
+    public function runBulkAutoMatch()
     {
-        return response()->streamDownload(function () {
-            $legacyFundis = $this->getLegacyFundiQuery()->get();
+        try {
+            $unmatchedCount = LegacyFundi::unmatched()->count();
 
-            $headers = [
-                'Legacy ID',
-                'Name',
-                'Gender',
-                'Primary Phone',
-                'Transaction Phone',
-                'NIDA Number',
-                'Region',
-                'District',
-                'Ward',
-                'Ranking',
-                'Status',
-                'Match Status',
-                'Matched Fundi ID',
-                'Potential Matches Count',
-                'Created At'
-            ];
-
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, $headers);
-
-            foreach ($legacyFundis as $legacy) {
-                $potentialMatches = $legacy->findPotentialMatches();
-
-                fputcsv($handle, [
-                    $legacy->id,
-                    $legacy->name,
-                    ucfirst($legacy->gender),
-                    $legacy->primary_phone,
-                    $legacy->transaction_phone,
-                    $legacy->nida_number,
-                    $legacy->region,
-                    $legacy->district,
-                    $legacy->ward,
-                    $this->ranking_options[$legacy->ranking] ?? 'N/A',
-                    ucfirst($legacy->status),
-                    ucfirst($legacy->match_status),
-                    $legacy->matchedFundi?->id ?? 'N/A',
-                    $potentialMatches->count(),
-                    $legacy->created_at->format('Y-m-d H:i:s')
+            if ($unmatchedCount === 0) {
+                $this->dispatch('showToast', [
+                    'type' => 'info',
+                    'message' => 'No unmatched legacy fundis found.'
                 ]);
+                return;
             }
 
-            fclose($handle);
-        }, 'legacy_fundis_analysis_' . date('Y-m-d_H-i-s') . '.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
+            $matchedCount = 0;
+
+            LegacyFundi::unmatched()->chunk(100, function ($legacyFundis) use (&$matchedCount) {
+                foreach ($legacyFundis as $legacy) {
+                    if ($legacy->autoLink()) {
+                        $matchedCount++;
+                    }
+                }
+            });
+
+            $this->dispatch('showToast', [
+                'type' => 'success',
+                'message' => "Auto-matched {$matchedCount} legacy fundis with high confidence!"
+            ]);
+
+            // Clear stats cache
+            Cache::forget('legacy_fundis_stats');
+
+        } catch (\Exception $e) {
+            $this->dispatch('showToast', [
+                'type' => 'error',
+                'message' => 'Auto-match failed: ' . $e->getMessage()
+            ]);
+        }
     }
 
     /**
-     * Run auto-matching for high confidence matches
+     * Bulk operations
      */
-    public function runAutoMatch()
+    public function updatedSelectAll()
     {
-        $legacyFundis = LegacyFundi::whereNotIn('id', function($query) {
-            $query->select('legacy_id')
-                ->from('fundis')
-                ->whereNotNull('legacy_id');
-        })->get();
+        if ($this->selectAll) {
+            $this->selectedItems = $this->getLegacyFundis()->pluck('id')->toArray();
+        } else {
+            $this->selectedItems = [];
+        }
+    }
+
+    public function bulkLink()
+    {
+        if (empty($this->selectedItems)) {
+            $this->dispatch('showToast', [
+                'type' => 'warning',
+                'message' => 'Please select items to perform bulk operation.'
+            ]);
+            return;
+        }
 
         $matchedCount = 0;
 
-        foreach ($legacyFundis as $legacy) {
-            $matches = $legacy->findPotentialMatches();
-            $highConfidenceMatch = $matches->where('confidence', '>=', 90)->first();
-
-            if ($highConfidenceMatch) {
-                $fundi = $highConfidenceMatch['fundi'];
-                $fundi->update([
-                    'legacy_match' => true,
-                    'legacy_id' => $legacy->id,
-                ]);
+        foreach ($this->selectedItems as $legacyId) {
+            $legacy = LegacyFundi::find($legacyId);
+            if ($legacy && $legacy->autoLink()) {
                 $matchedCount++;
             }
         }
 
-        session()->flash('success', "Auto-matched {$matchedCount} legacy fundis with high confidence!");
+        $this->selectedItems = [];
+        $this->selectAll = false;
+
+        $this->dispatch('showToast', [
+            'type' => 'success',
+            'message' => "Bulk linked {$matchedCount} legacy fundis."
+        ]);
+
+        Cache::forget('legacy_fundis_stats');
     }
 
-    public function refresh()
+    /**
+     * Clear all filters
+     */
+    public function clearFilters()
     {
         $this->reset([
-            'search_key',
+            'search',
             'region',
             'district',
-            'ward',
-            'gender',
-            'ranking',
             'status',
-            'match_status'
+            'matchStatus'
         ]);
+
+        $this->loadFilterOptions();
     }
 
-    public function mount()
+    /**
+     * Export filtered data
+     */
+    public function export()
     {
-        $this->compactView = false;
-        $this->showMatches = false;
-    }
+        $query = $this->getLegacyFundis();
+        $filename = 'legacy_fundis_' . date('Y-m-d_H-i-s') . '.csv';
 
-    public function render()
-    {
-        return view('livewire.legacy-fundis-table', [
-            'legacyFundis' => $this->fetch(),
-        ]);
+        return response()->streamDownload(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+
+            // Headers
+            fputcsv($handle, [
+                'ID', 'Name', 'Phone', 'NIDA', 'Region', 'District',
+                'Ward', 'Status', 'Match Status', 'Matched Fundi ID'
+            ]);
+
+            // Data
+            $query->chunk(500, function ($legacyFundis) use ($handle) {
+                foreach ($legacyFundis as $legacy) {
+                    fputcsv($handle, [
+                        $legacy->id,
+                        $legacy->name,
+                        $legacy->primary_phone,
+                        $legacy->nida_number ?? 'N/A',
+                        $legacy->region ?? 'N/A',
+                        $legacy->district ?? 'N/A',
+                        $legacy->ward ?? 'N/A',
+                        ucfirst($legacy->status),
+                        ucfirst($legacy->match_status),
+                        $legacy->matchedFundi?->id ?? 'N/A'
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, $filename);
     }
 }

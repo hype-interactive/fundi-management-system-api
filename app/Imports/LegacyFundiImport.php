@@ -5,275 +5,212 @@ namespace App\Imports;
 use App\Models\LegacyFundi;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
-use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 
-class LegacyFundiImport implements ToModel, WithHeadingRow, WithValidation, WithBatchInserts, WithChunkReading
+class LegacyFundiImport implements ToCollection, WithHeadingRow, WithBatchInserts, WithChunkReading
 {
     private $importedCount = 0;
     private $skippedCount = 0;
+    private $errors = [];
 
     /**
-     * Transform each row into a model
+     * Process the collection in chunks
      */
-    public function model(array $row)
+    public function collection(Collection $rows)
     {
-        try {
-            // Clean and validate the data
-            $cleanedData = $this->cleanRowData($row);
+        $validRows = [];
 
-            // Check if this record already exists (by phone or NIDA)
-            $exists = LegacyFundi::where(function ($query) use ($cleanedData) {
-                if (!empty($cleanedData['primary_phone'])) {
-                    $query->where('primary_phone', $cleanedData['primary_phone']);
-                }
-                if (!empty($cleanedData['nida_number'])) {
-                    $query->orWhere('nida_number', $cleanedData['nida_number']);
-                }
-            })->exists();
+        foreach ($rows as $index => $row) {
+            try {
+                $cleanedData = $this->processRow($row->toArray());
 
-            if ($exists) {
+                if ($cleanedData) {
+                    // Check for duplicates
+                    if (!$this->isDuplicate($cleanedData)) {
+                        $validRows[] = $cleanedData;
+                        $this->importedCount++;
+                    } else {
+                        $this->skippedCount++;
+                    }
+                }
+            } catch (\Exception $e) {
+                $this->errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
                 $this->skippedCount++;
-                return null; // Skip duplicate
+                Log::warning("Import error on row " . ($index + 2), [
+                    'error' => $e->getMessage(),
+                    'row' => $row->toArray()
+                ]);
             }
+        }
 
-            $this->importedCount++;
-
-            return new LegacyFundi($cleanedData);
-        } catch (\Exception $e) {
-            Log::warning('Failed to import legacy fundi row: ' . $e->getMessage(), $row);
-            $this->skippedCount++;
-            return null;
+        // Batch insert valid rows
+        if (!empty($validRows)) {
+            LegacyFundi::insert($validRows);
         }
     }
 
     /**
-     * Clean and normalize row data
+     * Process a single row from CSV
      */
-    private function cleanRowData(array $row): array
+    private function processRow(array $row): ?array
     {
+        // Map CSV columns based on your structure
+        // identifier = phone, full_name = name, location = region/district/ward
+
+        $phone = $this->cleanPhone($row['identifier'] ?? '');
+        $name = $this->cleanName($row['full_name'] ?? '');
+        $location = $this->parseLocation($row['location'] ?? '');
+
+        // Skip if essential data is missing
+        if (empty($phone) || empty($name)) {
+            return null;
+        }
+
         return [
-            'name' => $this->cleanName($row['name'] ?? ''),
-            'gender' => $this->cleanGender($row['gender'] ?? ''),
-            'nida_number' => $this->cleanNida($row['nida_number'] ?? null),
-            'primary_phone' => $this->cleanPhone($row['primary_phone'] ?? ''),
-            'transaction_phone' => $this->cleanPhone($row['transaction_phone'] ?? null),
-            'ranking' => $this->cleanRanking($row['ranking'] ?? ''),
-            'profile_photo' => $row['profile_photo'] ?? null,
-            'status' => $this->cleanStatus($row['status'] ?? 'pending'),
-            'region' => $this->cleanLocation($row['region'] ?? null),
-            'district' => $this->cleanLocation($row['district'] ?? null),
-            'ward' => $this->cleanLocation($row['ward'] ?? null),
+            'name' => $name,
+            'gender' => $this->inferGender($name), // You can improve this logic
+            'nida_number' => null, // Not in your CSV
+            'primary_phone' => $phone,
+            'transaction_phone' => null,
+            'ranking' => 'fundi_msaidizi', // Default
+            'profile_photo' => null,
+            'status' => 'pending',
+            'region' => $location['region'],
+            'district' => $location['district'],
+            'ward' => $location['ward'],
+            'created_at' => now(),
+            'updated_at' => now(),
         ];
     }
 
     /**
-     * Clean name field
+     * Clean phone number to standardized format
      */
-    private function cleanName(string $name): string
+    private function cleanPhone(string $phone): ?string
     {
-        // Remove extra spaces, capitalize properly
-        $name = trim(preg_replace('/\s+/', ' ', $name));
-        return ucwords(strtolower($name));
-    }
-
-    /**
-     * Clean gender field
-     */
-    private function cleanGender(string $gender): string
-    {
-        $gender = strtolower(trim($gender));
-
-        // Map common variations
-        $genderMap = [
-            'm' => 'male',
-            'male' => 'male',
-            'mume' => 'male',
-            'kiume' => 'male',
-            'f' => 'female',
-            'female' => 'female',
-            'kike' => 'female',
-            'jike' => 'female',
-        ];
-
-        return $genderMap[$gender] ?? 'other';
-    }
-
-    /**
-     * Clean NIDA number
-     */
-    private function cleanNida(?string $nida): ?string
-    {
-        if (empty($nida)) {
-            return null;
-        }
-
         // Remove any non-numeric characters
-        $nida = preg_replace('/[^0-9]/', '', $nida);
+        $phone = preg_replace('/[^0-9]/', '', $phone);
 
-        // Validate NIDA format (should be 20 digits)
-        if (strlen($nida) === 20) {
-            return $nida;
-        }
-
-        return null; // Invalid NIDA
-    }
-
-    /**
-     * Clean phone number
-     */
-    private function cleanPhone(?string $phone): ?string
-    {
-        if (empty($phone)) {
-            return null;
-        }
-
-        // Remove any non-numeric characters except +
-        $phone = preg_replace('/[^0-9+]/', '', $phone);
-
-        // Handle different formats
-        if (str_starts_with($phone, '+255')) {
-            $phone = substr($phone, 4); // Remove +255
-        } elseif (str_starts_with($phone, '255')) {
-            $phone = substr($phone, 3); // Remove 255
+        // Handle Tanzanian format
+        if (str_starts_with($phone, '255')) {
+            $phone = substr($phone, 3);
         } elseif (str_starts_with($phone, '0')) {
-            $phone = substr($phone, 1); // Remove leading 0
+            $phone = substr($phone, 1);
         }
 
-        // Validate Tanzanian mobile format (9 digits starting with 6, 7, or 8)
+        // Validate format (9 digits starting with 6, 7, or 8)
         if (preg_match('/^[678]\d{8}$/', $phone)) {
             return '+255' . $phone;
         }
 
-        return null; // Invalid phone format
+        return null;
     }
 
     /**
-     * Clean ranking field
+     * Clean and standardize name
      */
-    private function cleanRanking(string $ranking): string
+    private function cleanName(string $name): string
     {
-        $ranking = strtolower(trim($ranking));
+        $name = trim($name);
+        $name = preg_replace('/\s+/', ' ', $name); // Remove extra spaces
+        return ucwords(strtolower($name));
+    }
 
-        $rankingMap = [
-            'fundi_kuu' => 'fundi_kuu',
-            'fundi kuu' => 'fundi_kuu',
-            'mkuu' => 'fundi_kuu',
-            'fundi_msaidizi' => 'fundi_msaidizi',
-            'fundi msaidizi' => 'fundi_msaidizi',
-            'msaidizi' => 'fundi_msaidizi',
-            'fundi' => 'fundi_msaidizi',
+    /**
+     * Parse location string into components
+     */
+    private function parseLocation(string $location): array
+    {
+        $location = trim(strtoupper($location));
+
+        // Common Tanzanian regions for basic mapping
+        $regionMap = [
+            'DAR ES SALAAM' => ['region' => 'Dar es Salaam', 'district' => null, 'ward' => null],
+            'TANGA' => ['region' => 'Tanga', 'district' => null, 'ward' => null],
+            'MOROGORO' => ['region' => 'Morogoro', 'district' => null, 'ward' => null],
+            'MBEYA' => ['region' => 'Mbeya', 'district' => null, 'ward' => null],
+            'ILALA' => ['region' => 'Dar es Salaam', 'district' => 'Ilala', 'ward' => null],
+            'MBEZI' => ['region' => 'Dar es Salaam', 'district' => 'Kinondoni', 'ward' => 'Mbezi'],
+            'TUNDUMA' => ['region' => 'Mbeya', 'district' => 'Mbozi', 'ward' => null],
         ];
 
-        return $rankingMap[$ranking] ?? 'fundi_msaidizi';
-    }
-
-    /**
-     * Clean status field
-     */
-    private function cleanStatus(string $status): string
-    {
-        $status = strtolower(trim($status));
-
-        $statusMap = [
-            'active' => 'active',
-            'inactive' => 'inactive',
-            'pending' => 'pending',
-            'approved' => 'active',
-            'rejected' => 'inactive',
-        ];
-
-        return $statusMap[$status] ?? 'pending';
-    }
-
-    /**
-     * Clean location fields
-     */
-    private function cleanLocation(?string $location): ?string
-    {
-        if (empty($location)) {
-            return null;
+        if (isset($regionMap[$location])) {
+            return $regionMap[$location];
         }
 
-        // Clean and capitalize properly
-        $location = trim(preg_replace('/\s+/', ' ', $location));
-        return ucwords(strtolower($location));
-    }
-
-    /**
-     * Validation rules
-     */
-    public function rules(): array
-    {
+        // Default fallback
         return [
-            'name' => 'required|string|max:255',
-            'gender' => 'nullable|in:male,female,other',
-            'primary_phone' => 'required|string|max:20',
-            'ranking' => 'nullable|in:fundi_kuu,fundi_msaidizi',
-            'status' => 'nullable|in:active,inactive,pending',
+            'region' => $location ?: null,
+            'district' => null,
+            'ward' => null
         ];
     }
 
     /**
-     * Custom validation messages
+     * Basic gender inference from name (improve as needed)
      */
-    public function customValidationMessages(): array
+    private function inferGender(string $name): string
     {
-        return [
-            'name.required' => 'Name is required for all legacy fundis.',
-            'primary_phone.required' => 'Primary phone is required for all legacy fundis.',
-        ];
+        $name = strtolower($name);
+
+        // Common Tanzanian male names
+        $maleNames = ['james', 'john', 'joseph', 'david', 'william', 'robert', 'kenneth', 'steven'];
+        // Common Tanzanian female names
+        $femaleNames = ['lucy', 'mary', 'elizabeth', 'grace', 'joyce', 'anna'];
+
+        foreach ($maleNames as $maleName) {
+            if (str_contains($name, $maleName)) {
+                return 'male';
+            }
+        }
+
+        foreach ($femaleNames as $femaleName) {
+            if (str_contains($name, $femaleName)) {
+                return 'female';
+            }
+        }
+
+        return 'other'; // Default when unclear
     }
 
     /**
-     * Batch insert size
+     * Check if record already exists
+     */
+    private function isDuplicate(array $data): bool
+    {
+        return LegacyFundi::where('primary_phone', $data['primary_phone'])
+            ->orWhere(function ($query) use ($data) {
+                $query->where('name', $data['name'])
+                    ->where('region', $data['region']);
+            })
+            ->exists();
+    }
+
+    /**
+     * Required methods for Excel package
      */
     public function batchSize(): int
     {
-        return 500;
+        return 1000;
     }
 
-    /**
-     * Chunk reading size
-     */
     public function chunkSize(): int
     {
-        return 500;
+        return 1000;
     }
 
     /**
      * Get import statistics
      */
-    public function getImportedCount(): int
-    {
-        return $this->importedCount;
-    }
-
-    public function getSkippedCount(): int
-    {
-        return $this->skippedCount;
-    }
-
-    /**
-     * Headers that are expected in the import file
-     */
-    public function getExpectedHeaders(): array
+    public function getStats(): array
     {
         return [
-            'name',
-            'gender',
-            'nida_number',
-            'primary_phone',
-            'transaction_phone',
-            'ranking',
-            'profile_photo',
-            'status',
-            'region',
-            'district',
-            'ward'
+            'imported' => $this->importedCount,
+            'skipped' => $this->skippedCount,
+            'errors' => $this->errors,
         ];
     }
 }
