@@ -101,19 +101,7 @@
     border-radius: 0.5rem;
     width: 100%;
     padding: 1rem;
-    background: color(dark); /* fallback for old browsers */
-    background: -webkit-linear-gradient(
-        to bottom,
-        color(primary_light),
-        color(primary),
-        color(dark)
-    ); /* Chrome 10-25, Safari 5.1-6 */
-    background: linear-gradient(
-        to bottom,
-        color(primary_light),
-        color(primary),
-        color(dark)
-    );
+    background: linear-gradient(135deg, color(primary) 0%, color(dark) 50%, color(dark) 100%);
 }
 
 .custom-table {

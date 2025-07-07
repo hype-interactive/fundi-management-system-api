@@ -1,41 +1,51 @@
 //colors
 $color: (
-    primary: #196783,        // Bright cyan-blue (used in the roof/house shape)
-    primary_light: #5CD3F3,  // A lighter variant of the blue
-    primary_200: #9cdcf8,    // Very light blue for soft backgrounds
-    secondary: #a5a5a9,      // White (used in text)
-    // dark: #05365a,           // Near-black for deep contrasts
-    dark: #0F044C,
-    light: #F5F7FA,          // Very light grey for backgrounds
-    success: #3FAE28,        // Your original success green
-    fail: #F9322B,           // Your original error red
-    active: #017BFE,         // Your original active blue
-    warning: #DDA80B         // Your original warning yellow
+    primary: #01aef3,
+    // Bright cyan-blue (used in the roof/house shape)
+    primary-light: #5cd3f3,
+    // A lighter variant of the blue
+    primary-200: #9cdcf8,
+    // Very light blue for soft backgrounds
+    secondary: #a5a5a9,
+    // White (used in text)
+    dark: #1c1a6d,
+    light: #f5f7fa,
+    // Very light grey for backgrounds
+    success: #3fae28,
+    // Your original success green
+    fail: #f9322b,
+    // Your original error red
+    active: #017bfe,
+    // Your original active blue
+    warning: #dda80b // Your original warning yellow
 );
 
 //font-imports
 @font-face {
-    font-family: 'ubuntu-regular';
-    src: url('../../fonts/Ubuntu-Regular.ttf') format('truetype');
-};
+    font-family: "ubuntu-regular";
+    src: url("../../fonts/Ubuntu-Regular.ttf") format("truetype");
+}
 @font-face {
-    font-family: 'ubuntu-light';
-    src: url('../../fonts/Ubuntu-Light.ttf') format('truetype');
-};
+    font-family: "ubuntu-light";
+    src: url("../../fonts/Ubuntu-Light.ttf") format("truetype");
+}
 @font-face {
-    font-family: 'ubuntu-bold';
-    src: url('../../fonts/Ubuntu-Bold.ttf') format('truetype');
-};
+    font-family: "ubuntu-bold";
+    src: url("../../fonts/Ubuntu-Bold.ttf") format("truetype");
+}
 @font-face {
-    font-family: 'ubuntu-semi-bold';
-    src: url('../../fonts/Ubuntu-Medium.ttf') format('truetype');
-};
+    font-family: "ubuntu-semi-bold";
+    src: url("../../fonts/Ubuntu-Medium.ttf") format("truetype");
+}
 
 //font-family
 $font__family: (
-	base:'ubuntu-regular', // font-family(base)
-	light:'ubuntu-light', // font-family(base)
-	bold:'ubuntu-bold', // font-family(base)
-	semi_bold:'ubuntu-semi-bold', // font-family(base)
+    base: "ubuntu-regular",
+    // font-family(base)
+    light: "ubuntu-light",
+    // font-family(base)
+    bold: "ubuntu-bold",
+    // font-family(base)
+    semi_bold: "ubuntu-semi-bold",
+    // font-family(base)
 );
-

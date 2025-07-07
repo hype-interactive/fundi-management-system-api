@@ -67,4 +67,14 @@ Route::middleware('auth')->group(function () {
     // Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+//app download
+Route::get('/app', function () {
+    return view('pages.app-download');
+})->name('');
+
+//file download
+Route::get('/download-apk', function () {
+    return response()->download(public_path('apk/app-release.apk'), 'fundi-app.apk');
+})->name('download-apk');
+
 require __DIR__.'/auth.php';
