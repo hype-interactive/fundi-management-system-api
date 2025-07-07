@@ -7,7 +7,7 @@
 // Font Family Mixin - Fixed Version
 @mixin font-family($elem) {
 	$font: get-font-family($elem);
-	
+
 	// Check if the font value exists and is not null
 	@if $font != null {
 		font-family: unquote($font);
@@ -21,7 +21,7 @@
 // Alternative version with more robust checking
 @mixin font-family-robust($elem) {
 	$font: get-font-family($elem);
-	
+
 	// Check if the font value exists, is not null, and is a string
 	@if $font != null and type-of($font) == string and $font != '' {
 		font-family: unquote($font);
