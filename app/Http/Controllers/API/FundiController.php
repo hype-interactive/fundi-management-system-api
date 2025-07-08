@@ -118,7 +118,12 @@ class FundiController extends BaseAPIController
             'mname' => 'nullable|string|max:255',
             'lname' => 'required|string|max:255',
             'gender' => 'required|in:male,female',
-            'nida_number' => 'required|string|unique:fundis,nida_number',
+            'nida_number' => [
+                'nullable',
+                'string',
+                'max:20',
+                Rule::unique('fundis', 'nida_number')->whereNotNull('nida_number')
+            ],
             'primary_phone' => 'required|string|max:15',
             'transaction_phone' => 'required|string|max:15',
             'ward_id' => [
@@ -258,8 +263,10 @@ class FundiController extends BaseAPIController
             // Priority 1: Use new Cloudinary URL and public_id from Flutter
             if ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id')) {
                 // If there's a new image, delete the old one
-                if ($fundi->profile_photo_public_id &&
-                    $fundi->profile_photo_public_id !== $request->profile_photo_public_id) {
+                if (
+                    $fundi->profile_photo_public_id &&
+                    $fundi->profile_photo_public_id !== $request->profile_photo_public_id
+                ) {
                     $this->cloudinaryService->delete($fundi->profile_photo_public_id);
                 }
 
