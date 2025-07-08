@@ -123,61 +123,224 @@
             </div>
         </div>
 
-        <!-- Password Information -->
-        @if ($show_password || !$editing)
+        <!-- Password Information Section -->
+        @if (!$editing)
+            {{-- NEW OPERATOR: Always show password section --}}
             <div class="card mb-3">
                 <div class="card-header bg-light" style="cursor: pointer;" data-toggle="collapse"
-                    data-target="#passwordInfo" aria-expanded="{{ $mode === 'create' ? 'true' : 'false' }}"
-                    aria-controls="passwordInfo">
+                    data-target="#passwordInfo" aria-expanded="true" aria-controls="passwordInfo">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">
-                            <i class="fas fa-lock mr-2"></i>
-                            {{ $editing ? 'Change Password (Optional)' : 'Password Information' }}
+                            <i class="fas fa-lock mr-2"></i>Password Setup <span class="text-danger">*</span>
                         </h6>
                         <i class="fas fa-chevron-down"></i>
                     </div>
                 </div>
-                <div id="passwordInfo" class="collapse {{ $mode === 'create' ? 'show' : '' }}">
+                <div id="passwordInfo" class="collapse show">
                     <div class="card-body">
-                        @if ($editing)
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle mr-2"></i>
-                                Leave password fields empty to keep the current password unchanged.
-                            </div>
-                        @endif
-                        <div class="form-row">
-                            <div class="form-group col-md-6">
-                                <label for="password">
-                                    Password
-                                    @if (!$editing)
-                                        <span class="text-danger">*</span>
-                                    @endif
-                                </label>
-                                <input type="password" class="form-control" id="password" wire:model="password"
-                                    placeholder="{{ $editing ? 'Enter new password' : 'Enter password' }}">
-                                @error('password')
-                                    <span class="error text-danger"><small>{{ $message }}</small></span>
-                                @enderror
-                            </div>
-                            <div class="form-group col-md-6">
-                                <label for="password_confirmation">
-                                    Confirm Password
-                                    @if (!$editing)
-                                        <span class="text-danger">*</span>
-                                    @endif
-                                </label>
-                                <input type="password" class="form-control" id="password_confirmation"
-                                    wire:model="password_confirmation" placeholder="Confirm password">
-                                @error('password_confirmation')
-                                    <span class="error text-danger"><small>{{ $message }}</small></span>
-                                @enderror
+                        <!-- Password Type Selection -->
+                        <div class="form-group">
+                            <label class="font-weight-bold">Password Setup Method</label>
+                            <div class="mt-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="password_type"
+                                        id="manual_password" wire:click="$set('use_default_password', false)"
+                                        {{ !$use_default_password ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="manual_password">
+                                        <i class="fas fa-keyboard mr-1"></i>Set Custom Password
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="password_type"
+                                        id="default_password" wire:click="$set('use_default_password', true)"
+                                        {{ $use_default_password ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="default_password">
+                                        <i class="fas fa-magic mr-1"></i>Generate Default Password
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                        @if (!$editing)
-                            <small class="form-text text-muted">Password must be at least 8 characters long.</small>
+
+                        @if (!$use_default_password)
+                            {{-- Manual Password Entry --}}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="password">Custom Password <span
+                                                class="text-danger">*</span></label>
+                                        <input type="password" class="form-control" id="password"
+                                            wire:model="password" placeholder="Enter custom password">
+                                        @error('password')
+                                            <span class="error text-danger"><small>{{ $message }}</small></span>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="password_confirmation">Confirm Password <span
+                                                class="text-danger">*</span></label>
+                                        <input type="password" class="form-control" id="password_confirmation"
+                                            wire:model="password_confirmation" placeholder="Confirm password">
+                                        @error('password_confirmation')
+                                            <span class="error text-danger"><small>{{ $message }}</small></span>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Password must be at least 8 characters long and contain a mix of letters, numbers, and
+                                symbols.
+                            </small>
+                        @else
+                            {{-- Default Password Info --}}
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-magic mr-2 mt-1"></i>
+                                    <div>
+                                        <strong>Default Password Generation</strong>
+                                        <p class="mb-2">A secure default password will be automatically generated for
+                                            this operator.</p>
+                                        <ul class="mb-2 small">
+                                            <li>Password format: <code>Operator@[Year][RandomNumber]</code></li>
+                                            <li>Example: <code>Operator@2025123</code></li>
+                                            <li>Login credentials will be sent via SMS and email</li>
+                                            <li>Operator can change password after first login</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
                         @endif
+
+                        {{-- Notification Info --}}
+                        <div class="mt-3 p-3 bg-light rounded">
+                            <h6 class="mb-2">
+                                <i class="fas fa-paper-plane mr-2"></i>Automatic Notifications
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-sms text-primary mr-2"></i>
+                                        <small><strong>SMS Message</strong> to operator's phone number</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-envelope text-success mr-2"></i>
+                                        <small><strong>Email Message</strong> to operator's email address</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                Both messages will contain web app login (email + password) and mobile app login (phone
+                                + password) credentials.
+                            </small>
+                        </div>
                     </div>
                 </div>
+            </div>
+        @else
+            {{-- EXISTING OPERATOR: Optional password change section --}}
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-lock mr-2"></i>Password Management
+                        </h6>
+                        <div class="btn-group btn-group-sm" role="group">
+                            @if (!$show_password)
+                                <button type="button" class="btn btn-outline-primary"
+                                    wire:click="togglePasswordChange">
+                                    <i class="fas fa-edit mr-1"></i>Change Password
+                                </button>
+                            @endif
+                            {{-- <button type="button" class="btn btn-outline-warning" wire:click="forcePasswordReset">
+                                <i class="fas fa-refresh mr-1"></i>Reset Password
+                            </button>
+                            <button type="button" class="btn btn-outline-info" wire:click="resendCredentials">
+                                <i class="fas fa-paper-plane mr-1"></i>Resend Credentials
+                            </button> --}}
+                        </div>
+                    </div>
+                </div>
+
+                @if ($show_password)
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Changing the password will automatically send new login credentials to the operator via SMS
+                            and email.
+                        </div>
+
+                        <!-- Password Type Selection for existing operator -->
+                        <div class="form-group">
+                            <label class="font-weight-bold">Password Change Method</label>
+                            <div class="mt-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="existing_password_type"
+                                        wire:click="$set('use_default_password', false)"
+                                        {{ !$use_default_password ? 'checked' : '' }}>
+                                    <label class="form-check-label">
+                                        <i class="fas fa-keyboard mr-1"></i>Set Custom Password
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="existing_password_type"
+                                        wire:click="$set('use_default_password', true)"
+                                        {{ $use_default_password ? 'checked' : '' }}>
+                                    <label class="form-check-label">
+                                        <i class="fas fa-magic mr-1"></i>Generate New Default Password
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!$use_default_password)
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="password">New Password <span class="text-danger">*</span></label>
+                                        <input type="password" class="form-control" id="password"
+                                            wire:model="password" placeholder="Enter new password">
+                                        @error('password')
+                                            <span class="error text-danger"><small>{{ $message }}</small></span>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="password_confirmation">Confirm New Password <span
+                                                class="text-danger">*</span></label>
+                                        <input type="password" class="form-control" id="password_confirmation"
+                                            wire:model="password_confirmation" placeholder="Confirm new password">
+                                        @error('password_confirmation')
+                                            <span class="error text-danger"><small>{{ $message }}</small></span>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="alert alert-success">
+                                <i class="fas fa-magic mr-2"></i>
+                                A new secure default password will be generated and sent to the operator.
+                            </div>
+                        @endif
+
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-secondary mr-2" wire:click="togglePasswordChange">
+                                <i class="fas fa-times mr-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                @else
+                    <div class="card-body">
+                        <div class="text-muted">
+                            <i class="fas fa-shield-alt mr-2"></i>
+                            Password management options are available above. Current password remains unchanged unless
+                            modified.
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
 
@@ -204,7 +367,7 @@
             </div>
         @endif
 
-        <!-- Location Assignment - MODIFIED FOR SINGLE DISTRICT -->
+        <!-- Location Assignment -->
         <div class="card mb-3">
             <div class="card-header bg-light" style="cursor: pointer;" data-toggle="collapse"
                 data-target="#locationInfo" aria-expanded="false" aria-controls="locationInfo">
@@ -231,7 +394,7 @@
                         @enderror
                     </div>
 
-                    <!-- District Selection - CHANGED TO SINGLE SELECT WITH BACKWARD COMPATIBILITY INFO -->
+                    <!-- District Selection -->
                     @if ($selected_region && $districts->count() > 0)
                         <div class="form-group mt-4">
                             <label for="selected_district">Assigned District <span
@@ -307,7 +470,7 @@
                     <i class="fas fa-times mr-2"></i>Cancel
                 </button>
                 <button type="submit" class="btn btn-custom">
-                    <i class="fas fa-save mr-2"></i>{{ $action_text }}
+                    <i class="fas fa-save mr-2"></i>{{ $action_text }} & Send Credentials
                 </button>
             </div>
         @else
@@ -316,10 +479,16 @@
                     <small class="text-muted">
                         <i class="fas fa-info-circle mr-1"></i>
                         Changes will be saved when you click Update
+                        @if ($show_password)
+                            <br><strong>Note:</strong> Password change will trigger credential notifications
+                        @endif
                     </small>
                 </div>
                 <button type="submit" class="btn btn-custom">
                     <i class="fas fa-save mr-2"></i>{{ $action_text }}
+                    @if ($show_password && $password_changed)
+                        & Send New Credentials
+                    @endif
                 </button>
             </div>
         @endif

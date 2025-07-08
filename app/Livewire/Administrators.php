@@ -4,13 +4,14 @@ namespace App\Livewire;
 
 use App\Models\User;
 use App\Traits\HasAlerts;
+use App\Traits\HasUserNotifications;
 use Livewire\Component;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Auth;
 
 class Administrators extends Component
 {
-    use LocationTrait, HasAlerts;
+    use LocationTrait, HasAlerts, HasUserNotifications;
 
     public $districts;
     public $district;
@@ -104,9 +105,13 @@ class Administrators extends Component
             'district' => 'required|exists:districts,id',
         ]);
 
+        // Default password for new users
+        $defaultPassword = 'Fundi@2025';
+        $isNewUser = !$this->admin_id;
+
         // Use the handleOperationWithFlash method for cleaner code
         $result = $this->handleOperationWithFlash(
-            function () {
+            function () use ($defaultPassword, $isNewUser) {
                 $admin = User::updateOrCreate(
                     ['id' => $this->admin_id],
                     [
@@ -118,12 +123,18 @@ class Administrators extends Component
                         'role_id' => $this->role,
                         'status' => 'active',
                         // 'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
-                        'password' => bcrypt('Fundi@2025'),
+                        'password' => bcrypt($isNewUser ? $defaultPassword : $this->admin->password), // Use default password for new users
                     ]
                 );
 
                 if ($admin) {
                     $admin->districts()->sync([$this->district]);
+
+                    // Send login credentials if this is a new user
+                    if ($isNewUser) {
+                        $this->sendNotificationWithFeedback($admin, $defaultPassword, 'login_credentials');
+                    }
+
                     return true;
                 }
                 return false;
@@ -170,15 +181,15 @@ class Administrators extends Component
     {
         // Remove all non-digit characters
         $digitsOnly = preg_replace('/\D/', '', $phoneNumber);
-        
+
         // Check if we have at least 9 digits
         if (strlen($digitsOnly) < 9) {
             return null; // or throw an exception
         }
-        
+
         // Take the last 9 digits
         $lastNineDigits = substr($digitsOnly, -9);
-        
+
         // Format with +255 prefix
         return '+255' . $lastNineDigits;
     }

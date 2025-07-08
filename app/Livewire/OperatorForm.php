@@ -9,12 +9,13 @@ use Livewire\Component;
 use App\Models\District;
 use Livewire\WithFileUploads;
 use App\Traits\HasImageUpload;
+use App\Traits\HasUserNotifications; // ADD NOTIFICATION TRAIT
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 
 class OperatorForm extends Component
 {
-    use WithFileUploads, HasImageUpload;
+    use WithFileUploads, HasImageUpload, HasUserNotifications; // ADD NOTIFICATION TRAIT
 
     // Operator form properties
     public $operator_id = null;
@@ -34,9 +35,9 @@ class OperatorForm extends Component
     public $existing_photo_public_id = null;
     public $remove_photo = false;
 
-    // Region and District assignment - CHANGED: Single district instead of multiple
+    // Region and District assignment
     public $selected_region = null;
-    public $selected_district = null; // CHANGED: Single district ID
+    public $selected_district = null;
     public $available_districts = [];
 
     // UI state properties
@@ -44,6 +45,10 @@ class OperatorForm extends Component
     public $editing = false;
     public $mode = 'create'; // 'create' or 'edit'
     public $show_password = false;
+
+    // NEW: Password management properties
+    public $use_default_password = false;
+    public $password_changed = false;
 
     // Available roles and districts
     public $roles = [];
@@ -87,7 +92,7 @@ class OperatorForm extends Component
         $this->role_id = $operator->role_id;
         $this->status = $operator->status ?: 'active';
 
-        // Load assigned districts and determine region - BACKWARD COMPATIBLE
+        // Load assigned districts and determine region
         $assignedDistricts = $operator->districts;
         if ($assignedDistricts->count() > 0) {
             $firstDistrict = $assignedDistricts->first();
@@ -104,7 +109,7 @@ class OperatorForm extends Component
             }
         }
 
-        // Handle existing photo with Cloudinary
+        // Handle existing photo
         if ($operator->profile_photo_url && $operator->profile_photo_public_id) {
             $this->existing_photo_url = $operator->profile_photo_url;
             $this->existing_photo_public_id = $operator->profile_photo_public_id;
@@ -116,7 +121,9 @@ class OperatorForm extends Component
 
         $this->action_text = 'Update';
         $this->editing = true;
-        $this->show_password = false; // Don't show password fields when editing
+        $this->show_password = false; // Don't show password fields when editing initially
+        $this->use_default_password = false;
+        $this->password_changed = false;
     }
 
     /**
@@ -158,13 +165,13 @@ class OperatorForm extends Component
     }
 
     /**
-     * Load districts based on selected region - CHANGED: Clear single district
+     * Load districts based on selected region
      */
     public function loadDistrictsByRegion()
     {
         if (!$this->selected_region) {
             $this->districts = collect();
-            $this->selected_district = null; // CHANGED: Clear single district
+            $this->selected_district = null;
             return;
         }
 
@@ -199,7 +206,49 @@ class OperatorForm extends Component
         $this->loadDistrictsByRegion();
     }
 
-    // CHANGE 2: Add a computed property to show warning about multiple districts
+    /**
+     * NEW: Generate secure default password
+     */
+    private function generateDefaultPassword()
+    {
+        return 'Operator@' . date('Y') . rand(100, 999);
+    }
+
+    /**
+     * NEW: Toggle between manual and default password
+     */
+    public function toggleDefaultPassword()
+    {
+        $this->use_default_password = !$this->use_default_password;
+
+        if ($this->use_default_password) {
+            // Clear manual password fields when using default
+            $this->password = '';
+            $this->password_confirmation = '';
+        }
+
+        // Reset validation errors
+        $this->resetErrorBag(['password', 'password_confirmation']);
+    }
+
+    /**
+     * NEW: Show/hide password change section for existing operators
+     */
+    public function togglePasswordChange()
+    {
+        $this->show_password = !$this->show_password;
+        $this->password_changed = $this->show_password;
+
+        if (!$this->show_password) {
+            // Clear password fields when hiding
+            $this->password = '';
+            $this->password_confirmation = '';
+            $this->use_default_password = false;
+            $this->resetErrorBag(['password', 'password_confirmation']);
+        }
+    }
+
+    // Computed properties
     public function getHasMultipleDistrictsProperty()
     {
         if ($this->operator && $this->editing) {
@@ -208,7 +257,6 @@ class OperatorForm extends Component
         return false;
     }
 
-    // CHANGE 3: Add method to get all current districts for display
     public function getCurrentDistrictsProperty()
     {
         if ($this->operator && $this->editing) {
@@ -243,19 +291,22 @@ class OperatorForm extends Component
             'password',
             'password_confirmation',
             'selected_region',
-            'selected_district', // CHANGED: Single district
+            'selected_district',
             'editing',
             'existing_photo_url',
             'existing_photo_public_id',
             'remove_photo',
-            'show_password'
+            'show_password',
+            'use_default_password',
+            'password_changed'
         ]);
 
-        // Set default values
+        // Set default values for new operators
         $this->action_text = 'Create';
         $this->status = 'active';
-        $this->show_password = true; // Show password fields for new operators
-        $this->selected_district = null; // CHANGED: Single district
+        $this->show_password = true; // Always show password section for new operators
+        $this->use_default_password = false; // Start with manual password entry
+        $this->selected_district = null;
     }
 
     /**
@@ -264,7 +315,6 @@ class OperatorForm extends Component
     public function loadOperator($operatorId)
     {
         $operator = User::findOrFail($operatorId);
-
         $this->resetForm();
         $this->loadOperatorData($operator);
     }
@@ -290,10 +340,11 @@ class OperatorForm extends Component
     }
 
     /**
-     * Create or update an operator
+     * ENHANCED: Create or update an operator with notification support
      */
     public function createOrUpdateOperator()
     {
+        // Basic validation rules
         $rules = [
             'fname' => 'required|string|max:255',
             'mname' => 'nullable|string|max:255',
@@ -303,21 +354,53 @@ class OperatorForm extends Component
             'role_id' => 'required|exists:roles,id',
             'status' => 'required|in:active,inactive,pending',
             'selected_region' => 'required|exists:regions,id',
-            'selected_district' => 'required|exists:districts,id', // CHANGED: Single district validation
+            'selected_district' => 'required|exists:districts,id',
         ];
 
-        // Add image validation rules
-        $rules['profile_photo'] = $this->getImageValidationRules(false, ['max:5120']); // 5MB max
+        // Add image validation
+        $rules['profile_photo'] = $this->getImageValidationRules(false, ['max:5120']);
 
-        // Add password rules for new operators or when updating password
-        if (!$this->editing || ($this->editing && !empty($this->password))) {
-            $rules['password'] = 'required|string|min:8|confirmed';
-            $rules['password_confirmation'] = 'required';
+        // ENHANCED PASSWORD LOGIC
+        $isNewOperator = !$this->editing;
+        $willSendNotifications = false;
+        $passwordForNotification = null;
+
+        if ($isNewOperator) {
+            // NEW OPERATOR: Always require password (manual or default)
+            if (!$this->use_default_password) {
+                // Manual password - validate it
+                $rules['password'] = 'required|string|min:8|confirmed';
+                $rules['password_confirmation'] = 'required';
+                $passwordForNotification = $this->password;
+            } else {
+                // Use default password - generate it
+                $passwordForNotification = $this->generateDefaultPassword();
+                $this->password = $passwordForNotification;
+                $this->password_confirmation = $passwordForNotification;
+            }
+            $willSendNotifications = true;
+        } else {
+            // EXISTING OPERATOR: Only if password change is requested
+            if ($this->show_password && $this->password_changed) {
+                if (!$this->use_default_password) {
+                    // Manual password change
+                    $rules['password'] = 'required|string|min:8|confirmed';
+                    $rules['password_confirmation'] = 'required';
+                    $passwordForNotification = $this->password;
+                } else {
+                    // Generate new default password
+                    $passwordForNotification = $this->generateDefaultPassword();
+                    $this->password = $passwordForNotification;
+                    $this->password_confirmation = $passwordForNotification;
+                }
+                $willSendNotifications = true;
+            }
         }
 
+        // Validate all rules
         $this->validate($rules);
 
-        // Handle profile photo upload using the trait
+        // Handle profile photo upload
         $imageData = null;
         if ($this->profile_photo) {
             $imageData = $this->handleImageUpload(
@@ -353,7 +436,7 @@ class OperatorForm extends Component
             $data['profile_photo_public_id'] = $imageData['public_id'];
         }
 
-        // Add password if provided
+        // Add password if provided or generated
         if (!empty($this->password)) {
             $data['password'] = Hash::make($this->password);
         }
@@ -365,26 +448,58 @@ class OperatorForm extends Component
         );
 
         if ($operator) {
-            // Sync single district - CHANGED: Sync single district instead of array
+            // Sync district
             $operator->districts()->sync([$this->selected_district]);
 
-            // Show success message
+            // SEND NOTIFICATIONS
+            if ($willSendNotifications && $passwordForNotification) {
+                // Load relationships for notification
+                $operator->load('role', 'districts');
+
+                if ($isNewOperator) {
+                    // Send welcome credentials
+                    $notificationSent = $this->sendNotificationWithFeedback(
+                        $operator,
+                        $passwordForNotification,
+                        'login_credentials'
+                    );
+
+                    Log::info("New operator created: {$operator->id} - {$operator->email} - Credentials sent: " . ($notificationSent ? 'Yes' : 'No'));
+                } else {
+                    // Send password reset notification
+                    $notificationSent = $this->sendNotificationWithFeedback(
+                        $operator,
+                        $passwordForNotification,
+                        'password_reset'
+                    );
+
+                    Log::info("Password updated for operator: {$operator->id} - {$operator->email} - Notification sent: " . ($notificationSent ? 'Yes' : 'No'));
+                }
+            }
+
+            // Success message
+            $message = 'Operator ' . ($this->editing ? 'updated' : 'created') . ' successfully.';
+            if ($willSendNotifications) {
+                $passwordType = $this->use_default_password ? 'default' : 'custom';
+                $message .= " Login credentials ({$passwordType} password) have been sent via SMS and email.";
+            }
+
             session()->flash('saved', [
                 'title' => 'Success',
-                'text' => 'Operator ' . ($this->editing ? 'updated' : 'created') . ' successfully.',
+                'text' => $message,
             ]);
 
-            // Handle different modes differently
+            // Handle different modes
             if ($this->mode === 'create') {
-                // Reset form after saving for create mode
                 $this->resetForm();
                 $this->loadRoles();
                 $this->loadRegions();
-                // Redirect to operators list page
                 return redirect('/operators');
             } else {
-                // For edit mode, reload the operator data
                 $this->loadOperatorData($operator);
+                $this->password_changed = false;
+                $this->show_password = false;
+                $this->use_default_password = false;
             }
         } else {
             session()->flash('saved', [
@@ -392,6 +507,68 @@ class OperatorForm extends Component
                 'text' => 'Failed to ' . ($this->editing ? 'update' : 'create') . ' operator.',
             ]);
         }
+    }
+
+    /**
+     * NEW: Force password reset for existing operator
+     */
+    public function forcePasswordReset()
+    {
+        if (!$this->operator_id) {
+            session()->flash('error', 'No operator selected.');
+            return;
+        }
+
+        $operator = User::with('role', 'districts')->find($this->operator_id);
+
+        if (!$operator) {
+            session()->flash('error', 'Operator not found.');
+            return;
+        }
+
+        // Generate new password
+        $newPassword = $this->generateDefaultPassword();
+
+        // Update password in database
+        $operator->update(['password' => Hash::make($newPassword)]);
+
+        // Send notification
+        $this->sendNotificationWithFeedback($operator, $newPassword, 'password_reset');
+
+        session()->flash('message', 'Password has been reset and sent to the operator.');
+
+        Log::info("Forced password reset for operator: {$operator->id} - {$operator->email}");
+    }
+
+    /**
+     * NEW: Resend login credentials
+     */
+    public function resendCredentials()
+    {
+        if (!$this->operator_id) {
+            session()->flash('error', 'No operator selected.');
+            return;
+        }
+
+        $operator = User::with('role', 'districts')->find($this->operator_id);
+
+        if (!$operator) {
+            session()->flash('error', 'Operator not found.');
+            return;
+        }
+
+        // Generate new password for security
+        $newPassword = $this->generateDefaultPassword();
+
+        // Update password
+        $operator->update(['password' => Hash::make($newPassword)]);
+
+        // Send credentials
+        $this->sendNotificationWithFeedback($operator, $newPassword, 'login_credentials');
+
+        session()->flash('message', 'New credentials generated and sent to the operator.');
+
+        Log::info("Credentials resent for operator: {$operator->id} - {$operator->email}");
     }
 
     public function render()
