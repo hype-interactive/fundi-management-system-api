@@ -199,11 +199,11 @@
             .header h1 {
                 font-size: 2rem;
             }
-            
+
             .container {
                 padding: 15px;
             }
-            
+
             .download-section, .step-card, .tips-section {
                 padding: 25px;
             }
@@ -227,7 +227,7 @@
                 </svg>
                 Download APK (Latest Version)
             </a>
-            <p>Alternative link: <a href="https://we.tl/t-AdpdQnunIO">Download APK (Latest Version)</a></p>
+            <p>Alternative link: <a href="https://we.tl/t-4q3AiNZB7h">Download APK (Latest Version)</a></p>
 
             <div class="warning">
                 <span class="warning-icon">⚠️</span>
@@ -249,7 +249,7 @@
                         <li>Tap the file and follow the installation prompts</li>
                         <li>Once installed, find the app icon and open it</li>
                     </ol>
-                    
+
                     <div class="feature-highlight">
                         <strong>Note:</strong> The app requires Android 6.0 or higher to run properly.
                     </div>
@@ -267,7 +267,7 @@
                         <li>Tap "Login" to access the system</li>
                         <li>If you forgot your password, use "Forgot Password?" link</li>
                     </ol>
-                    
+
                     <div class="feature-highlight">
                         <strong>Credentials:</strong> Your administrator will provide your login credentials. Contact them if you don't have access details.
                     </div>
@@ -285,7 +285,7 @@
                         <li><strong>Sites:</strong> Track site visits and activities</li>
                         <li><strong>Profile:</strong> Manage your account settings</li>
                     </ol>
-                    
+
                     <div class="feature-highlight">
                         <strong>Tip:</strong> Use the "+" button to quickly add new workers or site visits.
                     </div>
@@ -296,7 +296,7 @@
         <div class="tips-section">
             <h2 style="color: #3D4ED8; margin-bottom: 10px;">How to Use the App</h2>
             <p style="color: #666; margin-bottom: 30px;">Master these three essential features to get the most out of the Fundi Management App</p>
-            
+
             <div class="tips-grid">
                 <div class="tip-card">
                     <div class="tip-title">1. Login to the App</div>
