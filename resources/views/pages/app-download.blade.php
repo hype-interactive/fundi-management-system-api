@@ -227,6 +227,7 @@
                 </svg>
                 Download APK (Latest Version)
             </a>
+            <p>Alternative link: <a href="https://we.tl/t-AdpdQnunIO">Download APK (Latest Version)</a></p>
 
             <div class="warning">
                 <span class="warning-icon">⚠️</span>
