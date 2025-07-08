@@ -9,13 +9,13 @@ use Livewire\Component;
 use App\Models\District;
 use Livewire\WithFileUploads;
 use App\Traits\HasImageUpload;
-use App\Traits\HasUserNotifications; // ADD NOTIFICATION TRAIT
+use App\Traits\HasUserNotifications;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 
 class OperatorForm extends Component
 {
-    use WithFileUploads, HasImageUpload, HasUserNotifications; // ADD NOTIFICATION TRAIT
+    use WithFileUploads, HasImageUpload, HasUserNotifications;
 
     // Operator form properties
     public $operator_id = null;
@@ -46,7 +46,7 @@ class OperatorForm extends Component
     public $mode = 'create'; // 'create' or 'edit'
     public $show_password = false;
 
-    // NEW: Password management properties
+    // Password management properties
     public $use_default_password = false;
     public $password_changed = false;
 
@@ -79,6 +79,53 @@ class OperatorForm extends Component
     }
 
     /**
+     * Format Tanzanian phone number to +255xxxxxxxxx format
+     */
+    public static function formatTanzanianNumber($phoneNumber)
+    {
+        // Remove all non-digit characters
+        $digitsOnly = preg_replace('/\D/', '', $phoneNumber);
+
+        // Check if we have at least 9 digits
+        if (strlen($digitsOnly) < 9) {
+            return null; // or throw an exception
+        }
+
+        // Take the last 9 digits
+        $lastNineDigits = substr($digitsOnly, -9);
+
+        // Format with +255 prefix
+        return '+255' . $lastNineDigits;
+    }
+
+    /**
+     * Extract display number from full Tanzanian format for UI
+     */
+    public static function extractDisplayNumber($phoneNumber)
+    {
+        if (empty($phoneNumber)) {
+            return '';
+        }
+
+        // If it starts with +255, remove it for display
+        if (str_starts_with($phoneNumber, '+255')) {
+            return substr($phoneNumber, 4);
+        }
+
+        // If it starts with 255, remove it for display
+        if (str_starts_with($phoneNumber, '255')) {
+            return substr($phoneNumber, 3);
+        }
+
+        // If it starts with 0, remove it for display
+        if (str_starts_with($phoneNumber, '0')) {
+            return substr($phoneNumber, 1);
+        }
+
+        return $phoneNumber;
+    }
+
+    /**
      * Load operator data for editing
      */
     public function loadOperatorData($operator)
@@ -88,7 +135,10 @@ class OperatorForm extends Component
         $this->mname = $operator->mname;
         $this->lname = $operator->lname;
         $this->email = $operator->email;
-        $this->phone = $operator->phone;
+
+        // PHONE FORMAT: Extract display number from database format
+        $this->phone = self::extractDisplayNumber($operator->phone);
+
         $this->role_id = $operator->role_id;
         $this->status = $operator->status ?: 'active';
 
@@ -207,7 +257,25 @@ class OperatorForm extends Component
     }
 
     /**
-     * NEW: Generate secure default password
+     * NEW: Real-time phone number validation as user types
+     */
+    public function updatedPhone($value)
+    {
+        // Clean and validate phone number in real-time
+        if (!empty($value)) {
+            // Remove any non-digit characters for validation
+            $digitsOnly = preg_replace('/\D/', '', $value);
+
+            // Check if length is reasonable (7-12 digits)
+            if (strlen($digitsOnly) > 12) {
+                // Trim to last 12 digits if too long
+                $this->phone = substr($digitsOnly, -12);
+            }
+        }
+    }
+
+    /**
+     * Generate secure default password
      */
     private function generateDefaultPassword()
     {
@@ -215,7 +283,7 @@ class OperatorForm extends Component
     }
 
     /**
-     * NEW: Toggle between manual and default password
+     * Toggle between manual and default password
      */
     public function toggleDefaultPassword()
     {
@@ -232,7 +300,7 @@ class OperatorForm extends Component
     }
 
     /**
-     * NEW: Show/hide password change section for existing operators
+     * Show/hide password change section for existing operators
      */
     public function togglePasswordChange()
     {
@@ -266,14 +334,6 @@ class OperatorForm extends Component
     }
 
     /**
-     * Toggle password visibility
-     */
-    public function togglePasswordVisibility()
-    {
-        $this->show_password = !$this->show_password;
-    }
-
-    /**
      * Reset the form to default values
      */
     public function resetForm()
@@ -301,11 +361,10 @@ class OperatorForm extends Component
             'password_changed'
         ]);
 
-        // Set default values for new operators
         $this->action_text = 'Create';
         $this->status = 'active';
-        $this->show_password = true; // Always show password section for new operators
-        $this->use_default_password = false; // Start with manual password entry
+        $this->show_password = true;
+        $this->use_default_password = false;
         $this->selected_district = null;
     }
 
@@ -340,17 +399,42 @@ class OperatorForm extends Component
     }
 
     /**
-     * ENHANCED: Create or update an operator with notification support
+     * ENHANCED: Create or update an operator with phone formatting and notifications
      */
     public function createOrUpdateOperator()
     {
-        // Basic validation rules
+        // PHONE VALIDATION: Add custom phone validation
         $rules = [
             'fname' => 'required|string|max:255',
             'mname' => 'nullable|string|max:255',
             'lname' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $this->operator_id,
-            'phone' => 'required|string|max:20|unique:users,phone,' . $this->operator_id,
+            'phone' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    // Custom phone validation
+                    $digitsOnly = preg_replace('/\D/', '', $value);
+
+                    if (strlen($digitsOnly) < 9) {
+                        $fail('Phone number must be at least 9 digits long.');
+                    }
+
+                    if (strlen($digitsOnly) > 12) {
+                        $fail('Phone number cannot be more than 12 digits long.');
+                    }
+
+                    // Check uniqueness of formatted phone
+                    $formattedPhone = self::formatTanzanianNumber($value);
+                    $existingUser = User::where('phone', $formattedPhone)
+                        ->where('id', '!=', $this->operator_id)
+                        ->first();
+
+                    if ($existingUser) {
+                        $fail('This phone number is already registered.');
+                    }
+                }
+            ],
             'role_id' => 'required|exists:roles,id',
             'status' => 'required|in:active,inactive,pending',
             'selected_region' => 'required|exists:regions,id',
@@ -360,7 +444,7 @@ class OperatorForm extends Component
         // Add image validation
         $rules['profile_photo'] = $this->getImageValidationRules(false, ['max:5120']);
 
-        // ENHANCED PASSWORD LOGIC
+        // Password logic
         $isNewOperator = !$this->editing;
         $willSendNotifications = false;
         $passwordForNotification = null;
@@ -419,13 +503,21 @@ class OperatorForm extends Component
             $imageData = ['url' => null, 'public_id' => null];
         }
 
+        // PHONE FORMATTING: Format phone number before saving
+        $formattedPhone = self::formatTanzanianNumber($this->phone);
+
+        if (!$formattedPhone) {
+            session()->flash('error', 'Invalid phone number format.');
+            return;
+        }
+
         // Prepare data for create/update
         $data = [
             'fname' => $this->fname,
             'mname' => $this->mname,
             'lname' => $this->lname,
             'email' => $this->email,
-            'phone' => $this->phone,
+            'phone' => $formattedPhone, // SAVE FORMATTED PHONE NUMBER
             'role_id' => $this->role_id,
             'status' => $this->status,
         ];
@@ -453,27 +545,24 @@ class OperatorForm extends Component
 
             // SEND NOTIFICATIONS
             if ($willSendNotifications && $passwordForNotification) {
-                // Load relationships for notification
                 $operator->load('role', 'districts');
 
                 if ($isNewOperator) {
-                    // Send welcome credentials
                     $notificationSent = $this->sendNotificationWithFeedback(
                         $operator,
                         $passwordForNotification,
                         'login_credentials'
                     );
 
-                    Log::info("New operator created: {$operator->id} - {$operator->email} - Credentials sent: " . ($notificationSent ? 'Yes' : 'No'));
+                    Log::info("New operator created: {$operator->id} - {$operator->email} - Phone: {$formattedPhone} - Credentials sent: " . ($notificationSent ? 'Yes' : 'No'));
                 } else {
-                    // Send password reset notification
                     $notificationSent = $this->sendNotificationWithFeedback(
                         $operator,
                         $passwordForNotification,
                         'password_reset'
                     );
 
-                    Log::info("Password updated for operator: {$operator->id} - {$operator->email} - Notification sent: " . ($notificationSent ? 'Yes' : 'No'));
+                    Log::info("Password updated for operator: {$operator->id} - {$operator->email} - Phone: {$formattedPhone} - Notification sent: " . ($notificationSent ? 'Yes' : 'No'));
                 }
             }
 
@@ -481,7 +570,7 @@ class OperatorForm extends Component
             $message = 'Operator ' . ($this->editing ? 'updated' : 'created') . ' successfully.';
             if ($willSendNotifications) {
                 $passwordType = $this->use_default_password ? 'default' : 'custom';
-                $message .= " Login credentials ({$passwordType} password) have been sent via SMS and email.";
+                $message .= " Login credentials ({$passwordType} password) have been sent to {$formattedPhone} and {$operator->email}.";
             }
 
             session()->flash('saved', [
@@ -510,7 +599,7 @@ class OperatorForm extends Component
     }
 
     /**
-     * NEW: Force password reset for existing operator
+     * Force password reset for existing operator
      */
     public function forcePasswordReset()
     {
@@ -526,22 +615,17 @@ class OperatorForm extends Component
             return;
         }
 
-        // Generate new password
         $newPassword = $this->generateDefaultPassword();
-
-        // Update password in database
         $operator->update(['password' => Hash::make($newPassword)]);
-
-        // Send notification
         $this->sendNotificationWithFeedback($operator, $newPassword, 'password_reset');
 
-        session()->flash('message', 'Password has been reset and sent to the operator.');
+        session()->flash('message', "Password reset and sent to {$operator->phone} and {$operator->email}.");
 
-        Log::info("Forced password reset for operator: {$operator->id} - {$operator->email}");
+        Log::info("Forced password reset for operator: {$operator->id} - {$operator->email} - Phone: {$operator->phone}");
     }
 
     /**
-     * NEW: Resend login credentials
+     * Resend login credentials
      */
     public function resendCredentials()
     {
@@ -557,18 +641,13 @@ class OperatorForm extends Component
             return;
         }
 
-        // Generate new password for security
         $newPassword = $this->generateDefaultPassword();
-
-        // Update password
         $operator->update(['password' => Hash::make($newPassword)]);
-
-        // Send credentials
         $this->sendNotificationWithFeedback($operator, $newPassword, 'login_credentials');
 
-        session()->flash('message', 'New credentials generated and sent to the operator.');
+        session()->flash('message', "New credentials generated and sent to {$operator->phone} and {$operator->email}.");
 
-        Log::info("Credentials resent for operator: {$operator->id} - {$operator->email}");
+        Log::info("Credentials resent for operator: {$operator->id} - {$operator->email} - Phone: {$operator->phone}");
     }
 
     public function render()

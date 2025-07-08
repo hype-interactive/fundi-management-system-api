@@ -8,14 +8,27 @@ use Illuminate\Support\Facades\Log;
 
 trait HasUserNotifications
 {
-    protected UserNotificationService $userNotificationService;
+    protected ?UserNotificationService $userNotificationService = null;
 
     /**
-     * Initialize the notification service
+     * Initialize the notification service using Livewire's boot method
      */
-    public function bootUserNotifications(UserNotificationService $userNotificationService)
+    public function bootHasUserNotifications()
     {
-        $this->userNotificationService = $userNotificationService;
+        // This will be called automatically by Livewire
+        $this->userNotificationService = app(UserNotificationService::class);
+    }
+
+    /**
+     * Get the notification service instance
+     */
+    protected function getUserNotificationService(): UserNotificationService
+    {
+        if ($this->userNotificationService === null) {
+            $this->userNotificationService = app(UserNotificationService::class);
+        }
+
+        return $this->userNotificationService;
     }
 
     /**
@@ -78,7 +91,6 @@ trait HasUserNotifications
 
             // Return true if at least one method succeeded
             return ($results['sms']['success'] ?? false) || ($results['email']['success'] ?? false);
-
         } catch (\Exception $e) {
             Log::error("Failed to send {$type} notification to user {$user->id}: " . $e->getMessage());
             session()->flash('error', "Failed to send {$type} notification due to system error.");
