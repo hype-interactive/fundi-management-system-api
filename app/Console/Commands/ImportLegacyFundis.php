@@ -18,21 +18,23 @@ class ImportLegacyFundis extends Command
      * The name and signature of the console command.
      */
     protected $signature = 'import:legacy-fundis
-                            {file : Path to the CSV file}
-                            {--chunk=1000 : Number of records to process at once}
-                            {--auto-match : Run automatic matching after import}
-                            {--confidence=90 : Confidence threshold for auto-matching (70-100)}
-                            {--validate-only : Only validate data without importing}
-                            {--dry-run : Show what would be done without making changes}
-                            {--force : Skip confirmation prompts}
-                            {--clean-duplicates : Remove duplicates after import}
-                            {--skip-empty-columns : Skip columns with empty headers}
-                            {--show-headers : Display all headers for debugging}';
+                        {file : Path to the CSV file}
+                        {--chunk=1000 : Number of records to process at once}
+                        {--auto-match : Run automatic matching after import}
+                        {--confidence=90 : Confidence threshold for auto-matching (70-100)}
+                        {--validate-only : Only validate data without importing}
+                        {--dry-run : Show what would be done without making changes}
+                        {--force : Skip confirmation prompts}
+                        {--clean-duplicates : Remove duplicates after import}
+                        {--skip-empty-columns : Skip columns with empty headers}
+                        {--show-headers : Display all headers for debugging}
+                        {--debug-skips : Show detailed reasons why records are skipped}
+                        {--sample-skips=10 : Number of skipped record samples to show}';
 
     /**
      * The console command description.
      */
-    protected $description = 'Import legacy fundi data from CSV with intelligent matching';
+    protected $description = 'Import legacy fundi data from CSV with intelligent matching and detailed debugging';
 
     /**
      * Statistics tracking
@@ -46,6 +48,22 @@ class ImportLegacyFundis extends Command
         'matched' => 0,
         'potential_matches' => 0,
     ];
+
+    /**
+     * Detailed skip reasons tracking
+     */
+    private $skipReasons = [
+        'empty_name_and_phone' => 0,
+        'invalid_phone_format' => 0,
+        'empty_name_no_phone' => 0,
+        'processing_error' => 0,
+        'duplicate_phone' => 0,
+    ];
+
+    /**
+     * Sample skipped records for debugging
+     */
+    private $skippedSamples = [];
 
     private $columnMapping = [
         'identifier' => ['identifier', 'phone', 'primary_phone', 'contact', 'mobile', 'number'],
@@ -103,7 +121,6 @@ class ImportLegacyFundis extends Command
 
             $this->displayResults();
             return 0;
-
         } catch (Exception $e) {
             $this->error("\n❌ Import failed: " . $e->getMessage());
             Log::error('Legacy import failed', [
@@ -181,7 +198,6 @@ class ImportLegacyFundis extends Command
                     'useful_columns' => min(3, count($firstRow))
                 ];
             }
-
         } catch (Exception $e) {
             return ['success' => false, 'error' => 'Failed to analyze CSV: ' . $e->getMessage()];
         }
@@ -332,11 +348,26 @@ class ImportLegacyFundis extends Command
                 continue;
             }
 
-            // Find best match for each expected column
+            // EXACT MATCHES FIRST (highest priority)
+            if ($header === 'primary_phone' && $mapping['identifier'] === null) {
+                $mapping['identifier'] = $index;
+                continue;
+            }
+            if ($header === 'name' && $mapping['full_name'] === null) {
+                $mapping['full_name'] = $index;
+                continue;
+            }
+            if ($header === 'region' && $mapping['location'] === null) {
+                $mapping['location'] = $index;
+                continue;
+            }
+
+            // PARTIAL MATCHES (lower priority)
             foreach ($this->columnMapping as $expectedCol => $variations) {
                 if ($mapping[$expectedCol] === null) {
                     foreach ($variations as $variation) {
-                        if (str_contains($header, $variation)) {
+                        // Use exact match instead of contains for better precision
+                        if ($header === $variation) {
                             $mapping[$expectedCol] = $index;
                             break 2;
                         }
@@ -345,7 +376,18 @@ class ImportLegacyFundis extends Command
             }
         }
 
-        // If we couldn't map by name, use positional mapping for non-empty columns
+        // FALLBACK: If still no exact matches, try contains but with priority order
+        if ($mapping['identifier'] === null) {
+            foreach ($headers as $index => $header) {
+                $header = strtolower($header);
+                if (str_contains($header, 'primary_phone') || str_contains($header, 'phone')) {
+                    $mapping['identifier'] = $index;
+                    break;
+                }
+            }
+        }
+
+        // Standard fallback for other fields
         if ($mapping['identifier'] === null) {
             $usefulColumns = [];
             foreach ($headers as $index => $header) {
@@ -453,7 +495,7 @@ class ImportLegacyFundis extends Command
                     $sampleData[] = $row;
                 }
 
-                $this->table(['Identifier', 'Full Name', 'Location'], array_map(function($row) {
+                $this->table(['Identifier', 'Full Name', 'Location'], array_map(function ($row) {
                     return [$row['identifier'], $row['full_name'], $row['location']];
                 }, $sampleData));
             }
@@ -477,7 +519,6 @@ class ImportLegacyFundis extends Command
             $this->info("Dry run: " . ($this->option('dry-run') ? 'Yes' : 'No'));
 
             return $this->confirm('Do you want to proceed with the import?', true);
-
         } catch (Exception $e) {
             $this->error("❌ Error previewing CSV file: " . $e->getMessage());
             return false;
@@ -550,7 +591,7 @@ class ImportLegacyFundis extends Command
     /**
      * Import data into database
      */
-    private function importData(string $filePath): void
+    private function importData(string $filePath, array $csvAnalysis): void
     {
         $this->info('📥 Starting import process...');
 
@@ -576,11 +617,21 @@ class ImportLegacyFundis extends Command
             foreach ($csv->getRecords() as $record) {
                 $this->stats['total_rows']++;
 
-                $processedRecord = $this->processRecord($record, $this->stats['total_rows']);
+                $processedRecord = $this->processRecord($record, $this->stats['total_rows'], $csvAnalysis);
 
                 if ($processedRecord) {
                     if ($this->isDuplicate($processedRecord)) {
                         $this->stats['duplicates']++;
+                        $this->skipReasons['duplicate_phone']++;
+
+                        if ($this->option('debug-skips') && count($this->skippedSamples) < $this->option('sample-skips')) {
+                            $this->addSkippedSample(
+                                $record,
+                                $this->stats['total_rows'],
+                                'duplicate_phone',
+                                "Phone {$processedRecord['primary_phone']} already exists in database"
+                            );
+                        }
                     } else {
                         $records[] = $processedRecord;
                     }
@@ -608,6 +659,10 @@ class ImportLegacyFundis extends Command
 
             $progressBar->finish();
             $this->newLine();
+
+            if ($this->option('debug-skips')) {
+                $this->displaySkipAnalysis();
+            }
         } catch (Exception $e) {
             if (!$isDryRun) {
                 DB::rollBack();
@@ -617,23 +672,53 @@ class ImportLegacyFundis extends Command
     }
 
     /**
-     * Process a single CSV record
+     * Process a single CSV record with detailed skip tracking
      */
-    private function processRecord(array $record, int $rowNumber): ?array
+    private function processRecord(array $record, int $rowNumber, array $csvAnalysis): ?array
     {
+        $debugSkips = $this->option('debug-skips');
+        $sampleLimit = (int) $this->option('sample-skips');
+
         try {
             // Extract data from CSV (supporting both associative and indexed arrays)
-            $identifier = $record['identifier'] ?? $record[0] ?? '';
-            $fullName = $record['full_name'] ?? $record[1] ?? '';
-            $location = $record['location'] ?? $record[2] ?? '';
+            $mapping = $csvAnalysis['mapping'];
+
+            // $identifier = '';
+            // $fullName = '';
+            // $location = '';
+
+            // // Use the detected column mapping
+            // if (isset($mapping['identifier']) && $mapping['identifier'] !== null) {
+            //     $identifier = $record[$mapping['identifier']] ?? '';
+            // }
+            // if (isset($mapping['full_name']) && $mapping['full_name'] !== null) {
+            //     $fullName = $record[$mapping['full_name']] ?? '';
+            // }
+            // if (isset($mapping['location']) && $mapping['location'] !== null) {
+            //     $location = $record[$mapping['location']] ?? '';
+            // }
+
+            // FIXED: Access data directly by column names since CSV reader creates associative array
+            $identifier = $record['primary_phone'] ?? '';
+            $fullName = $record['name'] ?? '';
+            $location = $record['region'] ?? '';
 
             // Clean phone number
             $phone = $this->cleanPhone($identifier);
             $name = $this->cleanName($fullName);
             $locationData = $this->parseLocation($location);
 
-            // Skip if essential data is missing
+            // Debug logging for empty data
             if (empty($name) && empty($phone)) {
+                $this->skipReasons['empty_name_and_phone']++;
+                if ($debugSkips && count($this->skippedSamples) < $sampleLimit) {
+                    $this->addSkippedSample(
+                        $record,
+                        $rowNumber,
+                        'empty_name_and_phone',
+                        "Both name and phone are empty after cleaning. Raw data: identifier='{$identifier}', name='{$fullName}'"
+                    );
+                }
                 return null;
             }
 
@@ -644,6 +729,27 @@ class ImportLegacyFundis extends Command
 
             // Skip if no valid phone
             if (empty($phone)) {
+                if (empty($name)) {
+                    $this->skipReasons['empty_name_no_phone']++;
+                    if ($debugSkips && count($this->skippedSamples) < $sampleLimit) {
+                        $this->addSkippedSample(
+                            $record,
+                            $rowNumber,
+                            'empty_name_no_phone',
+                            "Name is empty and no valid phone found. Raw identifier: '{$identifier}', cleaned phone: '{$phone}'"
+                        );
+                    }
+                } else {
+                    $this->skipReasons['invalid_phone_format']++;
+                    if ($debugSkips && count($this->skippedSamples) < $sampleLimit) {
+                        $this->addSkippedSample(
+                            $record,
+                            $rowNumber,
+                            'invalid_phone_format',
+                            "Invalid phone format. Raw: '{$identifier}', after cleaning: '{$phone}'"
+                        );
+                    }
+                }
                 return null;
             }
 
@@ -664,8 +770,89 @@ class ImportLegacyFundis extends Command
             ];
         } catch (Exception $e) {
             $this->stats['errors']++;
-            Log::warning("Error processing row {$rowNumber}: " . $e->getMessage(), $record);
+            $this->skipReasons['processing_error']++;
+
+            if ($debugSkips && count($this->skippedSamples) < $sampleLimit) {
+                $this->addSkippedSample(
+                    $record,
+                    $rowNumber,
+                    'processing_error',
+                    "Exception during processing: " . $e->getMessage()
+                );
+            }
+
+            Log::warning("Error processing row {$rowNumber}: " . $e->getMessage(), [
+                'record' => $record,
+                'row_number' => $rowNumber
+            ]);
             return null;
+        }
+    }
+
+    /**
+     * Add a sample of skipped record for debugging
+     */
+    private function addSkippedSample(array $record, int $rowNumber, string $reason, string $details)
+    {
+        $this->skippedSamples[] = [
+            'row' => $rowNumber,
+            'reason' => $reason,
+            'details' => $details,
+            'raw_data' => array_slice($record, 0, 5), // First 5 columns only
+        ];
+    }
+
+    /**
+     * Display detailed skip analysis
+     */
+    private function displaySkipAnalysis()
+    {
+        $this->newLine();
+        $this->info('🔍 Skip Analysis');
+        $this->info('================');
+
+        // Show skip reasons summary
+        $this->info("\n📊 Skip Reasons Summary:");
+        foreach ($this->skipReasons as $reason => $count) {
+            if ($count > 0) {
+                $percentage = ($count / $this->stats['total_rows']) * 100;
+                $this->info("  • " . str_replace('_', ' ', ucfirst($reason)) . ": {$count} (" . number_format($percentage, 1) . "%)");
+            }
+        }
+
+        // Show sample skipped records
+        if (!empty($this->skippedSamples)) {
+            $this->info("\n📋 Sample Skipped Records:");
+
+            foreach ($this->skippedSamples as $sample) {
+                $this->warn("\nRow {$sample['row']} - {$sample['reason']}:");
+                $this->line("  Reason: {$sample['details']}");
+                $this->line("  Raw data: " . json_encode($sample['raw_data']));
+            }
+
+            if (count($this->skippedSamples) >= $this->option('sample-skips')) {
+                $this->info("\n💡 Showing first " . $this->option('sample-skips') . " samples. Increase --sample-skips for more.");
+            }
+        }
+
+        // Recommendations
+        $this->info("\n💡 Recommendations:");
+
+        if ($this->skipReasons['empty_name_and_phone'] > 0) {
+            $this->warn("  • {$this->skipReasons['empty_name_and_phone']} records have both empty name and phone");
+            $this->line("    - Check if data is in different columns");
+            $this->line("    - Verify column mapping is correct");
+        }
+
+        if ($this->skipReasons['invalid_phone_format'] > 0) {
+            $this->warn("  • {$this->skipReasons['invalid_phone_format']} records have invalid phone formats");
+            $this->line("    - Check phone number formats in source data");
+            $this->line("    - Consider updating phone cleaning logic");
+        }
+
+        if ($this->skipReasons['duplicate_phone'] > 0) {
+            $this->warn("  • {$this->skipReasons['duplicate_phone']} records are duplicates");
+            $this->line("    - Use --clean-duplicates to remove existing duplicates first");
         }
     }
 
@@ -945,6 +1132,18 @@ class ImportLegacyFundis extends Command
 
         if ($this->option('dry-run')) {
             $this->warn("🔍 This was a dry run - no actual changes were made to the database.");
+        }
+
+        // Show skip breakdown
+        if ($this->stats['skipped'] > 0) {
+            $this->warn("\n⚠️  Skip Breakdown:");
+            foreach ($this->skipReasons as $reason => $count) {
+                if ($count > 0) {
+                    $this->line("  • " . str_replace('_', ' ', ucfirst($reason)) . ": " . number_format($count));
+                }
+            }
+
+            $this->info("\n💡 To see detailed skip analysis, run with --debug-skips option");
         }
     }
 
