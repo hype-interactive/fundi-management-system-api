@@ -162,7 +162,7 @@
                     @endif
                     <th>Status</th>
                     <th>Match Status</th>
-                    <th width="150">Actions</th>
+                    {{-- <th width="150">Actions</th> --}}
                 </tr>
             </thead>
             <tbody>
@@ -257,7 +257,7 @@
                                 @endif
                             @endif
                         </td>
-                        <td>
+                        {{-- <td>
                             <div class="action-buttons">
                                 @if ($legacy->is_matched)
                                     <button wire:click="unlinkFundi({{ $legacy->id }})"
@@ -280,7 +280,7 @@
                                     @endif
                                 @endif
                             </div>
-                        </td>
+                        </td> --}}
                     </tr>
                 @empty
                     <tr>
@@ -298,16 +298,8 @@
     </div>
 
     <!-- Pagination -->
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <div class="showing-info">
-            <small class="text-muted">
-                Showing {{ $legacyFundis->firstItem() ?? 0 }} to {{ $legacyFundis->lastItem() ?? 0 }}
-                of {{ $legacyFundis->total() }} results
-            </small>
-        </div>
-        <div class="pagination-wrapper">
-            {{ $legacyFundis->links() }}
-        </div>
+    <div class="pagination-wrapper">
+        {{ $legacyFundis->links() }}
     </div>
 
     <!-- Potential Matches Modal -->

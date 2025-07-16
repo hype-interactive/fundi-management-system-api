@@ -6,43 +6,121 @@ use App\Models\LegacyFundi;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithStartRow;
 
-class LegacyFundiImport implements ToCollection, WithHeadingRow, WithBatchInserts, WithChunkReading
+class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkReading, WithStartRow
 {
     private $importedCount = 0;
     private $skippedCount = 0;
+    private $duplicatesCount = 0;
     private $errors = [];
+    private $fileAnalysis;
+    private $skipEmptyColumns;
+    private $jobId;
+    private $progressCallback;
+    private $processedRows = 0;
+    private $totalRows = 0;
+
+    // Skip reasons tracking (same as command)
+    private $skipReasons = [
+        'empty_name_and_phone' => 0,
+        'invalid_phone_format' => 0,
+        'empty_name_no_phone' => 0,
+        'processing_error' => 0,
+        'duplicate_phone' => 0,
+    ];
+
+    private $skippedSamples = [];
+
+    public function __construct(array $fileAnalysis, bool $skipEmptyColumns = true, string $jobId = null)
+    {
+        $this->fileAnalysis = $fileAnalysis;
+        $this->skipEmptyColumns = $skipEmptyColumns;
+        $this->jobId = $jobId;
+        $this->totalRows = $fileAnalysis['total_rows'] ?? 0;
+    }
 
     /**
-     * Process the collection in chunks
+     * Set progress callback for job updates
+     */
+    public function setProgressCallback(callable $callback): void
+    {
+        $this->progressCallback = $callback;
+    }
+
+    /**
+     * Get starting row based on file analysis
+     */
+    public function startRow(): int
+    {
+        return $this->fileAnalysis['data_start_row'] + 1; // +1 because Laravel Excel is 1-indexed
+    }
+
+    /**
+     * Process the collection in chunks with enhanced logic
      */
     public function collection(Collection $rows)
     {
         $validRows = [];
+        $mapping = $this->fileAnalysis['mapping'];
 
         foreach ($rows as $index => $row) {
+            $this->processedRows++;
+
             try {
-                $cleanedData = $this->processRow($row->toArray());
+                // Convert row to array and apply mapping
+                $rowArray = $this->applyMapping($row->toArray(), $mapping);
+                $cleanedData = $this->processRow($rowArray, $this->processedRows);
 
                 if ($cleanedData) {
-                    // Check for duplicates
                     if (!$this->isDuplicate($cleanedData)) {
                         $validRows[] = $cleanedData;
                         $this->importedCount++;
                     } else {
+                        $this->duplicatesCount++;
                         $this->skippedCount++;
+                        $this->skipReasons['duplicate_phone']++;
+
+                        if (count($this->skippedSamples) < 10) {
+                            $this->addSkippedSample(
+                                $rowArray,
+                                $this->processedRows,
+                                'duplicate_phone',
+                                "Phone {$cleanedData['primary_phone']} already exists"
+                            );
+                        }
                     }
+                } else {
+                    $this->skippedCount++;
                 }
+
+                // Update progress periodically
+                if ($this->processedRows % 100 === 0 && $this->progressCallback) {
+                    $percentage = $this->totalRows > 0 ? ($this->processedRows / $this->totalRows) * 100 : 0;
+                    ($this->progressCallback)($percentage, "Processing row {$this->processedRows}...");
+                }
+
             } catch (\Exception $e) {
-                $this->errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
+                $this->errors[] = "Row " . ($this->processedRows) . ": " . $e->getMessage();
                 $this->skippedCount++;
-                Log::warning("Import error on row " . ($index + 2), [
+                $this->skipReasons['processing_error']++;
+
+                Log::warning("Import error on row " . $this->processedRows, [
                     'error' => $e->getMessage(),
-                    'row' => $row->toArray()
+                    'row' => $row->toArray(),
+                    'job_id' => $this->jobId
                 ]);
+
+                if (count($this->skippedSamples) < 10) {
+                    $this->addSkippedSample(
+                        $row->toArray(),
+                        $this->processedRows,
+                        'processing_error',
+                        $e->getMessage()
+                    );
+                }
             }
         }
 
@@ -53,60 +131,149 @@ class LegacyFundiImport implements ToCollection, WithHeadingRow, WithBatchInsert
     }
 
     /**
-     * Process a single row from CSV
+     * Apply column mapping to row data
      */
-    private function processRow(array $row): ?array
+    private function applyMapping(array $row, array $mapping): array
     {
-        // Map CSV columns based on your structure
-        // identifier = phone, full_name = name, location = region/district/ward
+        $mappedRow = [
+            'identifier' => '',
+            'full_name' => '',
+            'location' => ''
+        ];
 
-        $phone = $this->cleanPhone($row['identifier'] ?? '');
-        $name = $this->cleanName($row['full_name'] ?? '');
-        $location = $this->parseLocation($row['location'] ?? '');
-
-        // Skip if essential data is missing
-        if (empty($phone) || empty($name)) {
-            return null;
+        foreach ($mapping as $field => $columnIndex) {
+            if ($columnIndex !== null && isset($row[$columnIndex])) {
+                $mappedRow[$field] = $row[$columnIndex];
+            }
         }
 
-        return [
-            'name' => $name,
-            'gender' => $this->inferGender($name), // You can improve this logic
-            'nida_number' => null, // Not in your CSV
-            'primary_phone' => $phone,
-            'transaction_phone' => null,
-            'ranking' => 'fundi_msaidizi', // Default
-            'profile_photo' => null,
-            'status' => 'pending',
-            'region' => $location['region'],
-            'district' => $location['district'],
-            'ward' => $location['ward'],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
+        return $mappedRow;
     }
 
     /**
-     * Clean phone number to standardized format
+     * Process a single row with enhanced logic from command
      */
-    private function cleanPhone(string $phone): ?string
+    private function processRow(array $row, int $rowNumber): ?array
     {
-        // Remove any non-numeric characters
-        $phone = preg_replace('/[^0-9]/', '', $phone);
+        try {
+            $identifier = $row['identifier'] ?? '';
+            $fullName = $row['full_name'] ?? '';
+            $location = $row['location'] ?? '';
 
-        // Handle Tanzanian format
-        if (str_starts_with($phone, '255')) {
-            $phone = substr($phone, 3);
-        } elseif (str_starts_with($phone, '0')) {
-            $phone = substr($phone, 1);
+            // Clean data
+            $phone = $this->cleanPhone($identifier);
+            $name = $this->cleanName($fullName);
+            $locationData = $this->parseLocation($location);
+
+            // Enhanced validation logic from command
+            if (empty($name) && empty($phone)) {
+                $this->skipReasons['empty_name_and_phone']++;
+                $this->addSkippedSample(
+                    $row,
+                    $rowNumber,
+                    'empty_name_and_phone',
+                    "Both name and phone are empty after cleaning"
+                );
+                return null;
+            }
+
+            // Generate name if missing but has phone
+            if (empty($name) && !empty($phone)) {
+                $name = 'User ' . substr($phone, -4);
+            }
+
+            // Skip if no valid phone
+            if (empty($phone)) {
+                if (empty($name)) {
+                    $this->skipReasons['empty_name_no_phone']++;
+                    $this->addSkippedSample(
+                        $row,
+                        $rowNumber,
+                        'empty_name_no_phone',
+                        "Name is empty and no valid phone found"
+                    );
+                } else {
+                    $this->skipReasons['invalid_phone_format']++;
+                    $this->addSkippedSample(
+                        $row,
+                        $rowNumber,
+                        'invalid_phone_format',
+                        "Invalid phone format: '{$identifier}'"
+                    );
+                }
+                return null;
+            }
+
+            return [
+                'name' => $name,
+                'gender' => $this->inferGender($name),
+                'nida_number' => null,
+                'primary_phone' => $phone,
+                'transaction_phone' => $phone,
+                'ranking' => 'fundi_msaidizi',
+                'profile_photo' => null,
+                'status' => 'pending',
+                'region' => $locationData['region'],
+                'district' => $locationData['district'],
+                'ward' => $locationData['ward'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+        } catch (\Exception $e) {
+            $this->skipReasons['processing_error']++;
+            throw $e;
+        }
+    }
+
+    /**
+     * Add skipped sample for debugging
+     */
+    private function addSkippedSample(array $record, int $rowNumber, string $reason, string $details)
+    {
+        if (count($this->skippedSamples) < 10) {
+            $this->skippedSamples[] = [
+                'row' => $rowNumber,
+                'reason' => $reason,
+                'details' => $details,
+                'raw_data' => array_slice($record, 0, 5),
+            ];
+        }
+    }
+
+    /**
+     * Enhanced phone cleaning from command
+     */
+    private function cleanPhone(string $phone): string
+    {
+        // Remove all non-numeric characters
+        $cleaned = preg_replace('/[^0-9]/', '', $phone);
+
+        if (strlen($cleaned) < 9) {
+            return '';
         }
 
-        // Validate format (9 digits starting with 6, 7, or 8)
-        if (preg_match('/^[678]\d{8}$/', $phone)) {
-            return '+255' . $phone;
+        // Handle different formats
+        if (str_starts_with($cleaned, '255') && strlen($cleaned) == 12) {
+            return $cleaned;
         }
 
-        return null;
+        if (str_starts_with($cleaned, '0') && strlen($cleaned) == 10) {
+            return '255' . substr($cleaned, 1);
+        }
+
+        if (strlen($cleaned) == 9) {
+            return '255' . $cleaned;
+        }
+
+        // For longer numbers, try to extract valid phone
+        if (strlen($cleaned) > 12) {
+            if (preg_match('/255(\d{9})/', $cleaned, $matches)) {
+                return '255' . $matches[1];
+            }
+        }
+
+        return '';
     }
 
     /**
@@ -115,18 +282,17 @@ class LegacyFundiImport implements ToCollection, WithHeadingRow, WithBatchInsert
     private function cleanName(string $name): string
     {
         $name = trim($name);
-        $name = preg_replace('/\s+/', ' ', $name); // Remove extra spaces
+        $name = preg_replace('/\s+/', ' ', $name);
         return ucwords(strtolower($name));
     }
 
     /**
-     * Parse location string into components
+     * Enhanced location parsing from command
      */
     private function parseLocation(string $location): array
     {
         $location = trim(strtoupper($location));
 
-        // Common Tanzanian regions for basic mapping
         $regionMap = [
             'DAR ES SALAAM' => ['region' => 'Dar es Salaam', 'district' => null, 'ward' => null],
             'TANGA' => ['region' => 'Tanga', 'district' => null, 'ward' => null],
@@ -135,14 +301,12 @@ class LegacyFundiImport implements ToCollection, WithHeadingRow, WithBatchInsert
             'ILALA' => ['region' => 'Dar es Salaam', 'district' => 'Ilala', 'ward' => null],
             'MBEZI' => ['region' => 'Dar es Salaam', 'district' => 'Kinondoni', 'ward' => 'Mbezi'],
             'TUNDUMA' => ['region' => 'Mbeya', 'district' => 'Mbozi', 'ward' => null],
+            'ARUSHA' => ['region' => 'Arusha', 'district' => null, 'ward' => null],
+            'MWANZA' => ['region' => 'Mwanza', 'district' => null, 'ward' => null],
+            'DODOMA' => ['region' => 'Dodoma', 'district' => null, 'ward' => null],
         ];
 
-        if (isset($regionMap[$location])) {
-            return $regionMap[$location];
-        }
-
-        // Default fallback
-        return [
+        return $regionMap[$location] ?? [
             'region' => $location ?: null,
             'district' => null,
             'ward' => null
@@ -150,16 +314,25 @@ class LegacyFundiImport implements ToCollection, WithHeadingRow, WithBatchInsert
     }
 
     /**
-     * Basic gender inference from name (improve as needed)
+     * Enhanced gender inference
      */
     private function inferGender(string $name): string
     {
         $name = strtolower($name);
 
         // Common Tanzanian male names
-        $maleNames = ['james', 'john', 'joseph', 'david', 'william', 'robert', 'kenneth', 'steven'];
+        $maleNames = [
+            'james', 'john', 'joseph', 'david', 'william', 'robert', 'kenneth', 'steven',
+            'ally', 'hassan', 'ibrahim', 'abdallah', 'salim', 'mohammed', 'hamisi',
+            'frank', 'charles', 'peter', 'michael', 'daniel', 'emmanuel'
+        ];
+
         // Common Tanzanian female names
-        $femaleNames = ['lucy', 'mary', 'elizabeth', 'grace', 'joyce', 'anna'];
+        $femaleNames = [
+            'lucy', 'mary', 'elizabeth', 'grace', 'joyce', 'anna', 'fatuma', 'amina',
+            'aisha', 'zainab', 'rehema', 'happy', 'gloria', 'agnes', 'christina',
+            'rose', 'jane', 'esther', 'sarah', 'ruth'
+        ];
 
         foreach ($maleNames as $maleName) {
             if (str_contains($name, $maleName)) {
@@ -173,11 +346,11 @@ class LegacyFundiImport implements ToCollection, WithHeadingRow, WithBatchInsert
             }
         }
 
-        return 'other'; // Default when unclear
+        return 'other';
     }
 
     /**
-     * Check if record already exists
+     * Enhanced duplicate checking
      */
     private function isDuplicate(array $data): bool
     {
@@ -203,14 +376,20 @@ class LegacyFundiImport implements ToCollection, WithHeadingRow, WithBatchInsert
     }
 
     /**
-     * Get import statistics
+     * Get comprehensive import statistics
      */
     public function getStats(): array
     {
         return [
             'imported' => $this->importedCount,
             'skipped' => $this->skippedCount,
+            'duplicates' => $this->duplicatesCount,
             'errors' => $this->errors,
+            'skip_reasons' => $this->skipReasons,
+            'skipped_samples' => $this->skippedSamples,
+            'processed_rows' => $this->processedRows,
+            'success_rate' => $this->processedRows > 0 ?
+                round(($this->importedCount / $this->processedRows) * 100, 2) : 0
         ];
     }
 }
