@@ -126,7 +126,7 @@
                 </button>
             </div>
 
-            <div class="d-flex gap-2">
+            {{-- <div class="d-flex gap-2">
                 <!-- Auto Match -->
                 <button wire:click="runBulkAutoMatch" class="btn btn-sm btn-success"
                     onclick="return confirm('Run auto-matching for high confidence matches?')">
@@ -139,125 +139,126 @@
                     <i class="fa-solid fa-download mr-1"></i>
                     Export
                 </button>
-            </div>
+            </div> --}}
         </div>
     </div>
 
     <!-- Table -->
     <div class="table-responsive custom-table">
-        <table class="table table-hover">
-            <thead class="table-light">
-                <tr>
-                    <th width="40">
-                        <input type="checkbox" wire:model.live="selectAll" class="form-check-input">
-                    </th>
-                    <th>ID</th>
-                    <th>Name</th>
-                    @if (!$compactView)
-                        <th>Phone</th>
-                        <th>NIDA</th>
-                        <th>Location</th>
-                    @else
-                        <th>Contact & Location</th>
-                    @endif
-                    <th>Status</th>
-                    <th>Match Status</th>
-                    {{-- <th width="150">Actions</th> --}}
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($legacyFundis as $legacy)
-                    <tr class="legacy-row {{ $legacy->match_status }}" wire:key="legacy-{{ $legacy->id }}">
-                        <td>
-                            <input type="checkbox" wire:model.live="selectedItems" value="{{ $legacy->id }}"
-                                class="form-check-input">
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary">#{{ $legacy->id }}</span>
-                        </td>
-                        <td>
-                            <div class="user-info">
-                                <strong>{{ $legacy->name }}</strong>
-                                <small class="d-block text-muted">{{ ucfirst($legacy->gender) }}</small>
-                            </div>
-                        </td>
+        <div class="d-none d-md-block">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th width="40">
+                            <input type="checkbox" wire:model.live="selectAll" class="form-check-input">
+                        </th>
+                        <th>ID</th>
+                        <th>Name</th>
                         @if (!$compactView)
-                            <td>
-                                <div class="contact-info">
-                                    <span>{{ $legacy->primary_phone }}</span>
-                                    @if ($legacy->transaction_phone && $legacy->transaction_phone !== $legacy->primary_phone)
-                                        <small class="d-block text-muted">{{ $legacy->transaction_phone }}</small>
-                                    @endif
-                                </div>
-                            </td>
-                            <td>
-                                <span class="text-muted">{{ $legacy->nida_number ?? 'N/A' }}</span>
-                            </td>
-                            <td>
-                                <div class="location-info">
-                                    @if ($legacy->ward)
-                                        <span>{{ $legacy->ward }}</span><br>
-                                    @endif
-                                    @if ($legacy->district)
-                                        <small class="text-muted">{{ $legacy->district }}</small><br>
-                                    @endif
-                                    @if ($legacy->region)
-                                        <small class="text-muted">{{ $legacy->region }}</small>
-                                    @endif
-                                </div>
-                            </td>
+                            <th>Phone</th>
+                            <th>NIDA</th>
+                            <th>Location</th>
                         @else
+                            <th>Contact & Location</th>
+                        @endif
+                        <th>Status</th>
+                        <th>Match Status</th>
+                        {{-- <th width="150">Actions</th> --}}
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($legacyFundis as $legacy)
+                        <tr class="legacy-row {{ $legacy->match_status }}" wire:key="legacy-{{ $legacy->id }}">
                             <td>
-                                <div class="compact-info">
-                                    <span class="d-block">{{ $legacy->primary_phone }}</span>
-                                    @if ($legacy->nida_number)
-                                        <small class="text-muted">NIDA: {{ $legacy->nida_number }}</small><br>
-                                    @endif
-                                    @if ($legacy->region)
-                                        <small class="text-muted">{{ $legacy->region }}</small>
-                                    @endif
+                                <input type="checkbox" wire:model.live="selectedItems" value="{{ $legacy->id }}"
+                                    class="form-check-input">
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">#{{ $legacy->id }}</span>
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <strong>{{ $legacy->name }}</strong>
+                                    <small class="d-block text-muted">{{ ucfirst($legacy->gender) }}</small>
                                 </div>
                             </td>
-                        @endif
-                        <td>
-                            <span
-                                class="badge bg-{{ $legacy->status === 'active' ? 'success' : ($legacy->status === 'pending' ? 'warning' : 'secondary') }}">
-                                {{ ucfirst($legacy->status) }}
-                            </span>
-                        </td>
-                        <td>
-                            @if ($legacy->is_matched)
-                                <div class="match-status-display">
-                                    <span class="badge bg-success mb-1">
-                                        <i class="fa-solid fa-check mr-1"></i>
-                                        Matched
-                                    </span>
-                                    <small class="d-block text-muted">
-                                        <a href="{{ route('fundi', $legacy->matchedFundi) }}" target="_blank"
-                                            class="text-decoration-none">
-                                            Fundi #{{ $legacy->matchedFundi->id }}
-                                            <i class="fa-solid fa-external-link fa-xs"></i>
-                                        </a>
-                                    </small>
-                                </div>
+                            @if (!$compactView)
+                                <td>
+                                    <div class="contact-info">
+                                        <span>{{ $legacy->primary_phone }}</span>
+                                        @if ($legacy->transaction_phone && $legacy->transaction_phone !== $legacy->primary_phone)
+                                            <small class="d-block text-muted">{{ $legacy->transaction_phone }}</small>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-muted">{{ $legacy->nida_number ?? 'N/A' }}</span>
+                                </td>
+                                <td>
+                                    <div class="location-info">
+                                        @if ($legacy->ward)
+                                            <span>{{ $legacy->ward }}</span><br>
+                                        @endif
+                                        @if ($legacy->district)
+                                            <small class="text-muted">{{ $legacy->district }}</small><br>
+                                        @endif
+                                        @if ($legacy->region)
+                                            <small class="text-muted">{{ $legacy->region }}</small>
+                                        @endif
+                                    </div>
+                                </td>
                             @else
-                                @php
-                                    $potentialCount = $legacy->getPotentialMatchesCount();
-                                @endphp
-                                @if ($potentialCount > 0)
-                                    <span class="badge bg-warning">
-                                        <i class="fa-solid fa-exclamation-triangle mr-1"></i>
-                                        {{ $potentialCount }} Potential
-                                    </span>
-                                @else
-                                    <span class="badge bg-danger">
-                                        <i class="fa-solid fa-times mr-1"></i>
-                                        No Matches
-                                    </span>
-                                @endif
+                                <td>
+                                    <div class="compact-info">
+                                        <span class="d-block">{{ $legacy->primary_phone }}</span>
+                                        @if ($legacy->nida_number)
+                                            <small class="text-muted">NIDA: {{ $legacy->nida_number }}</small><br>
+                                        @endif
+                                        @if ($legacy->region)
+                                            <small class="text-muted">{{ $legacy->region }}</small>
+                                        @endif
+                                    </div>
+                                </td>
                             @endif
-                        </td>
-                        {{-- <td>
+                            <td>
+                                <span
+                                    class="badge bg-{{ $legacy->status === 'active' ? 'success' : ($legacy->status === 'pending' ? 'warning' : 'secondary') }}">
+                                    {{ ucfirst($legacy->status) }}
+                                </span>
+                            </td>
+                            <td>
+                                @if ($legacy->is_matched)
+                                    <div class="match-status-display">
+                                        <span class="badge bg-success mb-1">
+                                            <i class="fa-solid fa-check mr-1"></i>
+                                            Matched
+                                        </span>
+                                        <small class="d-block text-muted">
+                                            <a href="{{ route('fundi', $legacy->matchedFundi) }}" target="_blank"
+                                                class="text-decoration-none">
+                                                Fundi #{{ $legacy->matchedFundi->id }}
+                                                <i class="fa-solid fa-external-link fa-xs"></i>
+                                            </a>
+                                        </small>
+                                    </div>
+                                @else
+                                    @php
+                                        $potentialCount = $legacy->getPotentialMatchesCount();
+                                    @endphp
+                                    @if ($potentialCount > 0)
+                                        <span class="badge bg-warning">
+                                            <i class="fa-solid fa-exclamation-triangle mr-1"></i>
+                                            {{ $potentialCount }} Potential
+                                        </span>
+                                    @else
+                                        <span class="badge bg-danger">
+                                            <i class="fa-solid fa-times mr-1"></i>
+                                            No Matches
+                                        </span>
+                                    @endif
+                                @endif
+                            </td>
+                            {{-- <td>
                             <div class="action-buttons">
                                 @if ($legacy->is_matched)
                                     <button wire:click="unlinkFundi({{ $legacy->id }})"
@@ -281,20 +282,21 @@
                                 @endif
                             </div>
                         </td> --}}
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="{{ $compactView ? 7 : 9 }}" class="text-center py-4">
-                            <div class="empty-state">
-                                <i class="fa-solid fa-database fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No legacy fundis found</h5>
-                                <p class="text-muted">Try adjusting your search criteria or import some data.</p>
-                            </div>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ $compactView ? 7 : 9 }}" class="text-center py-4">
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-database fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No legacy fundis found</h5>
+                                    <p class="text-muted">Try adjusting your search criteria or import some data.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Pagination -->
@@ -424,18 +426,18 @@
 </div>
 
 @push('scripts')
-<script>
-    document.addEventListener('livewire:initialized', () => {
-        // Handle toast notifications
-        Livewire.on('showToast', (data) => {
-            showToast(data.type, data.message);
-        });
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            // Handle toast notifications
+            Livewire.on('showToast', (data) => {
+                showToast(data.type, data.message);
+            });
 
-        function showToast(type, message) {
-            const toastContainer = document.getElementById('toast-container');
-            const toastId = 'toast-' + Date.now();
+            function showToast(type, message) {
+                const toastContainer = document.getElementById('toast-container');
+                const toastId = 'toast-' + Date.now();
 
-            const toastHtml = `
+                const toastHtml = `
             <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="toast-header">
                     <i class="fa-solid fa-${getToastIcon(type)} text-${type} mr-2"></i>
@@ -448,43 +450,43 @@
             </div>
         `;
 
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
 
-            const toastElement = document.getElementById(toastId);
+                const toastElement = document.getElementById(toastId);
 
-            // Use Bootstrap 4 toast initialization since you're using Bootstrap 4
-            $(toastElement).toast({
-                autohide: true,
-                delay: type === 'error' ? 5000 : 3000
-            });
+                // Use Bootstrap 4 toast initialization since you're using Bootstrap 4
+                $(toastElement).toast({
+                    autohide: true,
+                    delay: type === 'error' ? 5000 : 3000
+                });
 
-            $(toastElement).toast('show');
+                $(toastElement).toast('show');
 
-            // Remove toast element after it's hidden
-            $(toastElement).on('hidden.bs.toast', function () {
-                $(this).remove();
-            });
-        }
+                // Remove toast element after it's hidden
+                $(toastElement).on('hidden.bs.toast', function() {
+                    $(this).remove();
+                });
+            }
 
-        function getToastIcon(type) {
-            const icons = {
-                'success': 'check-circle',
-                'error': 'times-circle',
-                'warning': 'exclamation-triangle',
-                'info': 'info-circle'
-            };
-            return icons[type] || 'info-circle';
-        }
+            function getToastIcon(type) {
+                const icons = {
+                    'success': 'check-circle',
+                    'error': 'times-circle',
+                    'warning': 'exclamation-triangle',
+                    'info': 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
 
-        function getToastTitle(type) {
-            const titles = {
-                'success': 'Success',
-                'error': 'Error',
-                'warning': 'Warning',
-                'info': 'Information'
-            };
-            return titles[type] || 'Notification';
-        }
-    });
-</script>
+            function getToastTitle(type) {
+                const titles = {
+                    'success': 'Success',
+                    'error': 'Error',
+                    'warning': 'Warning',
+                    'info': 'Information'
+                };
+                return titles[type] || 'Notification';
+            }
+        });
+    </script>
 @endpush

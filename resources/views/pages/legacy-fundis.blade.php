@@ -56,7 +56,7 @@
         <!-- Legacy Data Overview -->
         <div class="legacy-overview mb-4">
             <div class="row">
-                <div class="col-md-8">
+                <div class="col-md-12 mt-2">
                     <div class="overview-content">
                         <p class="text-muted mb-0">
                             This system helps you identify and manage legacy fundi records,
@@ -64,7 +64,7 @@
                         </p>
                     </div>
                 </div>
-                <div class="col-md-4">
+                {{-- <div class="col-md-4">
                     <div class="quick-actions">
                         <button class="btn btn-primary btn-sm mr-2" data-toggle="modal" data-target="#importLegacyModal">
                             <i class="fa-solid fa-upload mr-1"></i>
@@ -75,7 +75,7 @@
                             Help
                         </button>
                     </div>
-                </div>
+                </div> --}}
             </div>
         </div>
 
