@@ -73,7 +73,7 @@ class TestSmsCommand extends Command
         // Determine provider
         $provider = $this->option('provider') ?? config('sms.default_provider');
 
-        if (!in_array($provider, ['beem', 'nextsms'])) {
+        if (!in_array($provider, ['monex', 'beem', 'nextsms'])) {
             $this->error("❌ Invalid provider. Use 'beem' or 'nextsms'");
             return 1;
         }

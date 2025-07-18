@@ -11,7 +11,7 @@ return [
     | application. You may set this to any of the providers defined in the
     | "providers" array below.
     |
-    | Supported: "beem", "nextsms"
+    | Supported: "beem", "nextsms", "monex"
     |
     */
 
@@ -41,6 +41,13 @@ return [
             'password' => env('NEXTSMS_PASSWORD'),
             'sender_id' => env('NEXTSMS_SENDER_ID', 'MAGICBUILD'),
             'base_url' => env('NEXTSMS_BASE_URL', 'https://messaging-service.co.tz/api/sms/v1/text/single'),
+        ],
+
+        'monex' => [
+            'api_token' => env('MONEX_API_TOKEN'),
+            'sender_id' => env('MONEX_SENDER_ID', 'MAGICBUILD'),
+            'base_url' => env('MONEX_BASE_URL', 'https://sms.monex.co.tz/api/v3/sms'),
+            'dlt_template_id' => env('MONEX_DLT_TEMPLATE_ID'), // Optional DLT template ID
         ],
 
     ],
@@ -79,6 +86,43 @@ return [
 
         // Log all SMS activities
         'log_activities' => env('SMS_LOG_ACTIVITIES', true),
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Provider Features
+    |--------------------------------------------------------------------------
+    |
+    | Feature support matrix for different providers
+    |
+    */
+
+    'provider_features' => [
+
+        'beem' => [
+            'bulk_send' => false,
+            'contact_list_campaigns' => false,
+            'message_retrieval' => false,
+            'delivery_status' => true,
+            'scheduled_messages' => false,
+        ],
+
+        'nextsms' => [
+            'bulk_send' => false,
+            'contact_list_campaigns' => false,
+            'message_retrieval' => false,
+            'delivery_status' => true,
+            'scheduled_messages' => false,
+        ],
+
+        'monex' => [
+            'bulk_send' => true,
+            'contact_list_campaigns' => true,
+            'message_retrieval' => true,
+            'delivery_status' => true,
+            'scheduled_messages' => true,
+        ],
 
     ],
 

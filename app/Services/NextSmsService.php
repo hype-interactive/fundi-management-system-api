@@ -90,7 +90,7 @@ class NextSmsService extends BaseSmsService
             !empty($this->config['sender_id']);
     }
 
-    private function formatPhoneNumber(string $phoneNumber): string
+    protected function formatPhoneNumber(string $phoneNumber): string
     {
         // Remove any non-digit characters
         $cleaned = preg_replace('/[^0-9]/', '', $phoneNumber);

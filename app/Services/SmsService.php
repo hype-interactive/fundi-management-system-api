@@ -27,6 +27,9 @@ class SmsService
             case 'nextsms':
                 $this->provider = new NextSmsService($config);
                 break;
+            case 'monex':
+                $this->provider = new MonexSmsService($config);
+                break;
             default:
                 throw new \Exception("Unsupported SMS provider: {$providerName}");
         }
@@ -48,6 +51,12 @@ class SmsService
 
     public function sendToMany(string $message, array $phoneNumbers): array
     {
+        // Check if provider has optimized bulk sending method
+        if (method_exists($this->provider, 'sendToMany')) {
+            return $this->provider->sendToMany($message, $phoneNumbers);
+        }
+
+        // Fallback to individual sends
         $results = [];
         $successCount = 0;
         $failureCount = 0;
@@ -140,6 +149,53 @@ class SmsService
 
             return false;
         }
+    }
+
+    /**
+     * Send campaign using contact lists (Monex-specific feature)
+     */
+    public function sendCampaignToContactLists(array $contactListIds, string $message): array
+    {
+        if (!method_exists($this->provider, 'sendCampaign')) {
+            throw new \Exception("Current provider does not support contact list campaigns");
+        }
+
+        return $this->provider->sendCampaign($contactListIds, $message);
+    }
+
+    /**
+     * Get all messages from provider (if supported)
+     */
+    public function getAllMessages(): array
+    {
+        if (!method_exists($this->provider, 'getAllMessages')) {
+            throw new \Exception("Current provider does not support retrieving all messages");
+        }
+
+        return $this->provider->getAllMessages();
+    }
+
+    /**
+     * Get current provider name
+     */
+    public function getProviderName(): string
+    {
+        return config('sms.default_provider', 'beem');
+    }
+
+    /**
+     * Check if current provider supports a specific feature
+     */
+    public function supportsFeature(string $feature): bool
+    {
+        $features = [
+            'bulk_send' => method_exists($this->provider, 'sendToMany'),
+            'contact_list_campaigns' => method_exists($this->provider, 'sendCampaign'),
+            'message_retrieval' => method_exists($this->provider, 'getAllMessages'),
+            'delivery_status' => method_exists($this->provider, 'checkDeliveryStatus'),
+        ];
+
+        return $features[$feature] ?? false;
     }
 
     private function getRecipientPhoneNumber($recipient, string $recipientType): ?string
