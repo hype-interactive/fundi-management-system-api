@@ -51,9 +51,26 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/operators/{operator}', [OperatorController::class, 'show'])->name('operator');
 
-    // Route::get('/legacy-data', function () {
-    //     return view('pages.legacy-fundis');
-    // })->name('legacy-data');
+    Route::get('/financials', function () {
+        return view('pages.financials');
+    })->name('financials');
+
+    // Financial sub-routes
+    Route::get('/financials/budgets', function () {
+        return view('pages.financial.budgets');
+    })->name('financial.budgets');
+
+    Route::get('/financials/disbursements', function () {
+        return view('pages.financial.disbursements');
+    })->name('financial.disbursements');
+
+    Route::get('/financials/transactions', function () {
+        return view('pages.financial.transactions');
+    })->name('financial.transactions');
+
+    Route::get('/financials/reports', function () {
+        return view('pages.financial.reports');
+    })->name('financial.reports');
 
     /* Legacy fundis management routes
     * These routes handle the import, export, and management of legacy fundis data.
