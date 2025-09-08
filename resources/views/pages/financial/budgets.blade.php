@@ -25,6 +25,6 @@
         @livewire('budget-allocations-table')
 
         @include('components.modals.create-budget-modal')
-        @include('components.modals.edit-budget-modal')
+        {{-- @include('components.modals.edit-budget-modal') --}}
     </div>
 @endsection

@@ -131,7 +131,7 @@
                             </td>
                             <td class="d-xl-table-cell d-none">
                                 <div class="btn-group" role="group">
-                                    <button class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#editBudgetModal" wire:click="$dispatch('editBudget', { budgetId: {{ $budget->id }} })">
+                                    <button class="btn btn-sm btn-outline-primary" wire:click="editBudget({{ $budget->id }})">
                                         <i class="fa-solid fa-edit"></i>
                                     </button>
                                     @if($budget->disbursementBatches->count() == 0)
@@ -196,4 +196,42 @@
     <div class="pagination-wrapper d-flex justify-content-center mt-3">
         {{ $budgets->links() }}
     </div>
+
+    <!-- Create Modal -->
+    @if($showCreateModal)
+        <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title">Create Budget Allocation</h5>
+                        <button type="button" class="close" wire:click="closeCreateModal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        @livewire('budget-form', key('create-form'))
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Edit Modal -->
+    @if($showEditModal && $editingBudget)
+        <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title">Edit Budget Allocation</h5>
+                        <button type="button" class="close" wire:click="closeEditModal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        @livewire('budget-form', ['budget' => $editingBudget], key('edit-form-'.$editingBudget->id))
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

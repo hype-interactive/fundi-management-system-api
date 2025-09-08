@@ -35,6 +35,19 @@ class BudgetAllocationsTable extends Component
     public $showMobileFilters = false;
     public $compactView = false;
 
+    // Modal states
+    public $showCreateModal = false;
+    public $showEditModal = false;
+
+    // Budget being edited
+    public $editingBudget = null;
+
+    // Listeners for budget form events
+    protected $listeners = [
+        'budgetCreated' => 'handleBudgetCreated',
+        'budgetUpdated' => 'handleBudgetUpdated',
+    ];
+
     public function mount()
     {
         $this->displayFlashedAlerts();
@@ -63,6 +76,67 @@ class BudgetAllocationsTable extends Component
     public function updatedDateTo()
     {
         $this->resetPage();
+    }
+
+    // Method to open create modal
+    public function openCreateModal()
+    {
+        $this->editingBudget = null;
+        $this->showCreateModal = true;
+        $this->dispatch('createNewBudget');
+    }
+
+    // Method to open edit modal
+    public function editBudget($budgetId)
+    {
+        $budget = BudgetAllocation::find($budgetId);
+
+        if ($budget) {
+            $this->editingBudget = $budget;
+            $this->showEditModal = true;
+            $this->dispatch('editBudget', budget: $budget->toArray());
+        }
+    }
+
+    // Method to close create modal
+    public function closeCreateModal()
+    {
+        $this->showCreateModal = false;
+        $this->editingBudget = null;
+    }
+
+    // Method to close edit modal
+    public function closeEditModal()
+    {
+        $this->showEditModal = false;
+        $this->editingBudget = null;
+    }
+
+    // Method to handle delete
+    public function deleteBudget($budgetId)
+    {
+        $budget = BudgetAllocation::find($budgetId);
+
+        if ($budget && $budget->disbursementBatches->count() == 0) {
+            $budget->delete();
+            $this->showSuccessAlert('Success', 'Budget allocation deleted successfully!');
+        } else {
+            $this->showErrorAlert('Error', 'Cannot delete budget with existing disbursements.');
+        }
+    }
+
+    // Handle budget created event
+    public function handleBudgetCreated($budgetId)
+    {
+        $this->closeCreateModal();
+        $this->showSuccessAlert('Success', 'Budget allocation created successfully!');
+    }
+
+    // Handle budget updated event
+    public function handleBudgetUpdated($budgetId)
+    {
+        $this->closeEditModal();
+        $this->showSuccessAlert('Success', 'Budget allocation updated successfully!');
     }
 
     public function getBudgetQuery()
