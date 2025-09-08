@@ -112,7 +112,7 @@
                                 <option value="">-- Select Status --</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
-                                <option value="pending">Pending</option>
+                                {{-- <option value="pending">Pending</option> --}}
                             </select>
                             @error('status')
                                 <span class="error text-danger"><small>{{ $message }}</small></span>

@@ -4,11 +4,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\FundiController;
+use App\Http\Controllers\API\AddressController;
 use App\Http\Controllers\API\DashboardController;
 use App\Http\Controllers\API\SiteVisitController;
 use App\Http\Controllers\API\MasterDataController;
 use App\Http\Controllers\API\TransactionController;
-use App\Http\Controllers\API\AddressController;
+use App\Http\Controllers\API\SelcomCallbackController;
 
 // Public routes
 Route::prefix('v1')->group(function () {
@@ -102,6 +103,12 @@ Route::prefix('v1')->middleware(['auth:api'])->group(function () {
     //     Route::put('/{notification}/read', [NotificationController::class, 'markAsRead']);
     //     Route::put('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     // });
+});
+
+// Public Selcom Callback Routes (no authentication)
+Route::prefix('selcom')->group(function () {
+    Route::post('/payment-callback', [SelcomCallbackController::class, 'handlePaymentCallback']);
+    Route::post('/name-lookup-callback', [SelcomCallbackController::class, 'handleNameLookupCallback']);
 });
 
 // Health check route
