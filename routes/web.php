@@ -130,6 +130,10 @@ Route::middleware('auth')->group(function () {
     // Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Public fundi registration (no auth required)
+Route::get('/register-fundi', App\Livewire\PublicFundiRegistration::class)
+    ->name('fundi.public.register');
+
 //app download
 Route::get('/app', function () {
     return view('pages.app-download');
