@@ -78,6 +78,13 @@ class PublicFundiRegistration extends Component
      */
     public function verifyPin()
     {
+        // Log the attempt
+        Log::info('PIN verification attempt', [
+            'ip' => request()->ip(),
+            'pin_length' => strlen($this->pin),
+            'config_pin' => config('app.fundi_registration_pin', 'NOT_SET')
+        ]);
+        
         // Rate limiting to prevent brute force
         $key = 'fundi-registration:' . request()->ip();
 
@@ -329,7 +336,6 @@ class PublicFundiRegistration extends Component
                 'district_id' => $this->district,
                 'ward_id' => $this->ward_id
             ]);
-
         } catch (Exception $e) {
             Log::error('Public fundi registration failed: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
@@ -375,11 +381,23 @@ class PublicFundiRegistration extends Component
     public function registerAnother()
     {
         $this->reset([
-            'fname', 'mname', 'lname', 'gender', 'nida_number',
-            'primary_phone', 'transaction_phone', 'district', 'ward_id',
-            'ranking', 'profile_photo', 'profile_photo_url',
-            'profile_photo_public_id', 'legacy_match', 'legacy_id',
-            'registration_complete', 'registered_fundi_id'
+            'fname',
+            'mname',
+            'lname',
+            'gender',
+            'nida_number',
+            'primary_phone',
+            'transaction_phone',
+            'district',
+            'ward_id',
+            'ranking',
+            'profile_photo',
+            'profile_photo_url',
+            'profile_photo_public_id',
+            'legacy_match',
+            'legacy_id',
+            'registration_complete',
+            'registered_fundi_id'
         ]);
 
         $this->wards = [];
