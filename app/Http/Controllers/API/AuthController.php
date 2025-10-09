@@ -16,22 +16,26 @@ class AuthController extends BaseAPIController
 {
     public function login(Request $request): JsonResponse
     {
+        Log::info('Login endpoint accessed', [
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
         // Rate limiting for login attempts
         $key = 'login.' . $request->ip();
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $seconds = RateLimiter::availableIn($key);
-            Log::warning('Too many login attempts', [
-                'ip' => $request->ip(),
-                'phone_number' => $request->input('phone_number'),
-                'user_agent' => $request->userAgent(),
-            ]);
+        // if (RateLimiter::tooManyAttempts($key, 5)) {
+        //     $seconds = RateLimiter::availableIn($key);
+        //     Log::warning('Too many login attempts', [
+        //         'ip' => $request->ip(),
+        //         'phone_number' => $request->input('phone_number'),
+        //         'user_agent' => $request->userAgent(),
+        //     ]);
 
-            return $this->errorResponse(
-                'Too many login attempts. Please try again in ' . ceil($seconds / 60) . ' minutes.',
-                null,
-                429
-            );
-        }
+        //     return $this->errorResponse(
+        //         'Too many login attempts. Please try again in ' . ceil($seconds / 60) . ' minutes.',
+        //         null,
+        //         429
+        //     );
+        // }
 
         $request->validate([
             'phone_number' => 'required|string|max:20|regex:/^[\+]?[0-9\s\-\(\)]+$/',

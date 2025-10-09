@@ -24,15 +24,16 @@
         </div>
     </div>
 
-    @if($activeTab == 'transactions')
-        @if($canViewTransactions)
+    @if ($activeTab == 'transactions')
+        @if ($canViewTransactions)
             <!-- Transaction Summary -->
             <div class="row mb-4 ">
                 <div class="col-md-3">
                     <div class="rounded-sm border border-success">
                         <div class="p-2">
                             <div class="text-xs text-grey font-thin">Total Received</div>
-                            <div class="text-xl font-semibold">{{ number_format($transactionSummary['total_received']) }} TZS</div  >
+                            <div class="text-xl font-semibold">
+                                {{ number_format($transactionSummary['total_received']) }} TZS</div>
                         </div>
                     </div>
                 </div>
@@ -53,10 +54,11 @@
                     </div>
                 </div> --}}
                 <div class="col-md-3">
-                    <div class="rounded-sm border border-danger"> 
+                    <div class="rounded-sm border border-danger">
                         <div class="p-2">
                             <div class=" text-xs text-grey font-thin">Failed</div>
-                            <div class="text-xl font-semibold">{{ number_format($transactionSummary['total_failed']) }} TZS</div>
+                            <div class="text-xl font-semibold">{{ number_format($transactionSummary['total_failed']) }}
+                                TZS</div>
                         </div>
                     </div>
                 </div>
@@ -69,9 +71,9 @@
                 </div>
                 <div class="card-body">
                     <!-- Filters -->
-                    <div class="mb-3">
+                    {{-- <div class="mb-3">
                         <div class="form-row">
-                            {{-- <div class="col-md-2">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label for="transaction_status">Status</label>
                                     <select class="form-control" id="transaction_status" wire:model="transaction_status">
@@ -82,13 +84,13 @@
                                         <option value="failed">Failed</option>
                                     </select>
                                 </div>
-                            </div> --}}
+                            </div>
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="disbursement_batch_id">Disburse. Batch</label>
                                     <select class="form-control" id="disbursement_batch_id" wire:model="disbursement_batch_id">
                                         <option value="">All Batches</option>
-                                        @foreach($disbursementBatches as $batch)
+                                        @foreach ($disbursementBatches as $batch)
                                             <option value="{{ $batch->id }}">{{ $batch->title }}</option>
                                         @endforeach
                                     </select>
@@ -117,10 +119,10 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> --}}
 
                     <!-- Transactions Table -->
-                    @if(count($transactions) > 0)
+                    @if (count($transactions) > 0)
                         <div class="table-responsive">
                             <table class="table table-striped">
                                 <thead>
@@ -134,7 +136,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($transactions as $transaction)
+                                    @foreach ($transactions as $transaction)
                                         <tr>
                                             <td>
                                                 <div>
@@ -152,11 +154,14 @@
                                                 {{ $transaction->transaction_reference ?? 'N/A' }}
                                             </td>
                                             <td>
-                                                <span class="badge {{
-                                                    $transaction->status == 'completed' ? 'bg-success' :
-                                                    ($transaction->status == 'processing' ? 'bg-info' :
-                                                    ($transaction->status == 'pending' ? 'bg-warning' : 'bg-danger'))
-                                                }}">
+                                                <span
+                                                    class="badge {{ $transaction->status == 'completed'
+                                                        ? 'bg-success'
+                                                        : ($transaction->status == 'processing'
+                                                            ? 'bg-info'
+                                                            : ($transaction->status == 'pending'
+                                                                ? 'bg-warning'
+                                                                : 'bg-danger')) }}">
                                                     {{ ucfirst($transaction->status) }}
                                                 </span>
                                             </td>
@@ -164,16 +169,14 @@
                                                 {{ $transaction->processed_at ? $transaction->processed_at->format('d M, Y H:i') : 'Not processed' }}
                                             </td>
                                             <td>
-                                                @if($transaction->status == 'failed' && $transaction->failure_reason)
-                                                    <button class="btn btn-sm btn-outline-danger"
-                                                        data-toggle="tooltip"
+                                                @if ($transaction->status == 'failed' && $transaction->failure_reason)
+                                                    <button class="btn btn-sm btn-outline-danger" data-toggle="tooltip"
                                                         title="{{ $transaction->failure_reason }}">
                                                         <i class="fa-solid fa-exclamation-triangle"></i>
                                                     </button>
                                                 @endif
-                                                @if($transaction->mno_response)
-                                                    <button class="btn btn-sm btn-outline-info"
-                                                        data-toggle="tooltip"
+                                                @if ($transaction->mno_response)
+                                                    <button class="btn btn-sm btn-outline-info" data-toggle="tooltip"
                                                         title="MNO Response: {{ $transaction->mno_response }}">
                                                         <i class="fa-solid fa-info-circle"></i>
                                                     </button>
@@ -191,7 +194,8 @@
                     @else
                         <div class="alert alert-info">
                             <i class="fa-solid fa-info-circle"></i>
-                            No disbursement transactions found for this fundi. Transactions are created automatically when disbursement batches are processed by administrators.
+                            No disbursement transactions found for this fundi. Transactions are created automatically
+                            when disbursement batches are processed by administrators.
                         </div>
                     @endif
                 </div>
@@ -204,7 +208,7 @@
         @endif
     @endif
 
-    @if($activeTab == 'site_visits')
+    @if ($activeTab == 'site_visits')
         <!-- Site Visits List -->
         <div class="card">
             <div class="card-header">
@@ -212,7 +216,7 @@
             </div>
             <div class="card-body">
                 <!-- Filters -->
-                <div class="mb-3">
+                {{-- <div class="mb-3">
                     <div class="form-row">
                         <div class="col-md-3">
                             <div class="form-group">
@@ -248,31 +252,35 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> --}}
 
                 <!-- Site Visits Table -->
-                @if(count($siteVisits) > 0)
+                @if (count($siteVisits) > 0)
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th>Date</th>
                                     <th>Site</th>
+                                    <th>Date</th>
                                     <th>Purpose</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($siteVisits as $visit)
+                                @foreach ($siteVisits as $visit)
                                     <tr>
+                                        <td>
+                                            <a href="{{ route('site-visit', $visit) }}" class="text-decoration-none">
+                                                <div class="visit-details">
+                                                    <span class="fw-semibold site-name">{{ $visit->site_name }}</span>
+                                                </div>
+                                            </a>
+                                        </td>
                                         <td>{{ $visit->visit_date->format('d M, Y') }}</td>
-                                        <td>{{ $visit->site->name ?? 'Unknown Site' }}</td>
                                         <td>{{ $visit->purpose ?? 'Site Visit' }}</td>
                                         <td>
-                                            <span class="badge {{
-                                                $visit->status == 'completed' ? 'bg-success' :
-                                                ($visit->status == 'pending' ? 'bg-warning' : 'bg-danger')
-                                            }}">
+                                            <span
+                                                class="badge {{ $visit->status == 'completed' ? 'bg-success' : ($visit->status == 'pending' ? 'bg-warning' : 'bg-danger') }}">
                                                 {{ ucfirst($visit->status) }}
                                             </span>
                                         </td>

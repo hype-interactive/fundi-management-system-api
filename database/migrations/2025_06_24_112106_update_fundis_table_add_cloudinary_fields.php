@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::table('fundis', function (Blueprint $table) {
             // Remove old profile_photo column if exists
-            if (Schema::hasColumn('fundis', 'profile_photo')) {
-                $table->dropColumn('profile_photo');
-            }
+            // if (Schema::hasColumn('fundis', 'profile_photo')) {
+            //     $table->dropColumn('profile_photo');
+            // }
 
             // Add Cloudinary fields
             $table->string('profile_photo_url')->nullable()->after('ranking');

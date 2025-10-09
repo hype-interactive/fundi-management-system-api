@@ -2,12 +2,12 @@
     <div class="avatar-wrapper mb-4">
         <div class="light-border">
             <div class="avatar">
-                {{-- @if ($fundi->profile_picture)
+                @if ($fundi->profile_picture_url)
                     <img src="{{ asset('storage/' . $fundi->profile_picture) }}" alt="Profile Picture">
                 @else
                     <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar">
-                @endif --}}
-                <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar">
+                @endif
+                {{-- <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar"> --}}
             </div>
         </div>
     </div>

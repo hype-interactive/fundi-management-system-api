@@ -16,11 +16,11 @@
                                 type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Operator's
                                 Information
                             </button>
-                            <button class="nav-link" id="nav-incentives-tab" data-toggle="tab" data-target="#nav-incentives"
+                            {{-- <button class="nav-link" id="nav-incentives-tab" data-toggle="tab" data-target="#nav-incentives"
                                 type="button" role="tab" aria-controls="nav-incentives"
                                 aria-selected="false">Incentives
                                 &
-                                Performance</button>
+                                Performance</button> --}}
                         </div>
                     </nav>
                     <div class="tab-content" id="nav-tabContent">
