@@ -295,27 +295,23 @@ class CloudinaryImageService
      * @param string $publicId
      * @return bool
      */
-    public function delete(string $publicId): bool
-    {
-        try {
-            Log::info('Attempting to delete image', ['public_id' => $publicId]);
+ public function delete(string $publicId): bool
+{
+    try {
+        Log::info('Attempting to delete image', ['public_id' => $publicId]);
 
-            $result = Cloudinary::destroy($publicId);
+        // Use the adminApi()->deleteAssets() method
+        $result = Cloudinary::adminApi()->deleteAssets([$publicId]);
 
-            // Convert result to array if it's an ApiResponse object
-            if (!is_array($result)) {
-                $result = $this->convertResponseToArray($result);
-            }
+        Log::info('Delete result', ['result' => $result]);
 
-            Log::info('Delete result', ['result' => $result]);
+        return !empty($result['deleted'][$publicId]) && $result['deleted'][$publicId] === 'deleted';
 
-            return isset($result['result']) && $result['result'] === 'ok';
-
-        } catch (Exception $e) {
-            Log::error('Cloudinary delete failed: ' . $e->getMessage(), ['public_id' => $publicId]);
-            return false;
-        }
+    } catch (Exception $e) {
+        Log::error('Cloudinary delete failed: ' . $e->getMessage(), ['public_id' => $publicId]);
+        return false;
     }
+}
 
     /**
      * Get optimized image URL with transformations
