@@ -52,7 +52,7 @@ class DisbursementForm extends Component
 
     public function loadAvailableFundis()
     {
-        $query = Fundi::where('status', 'approved')
+        $query = Fundi::where('status', 'active')
             ->whereNotNull('primary_phone');
 
         if ($this->search_fundi) {

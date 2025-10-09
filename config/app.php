@@ -123,4 +123,5 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'fundi_registration_pin' => env('FUNDI_REGISTRATION_PIN', '1234'),
 ];
