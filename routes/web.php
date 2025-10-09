@@ -140,8 +140,10 @@ Route::get('/app', function () {
 })->name('');
 
 //file download
-Route::get('/download-apk', function () {
-    return response()->download(public_path('apk/app-release.apk'), 'fundi-app.apk');
-})->name('download-apk');
+// Route::get('/download-apk', function () {
+//     return response()->download(public_path('apk/app-release.apk'), 'fundi-app.apk');
+// })->name('download-apk');
+
+Route::get('/download-apk', [App\Http\Controllers\APKController::class, 'download'])->name('download-apk');
 
 require __DIR__ . '/auth.php';
