@@ -31,7 +31,7 @@ class UserFactory extends Factory
             'phone' => $this->faker->phoneNumber(),
             'role_id' => $this->faker->numberBetween(2, 3),
             'status' => $this->faker->randomElement(['active', 'inactive']),
-            'profile_photo' => $this->faker->imageUrl(640, 480, 'people'),
+            // 'profile_photo' => $this->faker->imageUrl(640, 480, 'people'),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];

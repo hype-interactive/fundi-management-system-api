@@ -11,7 +11,7 @@
         </div>
     @endif
 
-    <div class="mb-3">
+    <div class="mb-5">
         <div class="btn-group" role="group">
             <button type="button" class="btn {{ $activeTab == 'transactions' ? 'btn-primary' : 'btn-secondary' }}"
                 wire:click="switchTab('transactions')">
@@ -27,12 +27,12 @@
     @if($activeTab == 'transactions')
         @if($canViewTransactions)
             <!-- Transaction Summary -->
-            <div class="row mb-4">
+            <div class="row mb-4 ">
                 <div class="col-md-3">
-                    <div class="card bg-grey text-white">
-                        <div class="card-body">
-                            <h6 class="card-title">Total Received</h6>
-                            <h4>{{ number_format($transactionSummary['total_received']) }} TZS</h4>
+                    <div class="rounded-sm border border-success">
+                        <div class="p-2">
+                            <div class="text-xs text-grey font-thin">Total Received</div>
+                            <div class="text-xl font-semibold">{{ number_format($transactionSummary['total_received']) }} TZS</div  >
                         </div>
                     </div>
                 </div>
@@ -53,10 +53,10 @@
                     </div>
                 </div> --}}
                 <div class="col-md-3">
-                    <div class="card bg-grey text-white">
-                        <div class="card-body">
-                            <h6 class="card-title">Failed</h6>
-                            <h4>{{ number_format($transactionSummary['total_failed']) }} TZS</h4>
+                    <div class="rounded-sm border border-danger"> 
+                        <div class="p-2">
+                            <div class=" text-xs text-grey font-thin">Failed</div>
+                            <div class="text-xl font-semibold">{{ number_format($transactionSummary['total_failed']) }} TZS</div>
                         </div>
                     </div>
                 </div>

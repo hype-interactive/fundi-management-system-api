@@ -22,6 +22,7 @@ class Fundi extends Model
         'transaction_phone',
         'ward_id',
         'ranking',
+        'profile_photo',
         'profile_photo_url',
         'profile_photo_public_id',
         'status',
