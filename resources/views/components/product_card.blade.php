@@ -38,7 +38,7 @@
     <div class="card-footer">
         <div class="product-actions">
             <button type="button" class="btn btn-sm btn-outline-primary"
-                wire:click.stop="setProduct({{ $product }})" data-toggle="modal" data-target="#createEditProduct">
+                wire:click="setProduct({{ $product }})" data-toggle="modal" data-target="#createEditProduct">
                 <i class="fa-solid fa-edit"></i> Edit
             </button>
 
