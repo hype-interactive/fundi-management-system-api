@@ -1,6 +1,6 @@
 <div class="legacy-fundis-table-wrapper">
     <!-- Filter Section -->
-    <div class="filters-section mb-4">
+    {{-- <div class="filters-section mb-4">
         <div class="card">
             <div class="card-body">
                 <div class="row">
@@ -51,7 +51,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     <!-- Stats Cards -->
     <div class="stats-cards mb-4">
