@@ -55,7 +55,6 @@ class CloudinaryImageService
             }
 
             throw new Exception('Unsupported file type: ' . get_class($file));
-
         } catch (Exception $e) {
             Log::error('Cloudinary upload failed: ' . $e->getMessage(), [
                 'file_type' => isset($file) ? get_class($file) : 'null',
@@ -282,7 +281,6 @@ class CloudinaryImageService
             }
 
             return $uploadResult;
-
         } catch (Exception $e) {
             Log::error('Cloudinary update failed: ' . $e->getMessage());
             return null;
@@ -295,23 +293,22 @@ class CloudinaryImageService
      * @param string $publicId
      * @return bool
      */
- public function delete(string $publicId): bool
-{
-    try {
-        Log::info('Attempting to delete image', ['public_id' => $publicId]);
+    public function delete(string $publicId): bool
+    {
+        try {
+            Log::info('Attempting to delete image', ['public_id' => $publicId]);
 
-        // Use the adminApi()->deleteAssets() method
-        $result = Cloudinary::adminApi()->deleteAssets([$publicId]);
+            // Use the adminApi()->deleteAssets() method
+            $result = Cloudinary::adminApi()->deleteAssets([$publicId]);
 
-        Log::info('Delete result', ['result' => $result]);
+            Log::info('Delete result', ['result' => $result]);
 
-        return !empty($result['deleted'][$publicId]) && $result['deleted'][$publicId] === 'deleted';
-
-    } catch (Exception $e) {
-        Log::error('Cloudinary delete failed: ' . $e->getMessage(), ['public_id' => $publicId]);
-        return false;
+            return !empty($result['deleted'][$publicId]) && $result['deleted'][$publicId] === 'deleted';
+        } catch (Exception $e) {
+            Log::error('Cloudinary delete failed: ' . $e->getMessage(), ['public_id' => $publicId]);
+            return false;
+        }
     }
-}
 
     /**
      * Get optimized image URL with transformations
@@ -335,7 +332,6 @@ class CloudinaryImageService
 
             // CORRECT - Use cloudinary_url instead:
             return Cloudinary::image($publicId, $transformations);
-
         } catch (Exception $e) {
             Log::error('Failed to generate optimized URL: ' . $e->getMessage());
             return '';
