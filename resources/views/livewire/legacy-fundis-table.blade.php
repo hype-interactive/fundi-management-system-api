@@ -442,7 +442,7 @@
                 <div class="toast-header">
                     <i class="fa-solid fa-${getToastIcon(type)} text-${type} mr-2"></i>
                     <strong class="mr-auto">${getToastTitle(type)}</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    <button type="button" class="btn-close" data-dismiss="toast"></button>
                 </div>
                 <div class="toast-body">
                     ${message}

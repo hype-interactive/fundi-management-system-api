@@ -18,13 +18,13 @@
                             $isCloudinary = false;
                         } else {
                             // Fallback - no valid photo URL
-                            $photoUrl = asset('images/placeholder-photo.jpg'); // Add a placeholder image
+                            $photoUrl = asset('images/no_image.jpg'); // Add a placeholder image
                         }
                     @endphp
                     <div class="photo-item">
                         <img src="{{ $photoUrl }}" alt="Site visit photo" class="img-fluid rounded photo-thumbnail"
-                            data-bs-toggle="modal" data-bs-target="#photoModal{{ $photo->id }}" loading="lazy"
-                            onerror="this.onerror=null; this.src='{{ asset('images/placeholder-photo.jpg') }}';">
+                            data-toggle="modal" data-target="#photoModal{{ $photo->id }}" loading="lazy"
+                            onerror="this.onerror=null; this.src='{{ asset('images/no_image.jpg') }}';">
 
                         <div class="photo-overlay">
                             <i class="fa-solid fa-search-plus"></i>
@@ -37,13 +37,13 @@
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title">Site Visit Photo</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    <button type="button" class="btn-close" data-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body text-center">
                                     <div class="photo-container">
                                         <img src="{{ $photoUrl }}" alt="Site visit photo"
                                             class="img-fluid modal-photo" loading="lazy"
-                                            onerror="this.onerror=null; this.src='{{ asset('images/placeholder-photo.jpg') }}';">
+                                            onerror="this.onerror=null; this.src='{{ asset('images/no_image.jpg') }}';">
                                     </div>
                                 </div>
                             </div>
