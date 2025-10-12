@@ -54,19 +54,15 @@
                                 <strong>Reference ID:</strong>
                                 {{ \App\Models\Fundi::find($registered_fundi_id)->unique_id ?? 'N/A' }}
                             </div>
-                            <p class="text-muted">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                Please keep this reference ID for your records.
-                                <br>The registration is pending approval by an administrator.
-                            </p>
+                            
                         @endif
 
                         <div class="mt-5">
                             <button wire:click="registerAnother" class="btn btn-custom btn-lg mr-2">
-                                <i class="fas fa-plus mr-2"></i>Register Another Fundi
+                                <i class="mr-2 mb-3"></i>Register Another
                             </button>
                             <button wire:click="logout" class="btn btn-outline-secondary btn-lg">
-                                <i class="fas fa-sign-out-alt mr-2"></i>Finish & Logout
+                                <i class="mr-2"></i>Logout
                             </button>
                         </div>
                     </div>
