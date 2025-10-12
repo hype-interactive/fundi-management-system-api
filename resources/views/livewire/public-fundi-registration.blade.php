@@ -6,13 +6,12 @@
                 <div class="card shadow">
                     <div class="card-header bg-custom text-white text-center">
                         <h4 class="mb-0">
-                            <i class="fas fa-lock mr-2"></i>Fundi Registration Access
+                            <i></i>Fundi Registration
                         </h4>
                     </div>
                     <div class="card-body p-5">
                         <div class="text-center mb-4">
-                            <i class="fas fa-user-plus fa-3x text-custom mb-3"></i>
-                            <p class="text-muted">Enter the registration PIN to continue</p>
+                            <i class="fas fa-lock fa-3x text-custom mb-3"></i>
                         </div>
 
                         <form wire:submit.prevent="verifyPin">
@@ -26,7 +25,7 @@
                             </div>
 
                             <button type="submit" class="btn btn-custom btn-block btn-lg mt-4">
-                                <i class="fas fa-sign-in-alt mr-2"></i>Verify & Continue
+                                <i ></i>Continue
                             </button>
                         </form>
 
@@ -82,7 +81,7 @@
                     <div class="card-header bg-custom text-white">
                         <div class="d-flex justify-content-between align-items-center">
                             <h4 class="mb-0">
-                                <i class="fas fa-user-plus mr-2"></i>Fundi Registration Form
+                                <i class="fas fa-user-plus mr-2"></i>Register Here
                             </h4>
                             <button wire:click="logout" class="btn btn-sm btn-outline-light">
                                 <i class="fas fa-sign-out-alt mr-1"></i>Logout
@@ -314,7 +313,7 @@
                                         <span class="spinner-border spinner-border-sm mr-2"></span>
                                         Processing...
                                     @else
-                                        <i class="fas fa-save mr-2"></i>Register Fundi
+                                        <i></i>Submit
                                     @endif
                                 </button>
                             </div>
@@ -326,6 +325,12 @@
     @endif
 
     <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #01aef3 0%, #1c1a6d 50%, #1c1a6d 100%);
+            min-height: 100vh;
+            color: #333;
+        }
         .bg-custom {
             background-color: #007bff;
         }
