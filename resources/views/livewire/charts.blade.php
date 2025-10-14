@@ -14,7 +14,7 @@
         <div class="col-md-3">
             <div class="summary dark-bg">
                 @include('components.charts.chart-summary')
-                @include('components.charts.chart-filters')
+                {{-- @include('components.charts.chart-filters') --}}
             </div>
         </div>
     </div>
@@ -39,7 +39,7 @@
                 labels: @json($fundiData['labels'] ?? []),
                 data: @json($fundiData['data'] ?? [])
             };
-            
+
             let siteVisitData = {
                 labels: @json($siteVisitData['labels'] ?? []),
                 data: @json($siteVisitData['data'] ?? [])
