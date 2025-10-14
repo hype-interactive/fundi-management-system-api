@@ -107,7 +107,8 @@
             margin-bottom: 1rem;
         }
 
-        td, th {
+        td,
+        th {
             border: 1px solid #ddd;
             padding: 0.75rem;
             text-align: left;
@@ -121,15 +122,25 @@
 
         .photos-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(2, 1fr);
+            /* 2 columns for better layout */
+            gap: 1.5rem;
             margin-top: 1rem;
         }
 
         .photo-item {
             text-align: center;
             border: 1px solid #ddd;
-            padding: 0.5rem;
+            padding: 1rem;
+            border-radius: 4px;
+            background-color: #fff;
+            page-break-inside: avoid;
+            /* Prevent photos from breaking across pages */
+        }
+
+        .photo-item img {
+            display: block;
+            margin: 0 auto;
             border-radius: 4px;
         }
 
@@ -241,7 +252,8 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Visit Date:</span>
-                <span class="info-value">{{ $siteVisit->visit_date ? $siteVisit->visit_date->format('d/m/Y') : '15/05/2025' }}</span>
+                <span
+                    class="info-value">{{ $siteVisit->visit_date ? $siteVisit->visit_date->format('d/m/Y') : '15/05/2025' }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Operator:</span>
@@ -250,7 +262,7 @@
             <div class="info-item">
                 <span class="info-label">Status:</span>
                 <span class="info-value">
-                    @if(($siteVisit->status ?? 'Approved') == 'Approved')
+                    @if (($siteVisit->status ?? 'Approved') == 'Approved')
                         <span class="status-approved">Approved</span>
                     @elseif(($siteVisit->status ?? 'Approved') == 'Rejected')
                         <span class="status-rejected">Rejected</span>
@@ -296,121 +308,110 @@
     </div>
 
     <!-- Products Section -->
-    @if(isset($siteVisit) && $siteVisit->products->count() > 0)
-    <div class="section">
-        <div class="section-title">Products Used</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Product Name</th>
-                    <th>Quantity</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($siteVisit->products as $product)
-                <tr>
-                    <td>{{ $product->name }}</td>
-                    <td>{{ $product->pivot->quantity }}</td>
-                    <td>{{ $product->pivot->notes ?? '-' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+    @if (isset($siteVisit) && $siteVisit->products->count() > 0)
+        <div class="section">
+            <div class="section-title">Products Used</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Quantity</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($siteVisit->products as $product)
+                        <tr>
+                            <td>{{ $product->name }}</td>
+                            <td>{{ $product->pivot->quantity }}</td>
+                            <td>{{ $product->pivot->notes ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     @endif
 
     <!-- Fundis Section -->
-    @if(isset($siteVisit) && $siteVisit->fundis->count() > 0)
-    <div class="section">
-        <div class="section-title">Mafundi (Skilled Workers)</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Fundi Name</th>
-                    <th>Specialization</th>
-                    <th>Contact</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($siteVisit->fundis as $fundi)
-                <tr>
-                    <td>{{ $fundi->name }}</td>
-                    <td>{{ $fundi->specialization ?? '-' }}</td>
-                    <td>{{ $fundi->phone ?? '-' }}</td>
-                    <td>{{ $fundi->pivot->notes ?? '-' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+    @if (isset($siteVisit) && $siteVisit->fundis->count() > 0)
+        <div class="section">
+            <div class="section-title">Mafundi (Skilled Workers)</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fundi Name</th>
+                        <th>Specialization</th>
+                        <th>Contact</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($siteVisit->fundis as $fundi)
+                        <tr>
+                            <td>{{ $fundi->full_name }}</td>
+                            <td>{{ $fundi->fundi_ranking ?? '-' }}</td>
+                            <td>{{ $fundi->primary_phone ?? '-' }}</td>
+                            <td>{{ $fundi->pivot->notes ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     @endif
 
     <!-- Photos Section -->
     <div class="section">
         <div class="section-title">Site Photos</div>
-        @if(isset($siteVisit) && $siteVisit->photos->count() > 0)
-        <div class="photos-grid">
-            @foreach($siteVisit->photos as $photo)
-            <div class="photo-item">
-                <img src="{{ $photo->photo_path }}" alt="Site Photo" style="width: 100%; height: 150px; object-fit: cover;">
-                <div style="font-size: 12px; color: #666; margin-top: 0.5rem;">
-                    Photo {{ $loop->iteration }}
-                </div>
+        @if (isset($processedPhotos) && $processedPhotos->count() > 0)
+            <div class="photos-grid">
+                @foreach ($processedPhotos as $photo)
+                    <div class="photo-item">
+                        <img src="{{ $photo['base64'] }}" alt="Site Photo"
+                            style="width: 100%; height: auto; max-height: 300px; object-fit: contain; border-radius: 4px; background-color: #f8f9fa;">
+                        <div style="font-size: 12px; color: #666; margin-top: 0.5rem; text-align: center;">
+                            Photo {{ $loop->iteration }}
+                        </div>
+                    </div>
+                @endforeach
             </div>
-            @endforeach
-        </div>
         @else
-        <div class="photos-grid">
-            <div class="photo-item">
-                <div class="photo-placeholder">
-                    Site Overview Photo
+            <div class="photos-grid">
+                <div class="photo-item">
+                    <div class="photo-placeholder">
+                        No Photos Available
+                    </div>
+                    <div style="font-size: 12px; color: #666;">No photos attached</div>
                 </div>
-                <div style="font-size: 12px; color: #666;">Photo 1</div>
             </div>
-            <div class="photo-item">
-                <div class="photo-placeholder">
-                    Foundation Work
-                </div>
-                <div style="font-size: 12px; color: #666;">Photo 2</div>
-            </div>
-            <div class="photo-item">
-                <div class="photo-placeholder">
-                    Materials Storage
-                </div>
-                <div style="font-size: 12px; color: #666;">Photo 3</div>
-            </div>
-        </div>
         @endif
     </div>
 
     <!-- Approval Information -->
-    @if(isset($siteVisit) && $siteVisit->status == 'approved' && $siteVisit->approved_by)
-    <div class="section">
-        <div class="section-title">Approval Information</div>
-        <div class="info-grid">
-            <div class="info-item">
-                <span class="info-label">Approved By:</span>
-                <span class="info-value">{{ $siteVisit->approver->name }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Approval Date:</span>
-                <span class="info-value">{{ $siteVisit->approved_at->format('d/m/Y H:i') }}</span>
+    @if (isset($siteVisit) && $siteVisit->status == 'approved' && $siteVisit->approved_by)
+        <div class="section">
+            <div class="section-title">Approval Information</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Approved By:</span>
+                    <span class="info-value">{{ $siteVisit->approver->name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Approval Date:</span>
+                    <span class="info-value">{{ $siteVisit->approved_at->format('d/m/Y H:i') }}</span>
+                </div>
             </div>
         </div>
-    </div>
     @endif
 
     <!-- Rejection Reason (if applicable) -->
-    @if(isset($siteVisit) && $siteVisit->status == 'rejected' && $siteVisit->rejection_reason)
-    <div class="section">
-        <div class="section-title">Rejection Information</div>
-        <div class="rejection-reason">
-            <strong>Reason for Rejection:</strong><br>
-            {{ $siteVisit->rejection_reason }}
+    @if (isset($siteVisit) && $siteVisit->status == 'rejected' && $siteVisit->rejection_reason)
+        <div class="section">
+            <div class="section-title">Rejection Information</div>
+            <div class="rejection-reason">
+                <strong>Reason for Rejection:</strong><br>
+                {{ $siteVisit->rejection_reason }}
+            </div>
         </div>
-    </div>
     @endif
 
     <!-- Signature Section -->
@@ -429,8 +430,9 @@
     <!-- Footer -->
     <div class="footer">
         <p><strong>Magic Builders - Site Visit Report</strong></p>
-        <p>Generated on {{ date('Y-m-d H:i:s') }} | This document is confidential and intended for internal use only.</p>
-        <p>For inquiries, contact: info@magicbuilders.com | +255 XX XXX XXXX</p>
+        <p>Generated on {{ date('Y-m-d H:i:s') }} | This document is confidential and intended for internal use only.
+        </p>
+        <p>For inquiries, contact: tech@magicbuilders.co.tz | +255 XX XXX XXXX</p>
     </div>
 </body>
 

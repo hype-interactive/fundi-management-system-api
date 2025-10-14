@@ -47,6 +47,11 @@ class Fundi extends Model
         return trim("{$this->fname} {$this->mname} {$this->lname}");
     }
 
+    public function getFundiRankingAttribute()
+    {
+        return trim($this->ranking == 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi');
+    }
+
     /**
      * Get the approval status with proper priority handling
      * Priority order: Rejected > Approved > Pending

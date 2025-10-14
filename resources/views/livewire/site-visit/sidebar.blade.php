@@ -61,9 +61,25 @@
                 Edit Visit
             </a> --}}
 
-            <button class="btn btn-info btn-sm" wire:click="exportVisit">
+            {{-- <button class="btn btn-info btn-sm" wire:click="exportVisit">
                 <i class="fa-solid fa-download me-1"></i>
                 Export PDF
+            </button> --}}
+
+            <button
+                class="btn btn-info btn-sm"
+                wire:click="exportVisit"
+                wire:loading.attr="disabled"
+                wire:target="exportVisit"
+            >
+                <span wire:loading.remove wire:target="exportVisit">
+                    <i class="fa-solid fa-download me-1"></i>
+                    Export PDF
+                </span>
+                <span wire:loading wire:target="exportVisit">
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    Generating PDF...
+                </span>
             </button>
         </div>
     </div>

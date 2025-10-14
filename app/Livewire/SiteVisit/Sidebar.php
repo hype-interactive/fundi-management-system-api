@@ -5,11 +5,14 @@ namespace App\Livewire\SiteVisit;
 use Livewire\Component;
 use App\Models\SiteVisit;
 use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
 class Sidebar extends Component
 {
     public SiteVisit $siteVisit;
+
+    public $isExporting = false;
 
     protected $listeners = ['visitStatusChanged' => '$refresh'];
 
@@ -90,6 +93,8 @@ class Sidebar extends Component
     public function exportVisit()
     {
         try {
+            $this->isExporting = true; // Set loading state
+
             set_time_limit(300); // Set execution time to 5min
             ini_set("memory_limit", "1000M");
 
@@ -104,12 +109,64 @@ class Sidebar extends Component
                     'approver'
                 ])->find($this->siteVisit->id);
 
+                // Convert photos to base64 for PDF embedding
+                $processedPhotos = collect();
+
+                if ($siteVisit->photos->count() > 0) {
+                    $processedPhotos = $siteVisit->photos->map(function ($photo) {
+                        try {
+
+                            // Validate photo_url exists and is not empty
+                            if (empty($photo->photo_url)) {
+                                Log::warning("Photo {$photo->id} has empty photo_url");
+                                return null;
+                            }
+
+                            // Validate URL format
+                            if (!filter_var($photo->photo_url, FILTER_VALIDATE_URL)) {
+                                Log::warning("Photo {$photo->id} has invalid URL: {$photo->photo_url}");
+                                return null;
+                            }
+
+                            // Get image contents from URL
+                            $imageData = @file_get_contents($photo->photo_url);
+
+                            if ($imageData === false || empty($imageData)) {
+                                Log::error("Failed to fetch photo {$photo->id} from URL: {$photo->photo_url}");
+                                return null;
+                            }
+
+                            // Detect image type
+                            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                            $mimeType = $finfo->buffer($imageData);
+
+                            // Validate it's actually an image
+                            if (!str_starts_with($mimeType, 'image/')) {
+                                Log::error("Photo {$photo->id} is not a valid image. MIME type: {$mimeType}");
+                                return null;
+                            }
+
+                            // Convert to base64
+                            $base64 = base64_encode($imageData);
+
+                            return [
+                                'base64' => "data:{$mimeType};base64,{$base64}",
+                                'original_url' => $photo->photo_url
+                            ];
+                        } catch (\Exception $e) {
+                            Log::error("Failed to process photo {$photo->id}: " . $e->getMessage());
+                        }
+
+                        return null;
+                    })->filter(); // Remove null values
+                }
+
                 // Prepare data for the PDF template
                 $title = "Site Visit Report - {$siteVisit->site_name}";
                 $date = now()->format('D, M d, Y');
 
                 // Generate the HTML view using the site visit report template
-                $html_view = view('documents.site-visit-report', compact('siteVisit', 'title', 'date'))->render();
+                $html_view = view('documents.site-visit-report', compact('siteVisit', 'title', 'date', 'processedPhotos'))->render();
 
                 // Create PDF instance
                 $pdf = app('dompdf.wrapper');
@@ -124,6 +181,8 @@ class Sidebar extends Component
         } catch (\Exception $e) {
             session()->flash('error', 'Failed to export site visit report: ' . $e->getMessage());
             return;
+        } finally {
+            $this->isExporting = false; // Reset loading state
         }
     }
 
