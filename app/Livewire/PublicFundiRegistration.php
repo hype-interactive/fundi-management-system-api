@@ -84,7 +84,7 @@ class PublicFundiRegistration extends Component
             'pin_length' => strlen($this->pin),
             'config_pin' => config('app.fundi_registration_pin', 'NOT_SET')
         ]);
-        
+
         // Rate limiting to prevent brute force
         $key = 'fundi-registration:' . request()->ip();
 
@@ -308,9 +308,9 @@ class PublicFundiRegistration extends Component
                 'mname' => $this->mname,
                 'lname' => $this->lname,
                 'gender' => $this->gender,
-                'nida_number' => $this->nida_number,
-                'primary_phone' => $this->primary_phone,
-                'transaction_phone' => $this->transaction_phone,
+                'nida_number' => !empty($this->nida_number) ? $this->nida_number : null,
+                'primary_phone' => $this->formatPhoneNumber($this->primary_phone),
+                'transaction_phone' => $this->transaction_phone ? $this->formatPhoneNumber($this->transaction_phone) : null,
                 'ward_id' => $this->ward_id,
                 'ranking' => $this->ranking,
                 'profile_photo_url' => $photo_url,
@@ -422,5 +422,28 @@ class PublicFundiRegistration extends Component
     public function render()
     {
         return view('livewire.public-fundi-registration');
+    }
+
+    /**
+     * Format phone number to include +255 prefix
+     *
+     * @param string $phone
+     * @return string
+     */
+    private function formatPhoneNumber($phone)
+    {
+        // Remove any non-numeric characters
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Remove leading zero if present
+        $phone = ltrim($phone, '0');
+
+        // If it already starts with 255, add the + prefix
+        if (substr($phone, 0, 3) === '255') {
+            return '+' . $phone;
+        }
+
+        // Otherwise, prepend +255
+        return '+255' . $phone;
     }
 }
