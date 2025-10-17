@@ -67,10 +67,10 @@ jobs:
         php-version: 8.3
 
     - name: Install Dependencies
-      run: composer install --no-dev --optimize-autoloader
+      run: composer install --no-dev --optimize-autoloader --no-scripts
 
     - name: Create deployment archive
-      run: tar -czf app.tar.gz --exclude='.git' --exclude='.github' --exclude='node_modules' --exclude='tests' .
+      run: tar --warning=no-file-changed -czf app.tar.gz --exclude='.git' --exclude='.github' --exclude='node_modules' --exclude='tests' . || [[ $? -eq 1 ]]
 
     - name: Deploy to Production Server
       uses: appleboy/ssh-action@v1.0.0
@@ -158,10 +158,10 @@ jobs:
         php-version: 8.3
 
     - name: Install Dependencies
-      run: composer install --optimize-autoloader
+      run: composer install --optimize-autoloader --no-scripts
 
     - name: Create deployment archive
-      run: tar -czf app.tar.gz --exclude='.git' --exclude='.github' --exclude='node_modules' --exclude='tests' .
+      run: tar --warning=no-file-changed -czf app.tar.gz --exclude='.git' --exclude='.github' --exclude='node_modules' --exclude='tests' . || [[ $? -eq 1 ]]
 
     - name: Deploy to Development Server
       uses: appleboy/ssh-action@v1.0.0
