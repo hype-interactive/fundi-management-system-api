@@ -1,4 +1,4 @@
-name: Deploy Laravel Application
+name: Deploy Fundi Management System API
 
 on:
   push:
