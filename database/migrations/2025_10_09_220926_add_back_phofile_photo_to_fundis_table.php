@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('fundis', function (Blueprint $table) {
-            $table->string('profile_photo')->nullable();
+            // Only add column if it doesn't exist
+            if (!Schema::hasColumn('fundis', 'profile_photo')) {
+                $table->string('profile_photo')->nullable();
+            }
         });
     }
 
