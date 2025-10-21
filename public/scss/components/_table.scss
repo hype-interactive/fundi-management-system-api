@@ -7,8 +7,16 @@
             th {
                 color: color(dark);
                 font-size: 15px;
+                vertical-align: middle; // Add this
 
                 @include font-family(semi_bold);
+
+                // Checkbox column styling
+                &:first-child {
+                    width: 50px;
+                    text-align: center;
+                    padding: 0.75rem 0.5rem;
+                }
 
                 .avatar-circle {
                     background: color(primary_200);
@@ -28,14 +36,52 @@
         td {
             font-size: 13px;
             height: 30px;
-            a{
+            vertical-align: middle; // Add this
+
+            // Checkbox column styling
+            &:first-child {
+                width: 50px;
+                text-align: center;
+                padding: 0.75rem 0.5rem;
+            }
+
+            a {
                 color: color(active);
                 @include font-family(base);
-                &:hover{
+                &:hover {
                     color: color(primary) !important;
                 }
             }
+        }
 
+        // Checkbox styling
+        .form-check-input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+
+            &:hover {
+                border-color: color(primary);
+            }
+
+            &:checked {
+                background-color: color(primary);
+                border-color: color(primary);
+            }
+
+            &:focus {
+                box-shadow: 0 0 0 0.2rem rgba(color(primary), 0.25);
+                border-color: color(primary);
+            }
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: 0.5;
+            }
         }
 
         // Responsive column hiding
@@ -51,7 +97,6 @@
             }
         }
     }
-
 
     // Loading state
     &.loading {

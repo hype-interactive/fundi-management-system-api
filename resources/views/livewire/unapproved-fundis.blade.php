@@ -1,8 +1,33 @@
 <div wire:poll.keep-alive>
+    {{-- Bulk Actions Bar --}}
+    @if (count($selectedFundis) > 0)
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
+            <div>
+                <i class="fa-solid fa-check-double me-2"></i>
+                <strong>{{ count($selectedFundis) }}</strong> fundi(s) selected
+            </div>
+            <div>
+                <button wire:click="bulkApprove" class="btn btn-success btn-sm me-2">
+                    <i class="fa-solid fa-check me-1"></i>
+                    Approve Selected
+                </button>
+                <button wire:click="bulkDelete" class="btn btn-danger btn-sm"
+                    onclick="return confirm('Are you sure you want to delete selected fundis?')">
+                    <i class="fa-solid fa-trash me-1"></i>
+                    Delete Selected
+                </button>
+            </div>
+        </div>
+    @endif
+
     <div class="custom-table">
         <table class="table">
             <thead class="thead-light">
                 <tr>
+                    <th scope="col" style="width: 50px;">
+                        <input type="checkbox" wire:model.live="selectAll" class="form-check-input"
+                            @if (count($fundis) === 0) disabled @endif>
+                    </th>
                     <th scope="col">
                         <a wire:click="$refresh">
                             <i class="fa-solid fa-arrows-rotate"></i>
@@ -21,6 +46,10 @@
             <tbody>
                 @forelse ($fundis as $fundi)
                     <tr>
+                        <td>
+                            <input type="checkbox" wire:model.live="selectedFundis" value="{{ $fundi->id }}"
+                                class="form-check-input">
+                        </td>
                         <th scope="row">
                             <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle">
                                 <i class="fa-solid fa-user"></i>

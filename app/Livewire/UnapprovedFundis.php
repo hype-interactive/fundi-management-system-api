@@ -7,19 +7,36 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class UnapprovedFundis extends Component
 {
     use WithPagination, LocationTrait;
 
     public $district;
-    protected $paginationTheme = 'bootstrap';
+    public $selectedFundis = [];
+    public $selectAll = false;
 
+    protected $paginationTheme = 'bootstrap';
     protected $listeners = ['refreshFundis' => '$refresh'];
+
+    public function updatedSelectAll($value)
+    {
+        if ($value) {
+            $this->selectedFundis = $this->fetch()->pluck('id')->toArray();
+        } else {
+            $this->selectedFundis = [];
+        }
+    }
 
     public function approve(int $fundi_id)
     {
         $fundi = Fundi::find($fundi_id);
+
+        if (!$fundi) {
+            session()->flash('error', 'Fundi not found');
+            return;
+        }
 
         // Check for duplicate
         if (Fundi::where([
@@ -35,7 +52,7 @@ class UnapprovedFundis extends Component
             return;
         }
 
-        Fundi::find($fundi_id)->update([
+        $fundi->update([
             "approved_at" => now(),
             "approved_by" => Auth::id(),
             "status" => "active"
@@ -50,7 +67,7 @@ class UnapprovedFundis extends Component
             Fundi::where('id', $fundi_id)->delete();
             // TODO: Add log for action
         } catch (\Throwable $th) {
-            // Log error silently
+            session()->flash('error', 'Failed to delete fundis');
         }
     }
 
