@@ -60,7 +60,36 @@ class UnapprovedFundis extends Component
 
         // addLog('edit', "Fundi [" . $fundi_id . "] approved");
     }
+public function reject(int $fundi_id)
+    {
+        $fundi = Fundi::find($fundi_id);
 
+        if (!$fundi) {
+            session()->flash('error', 'Fundi not found');
+            return;
+        }
+
+        // Check for duplicate
+        if (Fundi::where([
+                ['primary_phone', $fundi->primary_phone],
+                ['transaction_phone',$fundi->transaction_phone],
+                ['ward_id', $fundi->ward_id],
+            ])->where('id', '!=', $fundi_id)
+            ->whereNotNull('approved_at')
+            ->count() > 0) {
+            session()->flash('message', 'Fundi already exists');
+            $fundi->delete();
+            return;
+        }
+
+        $fundi->update([
+            "status" => "inactive"
+        ]);
+
+        session()->flash('message', 'Registration rejected');
+
+        // addLog('edit', "Fundi [" . $fundi_id . "] approved");
+    }
     function bulkApprove(){
         foreach ($this->selectedFundis as $fundi) {
             $this->approve($fundi);
@@ -79,6 +108,8 @@ class UnapprovedFundis extends Component
             session()->flash('error', 'Failed to delete fundis');
         }
     }
+
+
 
     public function mount()
     {

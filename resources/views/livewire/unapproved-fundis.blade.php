@@ -92,6 +92,8 @@
                                     <i class="fa-solid fa-check text-success cursor-pointer"
                                         wire:click="approve({{ $fundi->id }})"></i>
                                     <i class="fa-solid fa-xmark text-danger ml-2 cursor-pointer"
+                                        wire:click="reject({{ $fundi->id }})"></i>
+                                    <i class="fa-solid fa-trash text-danger ml-2 cursor-pointer"
                                         wire:click="delete({{ $fundi->id }})"></i>
                                 </div>
                             </div>
