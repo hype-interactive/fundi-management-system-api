@@ -8,6 +8,8 @@ use Livewire\Component;
 use Livewire\Attributes\Url;
 use Livewire\WithPagination;
 use App\Traits\LocationTrait;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class FundisTable extends Component
 {
@@ -154,51 +156,71 @@ class FundisTable extends Component
     {
         $this->loadData();
 
-        $query = Fundi::with('ward.district.region');
+        $query = Fundi::query()
+            ->select([
+                'fundis.id',
+                'fundis.fname',
+                'fundis.mname',
+                'fundis.lname',
+                'fundis.gender',
+                'fundis.primary_phone',
+                'fundis.transaction_phone',
+                'fundis.nida_number',
+                'fundis.ranking',
+                'fundis.status',
+                'fundis.ward_id',
+                'fundis.approved_at',
+                'fundis.rejected_at',
+                'fundis.approved_by',
+                'fundis.created_by',
+                'fundis.created_at',
+                'fundis.legacy_match',
+                'fundis.legacy_id',
+                // Add computed full_name to avoid N+1 on accessor
+                DB::raw("CONCAT_WS(' ', fname, mname, lname) as full_name")
+            ])
+            ->with([
+                'ward:id,name,district_id',
+                'ward.district:id,name,region_id',
+                'ward.district.region:id,name'
+            ]);
 
         // Apply location-based filters using the trait method
         $this->applyLocationFiltersToQuery($query, $this->region, $this->district, $this->ward);
 
+        // Optimize search with indexes
+        if ($this->search_key) {
+            $searchTerm = '%' . $this->search_key . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereRaw("CONCAT_WS(' ', fname, mname, lname) LIKE ?", [$searchTerm])
+                    ->orWhere('primary_phone', 'LIKE', $searchTerm)
+                    ->orWhere('transaction_phone', 'LIKE', $searchTerm)
+                    ->orWhere('nida_number', 'LIKE', $searchTerm);
+            });
+        }
+
+        // Apply filters efficiently
         return $query
-            ->when($this->search_key, function ($query, $search_key) {
-                $query->whereRaw("concat(fname, ' ', mname, ' ', lname) like ?", ['%' . $search_key . '%'])
-                    ->orWhere('primary_phone', 'like', '%' . $search_key . '%')
-                    ->orWhere('transaction_phone', 'like', '%' . $search_key . '%');
-            })
-            // ->when($this->ward, function ($query, $ward) {
-            //     $query->where('ward_id', $ward);
-            // })
-            ->when($this->gender, function ($query, $gender) {
-                $query->where('gender', $gender);
-            })
-            ->when($this->ranking, function ($query, $ranking) {
-                $query->where('ranking', $ranking);
-            })
-            ->when($this->approval_status, function ($query, $approval_status) {
+            ->when($this->gender, fn($q, $gender) => $q->where('fundis.gender', $gender))
+            ->when($this->ranking, fn($q, $ranking) => $q->where('fundis.ranking', $ranking))
+            ->when($this->approval_status, function ($q, $approval_status) {
                 if ($approval_status === 'approved') {
-                    $query->whereNotNull('approved_at')->whereNull('rejected_at');
+                    $q->whereNotNull('fundis.approved_at')->whereNull('fundis.rejected_at');
                 } elseif ($approval_status === 'rejected') {
-                    $query->whereNotNull('rejected_at');
+                    $q->whereNotNull('fundis.rejected_at');
                 } elseif ($approval_status === 'pending') {
-                    $query->whereNull('approved_at')->whereNull('rejected_at');
+                    $q->whereNull('fundis.approved_at')->whereNull('fundis.rejected_at');
                 }
             })
-            ->when($this->created_by, function ($query, $created_by) {
-                $query->where('created_by', $created_by);
-            })
-            ->when($this->approved_by, function ($query, $approved_by) {
-                $query->where('approved_by', $approved_by);
-            })
-            ->when($this->legacy_match, function ($query, $legacy_match) {
-                $query->where('legacy_match', $legacy_match);
-            })
-            // ->orderBy('fname', 'asc')
-            ->latest('created_at');
+            ->when($this->created_by, fn($q, $created_by) => $q->where('fundis.created_by', $created_by))
+            ->when($this->approved_by, fn($q, $approved_by) => $q->where('fundis.approved_by', $approved_by))
+            ->when($this->legacy_match, fn($q, $legacy_match) => $q->where('fundis.legacy_match', $legacy_match))
+            ->latest('fundis.created_at');
     }
 
     public function loadData()
     {
-        // Load regions based on user permissions
+        // Load regions based on user permissions (with caching)
         $this->regions = $this->getAccessibleRegions();
 
         // Load districts based on current region selection and user permissions
@@ -207,11 +229,38 @@ class FundisTable extends Component
         // Load wards based on current district selection
         $this->wards = $this->getWards($this->district);
 
+        // Static options - no need to set every time
         $this->gender_options = ['male' => 'Male', 'female' => 'Female'];
         $this->ranking_options = ['fundi_kuu' => 'Fundi Mkuu', 'fundi_msaidizi' => 'Fundi'];
-        $this->approval_status_options = ['approved' => 'Approved', 'pending' => 'Pending Approval', 'rejected' => 'Rejected'];
-        $this->creators = $this->getUsers('created_by');
-        $this->approvers = $this->getUsers('approved_by');
+        $this->approval_status_options = [
+            'approved' => 'Approved',
+            'pending' => 'Pending Approval',
+            'rejected' => 'Rejected'
+        ];
+
+        // Cache user lists for better performance
+        $this->creators = $this->getCachedUsers('created_by');
+        $this->approvers = $this->getCachedUsers('approved_by');
+    }
+
+    /**
+     * Get cached users who have created or approved fundis
+     */
+    private function getCachedUsers(string $type): \Illuminate\Support\Collection
+    {
+        $cacheKey = "fundis_users_{$type}";
+        
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($type) {
+            return \App\Models\User::select('id', 'fname', 'lname', 'email')
+                ->whereIn('id', function ($query) use ($type) {
+                    $query->select($type)
+                        ->from('fundis')
+                        ->whereNotNull($type)
+                        ->distinct();
+                })
+                ->orderBy('fname')
+                ->get();
+        });
     }
 
     /**
@@ -219,20 +268,11 @@ class FundisTable extends Component
      */
     private function getAllDistricts()
     {
-        return \App\Models\District::orderBy('name')->get();
-    }
-
-    /**
-     * Get users who have created or approved fundis
-     */
-    private function getUsers(string $type)
-    {
-        return \App\Models\User::whereIn('id', function ($query) use ($type) {
-            $query->select($type)
-                ->from('fundis')
-                ->whereNotNull($type)
-                ->distinct();
-        })->get();
+        return Cache::remember('all_districts', now()->addHours(24), function () {
+            return \App\Models\District::select('id', 'name', 'region_id')
+                ->orderBy('name')
+                ->get();
+        });
     }
 
     /**
@@ -249,47 +289,57 @@ class FundisTable extends Component
     public function handleFundiUpdated($message = 'Fundi updated successfully.')
     {
         $this->showSuccessAlert('Success', $message);
+        $this->clearUserCache(); // Clear cache when data changes
         $this->refreshData();
     }
 
     /**
-     * Download the PDF of fundis
+     * Clear user-related caches
+     */
+    private function clearUserCache()
+    {
+        Cache::forget('fundis_users_created_by');
+        Cache::forget('fundis_users_approved_by');
+    }
+
+    /**
+     * Download the PDF of fundis - optimized for large datasets
      */
     public function downloadFundiPDF()
     {
-        set_time_limit(300); // execution time to 5min
+        set_time_limit(300);
         ini_set("memory_limit", "1000M");
 
         return response()->streamDownload(function () {
-            // Get the fundis query
-            $fundis = $this->getFundiQuery()->get();
-
-            // Create an array of rows
+            // Use chunk to avoid memory issues with large datasets
+            $query = $this->getFundiQuery();
+            
             $rows = [];
-            foreach ($fundis as $fundi) {
-                $location = $this->getLocationBreadcrumb(
-                    $fundi->ward_id,
-                    $fundi->ward->district_id,
-                    $fundi->ward->district->region_id
-                );
+            $query->chunk(500, function ($fundis) use (&$rows) {
+                foreach ($fundis as $fundi) {
+                    $location = $this->getLocationBreadcrumb(
+                        $fundi->ward_id,
+                        $fundi->ward->district_id,
+                        $fundi->ward->district->region_id
+                    );
 
-                $rows[] = [
-                    'name' => $fundi->full_name,
-                    'address' => $location,
-                    'primary_phone' => $fundi->primary_phone,
-                    'transaction_phone' => $fundi->transaction_phone,
-                    'gender' => ucfirst($fundi->gender),
-                    'ranking' => $this->ranking_options[$fundi->ranking] ?? 'N/A',
-                    'status' => $fundi->approved_at ? 'Approved' : 'Pending',
-                ];
-            }
+                    $rows[] = [
+                        'name' => $fundi->full_name,
+                        'address' => $location,
+                        'primary_phone' => $fundi->primary_phone,
+                        'transaction_phone' => $fundi->transaction_phone,
+                        'gender' => ucfirst($fundi->gender),
+                        'ranking' => $this->ranking_options[$fundi->ranking] ?? 'N/A',
+                        'status' => $fundi->approved_at ? 'Approved' : 'Pending',
+                    ];
+                }
+            });
 
             $title = 'Mafundi | Magic Builders';
             $date = date('D, M/d/Y');
             $html_view = view('documents.fundis', compact('title', 'date', 'rows'))->render();
             $pdf = app('dompdf.wrapper');
             $pdf->loadHTML($html_view);
-
             $pdf->setPaper('A4', 'landscape');
 
             echo $pdf->stream();
@@ -297,13 +347,11 @@ class FundisTable extends Component
     }
 
     /**
-     * Export current filtered data to Excel
+     * Export current filtered data to Excel - optimized for large datasets
      */
     public function exportToExcel()
     {
         return response()->streamDownload(function () {
-            $fundis = $this->getFundiQuery()->get();
-
             $headers = [
                 'Name',
                 'Gender',
@@ -324,24 +372,29 @@ class FundisTable extends Component
             $handle = fopen('php://output', 'w');
             fputcsv($handle, $headers);
 
-            foreach ($fundis as $fundi) {
-                fputcsv($handle, [
-                    $fundi->full_name,
-                    ucfirst($fundi->gender),
-                    $fundi->primary_phone,
-                    $fundi->transaction_phone,
-                    $fundi->nida_number,
-                    $fundi->ward->name ?? 'N/A',
-                    $fundi->ward->district->name ?? 'N/A',
-                    $fundi->ward->district->region->name ?? 'N/A',
-                    $this->ranking_options[$fundi->ranking] ?? 'N/A',
-                    $fundi->approval_status,
-                    $fundi->creator->full_name ?? 'N/A',
-                    $fundi->approver->full_name ?? 'N/A',
-                    $fundi->created_at->format('Y-m-d H:i:s'),
-                    $fundi->approved_at ? $fundi->approved_at->format('Y-m-d H:i:s') : 'N/A'
-                ]);
-            }
+            // Use cursor for memory efficiency with large datasets
+            $this->getFundiQuery()
+                ->with(['creator:id,fname,lname', 'approver:id,fname,lname'])
+                ->chunk(500, function ($fundis) use ($handle) {
+                    foreach ($fundis as $fundi) {
+                        fputcsv($handle, [
+                            $fundi->full_name,
+                            ucfirst($fundi->gender),
+                            $fundi->primary_phone,
+                            $fundi->transaction_phone,
+                            $fundi->nida_number,
+                            $fundi->ward->name ?? 'N/A',
+                            $fundi->ward->district->name ?? 'N/A',
+                            $fundi->ward->district->region->name ?? 'N/A',
+                            $this->ranking_options[$fundi->ranking] ?? 'N/A',
+                            $fundi->approval_status ?? 'N/A',
+                            $fundi->creator->full_name ?? 'N/A',
+                            $fundi->approver->full_name ?? 'N/A',
+                            $fundi->created_at->format('Y-m-d H:i:s'),
+                            $fundi->approved_at ? $fundi->approved_at->format('Y-m-d H:i:s') : 'N/A'
+                        ]);
+                    }
+                });
 
             fclose($handle);
         }, 'fundis_export_' . date('Y-m-d_H-i-s') . '.csv', [
@@ -366,6 +419,9 @@ class FundisTable extends Component
         if ($this->isAdminOrRoot()) {
             $this->reset(['region', 'district']);
         }
+
+        // Clear cache on refresh
+        $this->clearUserCache();
 
         // Hide mobile filters after refresh
         $this->showMobileFilters = false;
