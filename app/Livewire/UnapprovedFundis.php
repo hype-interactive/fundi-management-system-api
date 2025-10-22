@@ -46,13 +46,14 @@ class UnapprovedFundis extends Component
 
         // Check for duplicate
         if (Fundi::where([
-                ['fname', $fundi->fname],
-                ['lname', $fundi->lname],
-                ['primary_phone', $fundi->primary_phone],
-                ['ward_id', $fundi->ward_id],
-            ])->where('id', '!=', $fundi_id)
+            ['fname', $fundi->fname],
+            ['lname', $fundi->lname],
+            ['primary_phone', $fundi->primary_phone],
+            ['ward_id', $fundi->ward_id],
+        ])->where('id', '!=', $fundi_id)
             ->whereNotNull('approved_at')
-            ->count() > 0) {
+            ->count() > 0
+        ) {
             $this->showWarningAlert('Duplicate Found', 'Fundi already exists. Duplicate entry has been removed.');
             $fundi->delete();
             return;
@@ -79,7 +80,7 @@ class UnapprovedFundis extends Component
             $this->selectedFundis = array_diff($this->selectedFundis, [$fundi_id]);
         }
     }
-public function reject(int $fundi_id)
+    public function reject(int $fundi_id)
     {
         $fundi = Fundi::find($fundi_id);
 
@@ -90,12 +91,13 @@ public function reject(int $fundi_id)
 
         // Check for duplicate
         if (Fundi::where([
-                ['primary_phone', $fundi->primary_phone],
-                ['transaction_phone',$fundi->transaction_phone],
-                ['ward_id', $fundi->ward_id],
-            ])->where('id', '!=', $fundi_id)
+            ['primary_phone', $fundi->primary_phone],
+            ['transaction_phone', $fundi->transaction_phone],
+            ['ward_id', $fundi->ward_id],
+        ])->where('id', '!=', $fundi_id)
             ->whereNotNull('approved_at')
-            ->count() > 0) {
+            ->count() > 0
+        ) {
             session()->flash('message', 'Fundi already exists');
             $fundi->delete();
             return;
@@ -108,14 +110,6 @@ public function reject(int $fundi_id)
         session()->flash('message', 'Registration rejected');
 
         // addLog('edit', "Fundi [" . $fundi_id . "] approved");
-    }
-    function bulkApprove(){
-        foreach ($this->selectedFundis as $fundi) {
-            $this->approve($fundi);
-        }
-        session()->flash('message', ' Mafundi Approved');
-        $this->selectedFundis = [];
-        
     }
 
     public function bulkApprove()
@@ -140,11 +134,11 @@ public function reject(int $fundi_id)
 
                 // Check for duplicate
                 $isDuplicate = Fundi::where([
-                        ['fname', $fundi->fname],
-                        ['lname', $fundi->lname],
-                        ['primary_phone', $fundi->primary_phone],
-                        ['ward_id', $fundi->ward_id],
-                    ])->where('id', '!=', $fundi_id)
+                    ['fname', $fundi->fname],
+                    ['lname', $fundi->lname],
+                    ['primary_phone', $fundi->primary_phone],
+                    ['ward_id', $fundi->ward_id],
+                ])->where('id', '!=', $fundi_id)
                     ->whereNotNull('approved_at')
                     ->exists();
 
@@ -175,7 +169,6 @@ public function reject(int $fundi_id)
             }
 
             $this->showSuccessAlert('Bulk Approval Complete', $message);
-
         } catch (\Exception $e) {
             DB::rollBack();
             $this->showErrorAlert('Error', 'An error occurred during bulk approval');
