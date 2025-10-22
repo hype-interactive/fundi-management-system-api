@@ -141,25 +141,31 @@
         @endif
     </div>
 
-    <!-- Actions Section -->
-    @if (!$fundi->approved_at || !$fundi->rejected_at)
-        <div class="actions-card mt-4">
-            <h6 class="card-title">
-                <i class="fa-solid fa-cogs mr-2"></i>
-                Actions
-            </h6>
-            <div class="action-buttons">
+<!-- Actions Section -->
+@if (!$fundi->approved_at || !$fundi->rejected_at)
+    <div class="actions-card mt-4">
+        <h6 class="card-title">
+            <i class="fa-solid fa-cogs mr-2"></i>
+            Actions
+        </h6>
+        <div class="action-buttons">
+            @if (!$fundi->approved_at)
                 <button class="btn btn-success btn-sm" wire:click="confirmApprove">
                     <i class="fa-solid fa-check me-1"></i>
-                    Approve Fundi
+                    Approve 
                 </button>
-                <button class="btn btn-danger btn-sm" wire:click="confirmReject">
+                <button class="btn btn-warning btn-sm" wire:click="confirmReject">
                     <i class="fa-solid fa-times me-1"></i>
-                    Reject Fundi
+                    Reject 
                 </button>
-            </div>
+            @endif
+            <button class="btn btn-danger btn-sm" wire:click="confirmDelete">
+                <i class="fa-solid fa-trash me-1"></i>
+                Delete
+            </button>
         </div>
-    @endif
+    </div>
+@endif
 
     <!-- Legacy Match Section -->
     @if ($legacyMatch)

@@ -8,6 +8,7 @@ use Livewire\Attributes\On;
 use App\Services\SmsService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class FundiProfile extends Component
 {
@@ -102,6 +103,46 @@ class FundiProfile extends Component
         ]);
     }
 
+    public function confirmDelete()
+    {
+        // Check if fundi has related data
+        $hasTransactions = $this->fundi->transactions()->exists();
+        $hasSiteVisits = $this->fundi->siteVisits()->exists();
+        
+        $warningMessage = 'Are you sure you want to delete this fundi? This action cannot be undone.';
+        
+        if ($hasTransactions || $hasSiteVisits) {
+            $relatedData = [];
+            if ($hasTransactions) {
+                $transactionCount = $this->fundi->transactions()->count();
+                $relatedData[] = "{$transactionCount} transaction(s)";
+            }
+            if ($hasSiteVisits) {
+                $visitCount = $this->fundi->siteVisits()->count();
+                $relatedData[] = "{$visitCount} site visit(s)";
+            }
+            
+            $warningMessage = 'WARNING: This fundi has ' . implode(' and ', $relatedData) . '. ' . $warningMessage;
+        }
+
+        $this->dispatch('showConfirmation', [
+            'title' => 'Delete Fundi',
+            'message' => $warningMessage,
+            'type' => 'delete',
+            'itemName' => $this->fundi->full_name,
+            'itemDetails' => [
+                'NIDA Number' => $this->fundi->nida_number ?? 'Not specified',
+                'Primary Phone' => $this->fundi->primary_phone ?? 'Not specified',
+                'Ward' => $this->fundi->ward?->name ?? 'Not specified',
+                'Status' => $this->fundi->approved_at ? 'Approved' : 'Pending',
+                'Transactions' => $hasTransactions ? $this->fundi->transactions()->count() : '0',
+                'Site Visits' => $hasSiteVisits ? $this->fundi->siteVisits()->count() : '0',
+            ],
+            'confirmMethod' => 'deleteFundi',
+            'confirmParams' => []
+        ]);
+    }
+
     #[On('approveFundi')]
     public function approveFundi()
     {
@@ -143,6 +184,50 @@ class FundiProfile extends Component
 
         $this->dispatch('fundiStatusChanged');
         session()->flash('message', 'Fundi rejected successfully.');
+    }
+
+    #[On('deleteFundi')]
+    public function deleteFundi()
+    {
+        try {
+            DB::transaction(function () {
+                $fundiName = $this->fundi->full_name;
+                $fundiId = $this->fundi->id;
+
+                // Log the deletion with related data count
+                $transactionCount = $this->fundi->transactions()->count();
+                $siteVisitCount = $this->fundi->siteVisits()->count();
+
+                // Soft delete if your model uses SoftDeletes trait
+                // Or hard delete if not
+                $this->fundi->delete();
+
+                // Log the deletion
+                Log::info("Fundi deleted: {$fundiName} (ID: {$fundiId})", [
+                    'deleted_by' => Auth::id(),
+                    'deleted_by_name' => Auth::user()->full_name ?? 'Unknown',
+                    'had_transactions' => $transactionCount,
+                    'had_site_visits' => $siteVisitCount,
+                    'deleted_at' => now(),
+                ]);
+
+                // Optional: Add to activity log if you have one
+                // addLog('delete', "Fundi [{$fundiId}] {$fundiName} deleted");
+            });
+
+            session()->flash('message', 'Fundi deleted successfully.');
+            
+            // Redirect to fundis list page
+            return redirect()->route('fundis');
+            
+        } catch (\Exception $e) {
+            Log::error("Failed to delete fundi {$this->fundi->id}: " . $e->getMessage(), [
+                'exception' => $e,
+                'user_id' => Auth::id(),
+            ]);
+
+            session()->flash('error', 'Failed to delete fundi. Please try again or contact support.');
+        }
     }
 
     /**

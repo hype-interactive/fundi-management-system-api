@@ -11,12 +11,13 @@
                     <i class="fa-solid fa-check me-1"></i>
                     Approve Selected
                 </button>
-                <button wire:click="bulkDelete" class="btn btn-danger btn-sm"
-                    onclick="return confirm('Are you sure you want to delete selected fundis?')">
-                    <i class="fa-solid fa-trash me-1"></i>
-                    Delete Selected
-                </button>
             </div>
+        </div>
+    @endif
+
+    @if (session()->has('message'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('message') }}
         </div>
     @endif
 
@@ -91,6 +92,8 @@
                                     <i class="fa-solid fa-check text-success cursor-pointer"
                                         wire:click="approve({{ $fundi->id }})"></i>
                                     <i class="fa-solid fa-xmark text-danger ml-2 cursor-pointer"
+                                        wire:click="reject({{ $fundi->id }})"></i>
+                                    <i class="fa-solid fa-trash text-danger ml-2 cursor-pointer"
                                         wire:click="delete({{ $fundi->id }})"></i>
                                 </div>
                             </div>
