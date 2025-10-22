@@ -61,6 +61,15 @@ class UnapprovedFundis extends Component
         // addLog('edit', "Fundi [" . $fundi_id . "] approved");
     }
 
+    function bulkApprove(){
+        foreach ($this->selectedFundis as $fundi) {
+            $this->approve($fundi);
+        }
+        session()->flash('message', ' Mafundi Approved');
+        $this->selectedFundis = [];
+        
+    }
+
     public function delete($fundi_id)
     {
         try {
@@ -97,6 +106,8 @@ class UnapprovedFundis extends Component
 
         return $query->latest('created_at')->paginate(10);
     }
+
+
 
     public function render()
     {
