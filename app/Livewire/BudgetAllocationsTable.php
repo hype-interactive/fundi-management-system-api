@@ -46,6 +46,7 @@ class BudgetAllocationsTable extends Component
     protected $listeners = [
         'budgetCreated' => 'handleBudgetCreated',
         'budgetUpdated' => 'handleBudgetUpdated',
+        'executeDeleteBudget' => 'executeDeleteBudget',
     ];
 
     public function mount()
@@ -78,7 +79,9 @@ class BudgetAllocationsTable extends Component
         $this->resetPage();
     }
 
-    // Method to open create modal
+    /**
+     * Open create modal
+     */
     public function openCreateModal()
     {
         $this->editingBudget = null;
@@ -86,7 +89,9 @@ class BudgetAllocationsTable extends Component
         $this->dispatch('createNewBudget');
     }
 
-    // Method to open edit modal
+    /**
+     * Open edit modal
+     */
     public function editBudget($budgetId)
     {
         $budget = BudgetAllocation::find($budgetId);
@@ -98,45 +103,97 @@ class BudgetAllocationsTable extends Component
         }
     }
 
-    // Method to close create modal
+    /**
+     * Close create modal
+     */
     public function closeCreateModal()
     {
         $this->showCreateModal = false;
         $this->editingBudget = null;
     }
 
-    // Method to close edit modal
+    /**
+     * Close edit modal
+     */
     public function closeEditModal()
     {
         $this->showEditModal = false;
         $this->editingBudget = null;
     }
 
-    // Method to handle delete
+    /**
+     * Delete budget - Show confirmation
+     */
     public function deleteBudget($budgetId)
     {
         $budget = BudgetAllocation::find($budgetId);
 
-        if ($budget && $budget->disbursementBatches->count() == 0) {
-            $budget->delete();
-            $this->showSuccessAlert('Success', 'Budget allocation deleted successfully!');
-        } else {
-            $this->showErrorAlert('Error', 'Cannot delete budget with existing disbursements.');
+        if (!$budget) {
+            $this->showErrorAlert('Error', 'Budget allocation not found');
+            return;
         }
+
+        // Check if budget has disbursements
+        if ($budget->disbursementBatches->count() > 0) {
+            $this->showWarningAlert(
+                'Cannot Delete',
+                'Cannot delete budget allocation with existing disbursements. Please remove disbursements first.'
+            );
+            return;
+        }
+
+        $this->showDeleteConfirmation(
+            'executeDeleteBudget',
+            ['budgetId' => $budgetId],
+            'Delete Budget Allocation?',
+            "Are you sure you want to delete '{$budget->title}'? This action cannot be undone."
+        );
     }
 
-    // Handle budget created event
+    /**
+     * Execute delete - Called after confirmation
+     */
+    public function executeDeleteBudget($budgetId)
+    {
+        $result = $this->handleOperation(
+            function () use ($budgetId) {
+                $budget = BudgetAllocation::find($budgetId);
+
+                if (!$budget) {
+                    return false;
+                }
+
+                // Double-check for disbursements before deletion
+                if ($budget->disbursementBatches->count() > 0) {
+                    return false;
+                }
+
+                return $budget->delete();
+            },
+            'Deleted!',
+            'Budget allocation deleted successfully',
+            'Error',
+            'Failed to delete budget allocation',
+            true // Use toast
+        );
+    }
+
+    /**
+     * Handle budget created event
+     */
     public function handleBudgetCreated($budgetId)
     {
         $this->closeCreateModal();
-        $this->showSuccessAlert('Success', 'Budget allocation created successfully!');
+        $this->showSuccessToast('Created!', 'Budget allocation created successfully');
     }
 
-    // Handle budget updated event
+    /**
+     * Handle budget updated event
+     */
     public function handleBudgetUpdated($budgetId)
     {
         $this->closeEditModal();
-        $this->showSuccessAlert('Success', 'Budget allocation updated successfully!');
+        $this->showSuccessToast('Updated!', 'Budget allocation updated successfully');
     }
 
     public function getBudgetQuery()

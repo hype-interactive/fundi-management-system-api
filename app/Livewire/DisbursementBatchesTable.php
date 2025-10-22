@@ -93,14 +93,21 @@ class DisbursementBatchesTable extends Component
 
     public function retryFailedBatch($batchId)
     {
-        try {
-            $batch = DisbursementBatch::findOrFail($batchId);
+        $result = $this->handleOperation(
+            function () use ($batchId) {
+                $batch = DisbursementBatch::findOrFail($batchId);
 
-            // Logic to retry failed transactions
-            $this->showSuccessAlert('Success', 'Failed transactions are being retried.');
-        } catch (Exception $e) {
-            $this->showErrorAlert('Error', 'Failed to retry batch transactions.');
-        }
+                // Logic to retry failed transactions
+                // TODO: Add your retry logic here
+
+                return true;
+            },
+            'Success',
+            'Failed transactions are being retried.',
+            'Error',
+            'Failed to retry batch transactions.',
+            true // Use toast for quick feedback
+        );
     }
 
     public function render()

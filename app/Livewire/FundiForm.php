@@ -82,14 +82,9 @@ class FundiForm extends Component
         }
         $this->loadDistricts();
 
-        // Display any flashed alerts
+        // Display any flashed alerts using the trait method
         $this->displayFlashedAlerts();
     }
-
-    // public function resetValidation()
-    // {
-    //     $this->resetErrorBag();
-    // }
 
     /**
      * Load fundi data for editing
@@ -179,7 +174,9 @@ class FundiForm extends Component
         $this->loadWards();
     }
 
-    // Add this watcher to sync ward to ward_id
+    /**
+     * Sync ward to ward_id
+     */
     public function updatedWard($value)
     {
         $this->ward_id = $value;
@@ -224,8 +221,6 @@ class FundiForm extends Component
             $this->district = $currentUser->primary_district->id;
             $this->loadWards();
         }
-
-        // $this->showInfoAlert('Form Reset', 'Form has been reset to default values.');
     }
 
     /**
@@ -237,8 +232,11 @@ class FundiForm extends Component
             $fundi = Fundi::findOrFail($fundiId);
             $this->resetForm();
             $this->loadFundiData($fundi);
+
+            // Using trait method
             $this->showSuccessAlert('Fundi Loaded', 'Fundi data loaded successfully for editing.');
         } catch (Exception $e) {
+            // Using trait method
             $this->showErrorAlert('Error', 'Failed to load fundi data. Please try again.');
             Log::error('Failed to load fundi: ' . $e->getMessage());
         }
@@ -265,6 +263,7 @@ class FundiForm extends Component
         $this->profile_photo_url = null;
         $this->profile_photo_public_id = null;
 
+        // Using trait method
         $this->showWarningAlert('Photo Removed', 'Profile photo marked for removal. Save the form to confirm.');
     }
 
@@ -273,6 +272,7 @@ class FundiForm extends Component
      */
     public function testCloudinaryConnection()
     {
+        // Using trait method for operation handling
         $this->handleOperation(
             function () {
                 return $this->cloudinaryService->testConnection();
@@ -313,19 +313,20 @@ class FundiForm extends Component
             $this->validate($rules);
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->saving = false;
+            // Using trait method
             $this->showErrorAlert('Validation Error', 'Please check the form fields and try again.');
             throw $e;
         }
 
         $isCreating = empty($this->fundi_id);
 
-        // Show loading alert
+        // Show loading alert using trait method
         $this->showLoadingAlert(
             $isCreating ? 'Creating Fundi' : 'Updating Fundi',
             'Please wait while we process your request...'
         );
 
-        // Use the handleOperationWithFlash method for better error handling
+        // Use the trait's handleOperationWithFlash method for better error handling
         $result = $this->handleOperationWithFlash(
             function () use ($isCreating) {
                 return $this->saveFundi($isCreating);
@@ -491,6 +492,7 @@ class FundiForm extends Component
         if ($this->editing && $this->fundi) {
             // Reload original data
             $this->loadFundiData($this->fundi);
+            // Using trait method
             $this->showInfoAlert('Changes Cancelled', 'Form has been reset to original values.');
         } else {
             // Reset form for new creation
@@ -504,10 +506,12 @@ class FundiForm extends Component
     public function duplicateFundi()
     {
         if (!$this->editing) {
+            // Using trait method
             $this->showWarningAlert('Cannot Duplicate', 'You can only duplicate an existing fundi.');
             return;
         }
 
+        // Using trait method for confirmation
         $this->showConfirmation(
             'Duplicate Fundi',
             'This will create a new fundi with the same details. You can modify the details before saving.',
@@ -533,6 +537,7 @@ class FundiForm extends Component
         $this->profile_photo_public_id = null;
         $this->existing_photo = null;
 
+        // Using trait method
         $this->showSuccessAlert('Fundi Duplicated', 'Fundi data copied for new creation. Please update the phone number and other unique fields.');
     }
 
@@ -542,14 +547,17 @@ class FundiForm extends Component
     public function deleteFundi()
     {
         if (!$this->editing || !$this->fundi_id) {
+            // Using trait method
             $this->showWarningAlert('Cannot Delete', 'No fundi selected for deletion.');
             return;
         }
 
-        $this->showConfirmation(
-            'Delete Fundi',
-            'Are you sure you want to delete this fundi? This action cannot be undone.',
-            'confirmDeleteFundi'
+        // Using trait method for delete confirmation
+        $this->showDeleteConfirmation(
+            'confirmDeleteFundi',
+            [],
+            'Delete Fundi?',
+            'Are you sure you want to delete this fundi? This action cannot be undone.'
         );
     }
 
@@ -558,6 +566,7 @@ class FundiForm extends Component
      */
     public function confirmDeleteFundi()
     {
+        // Using trait method for operation with flash
         $result = $this->handleOperationWithFlash(
             function () {
                 $fundi = Fundi::find($this->fundi_id);
@@ -608,6 +617,7 @@ class FundiForm extends Component
     public function saveDraft()
     {
         // This could be implemented to save form data to session or temporary storage
+        // Using trait method
         $this->showInfoAlert('Draft Saved', 'Your progress has been saved as a draft.');
     }
 

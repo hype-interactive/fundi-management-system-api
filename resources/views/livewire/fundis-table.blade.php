@@ -42,6 +42,22 @@
         </div>
     </div>
 
+    {{-- Bulk Actions Bar --}}
+    @if (count($selectedFundis) > 0)
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
+            <div>
+                <i class="fa-solid fa-check-double me-2"></i>
+                <strong>{{ count($selectedFundis) }}</strong> fundi(s) selected
+            </div>
+            <div>
+                <button wire:click="bulkDelete" class="btn btn-danger btn-sm">
+                    <i class="fa-solid fa-trash me-1"></i>
+                    Delete Selected
+                </button>
+            </div>
+        </div>
+    @endif
+
     <!-- Desktop Actions -->
     <div class="results-summary mb-2 d-flex justify-content-between align-items-center">
         <div class="d-flex gap-2">
@@ -75,6 +91,10 @@
                 <thead class="thead-light">
                     <tr>
                         <th scope="col">
+                            <input type="checkbox" wire:model.live="selectAll" class="form-check-input"
+                                @if (count($fundis) === 0) disabled @endif>
+                        </th>
+                        <th scope="col">
                             <a wire:click="refresh">
                                 <i class="fa-solid fa-arrows-rotate"></i>
                             </a>
@@ -94,6 +114,10 @@
                 <tbody>
                     @forelse ($fundis as $fundi)
                         <tr>
+                            <td>
+                                <input type="checkbox" wire:model.live="selectedFundis" value="{{ $fundi->id }}"
+                                    class="form-check-input">
+                            </td>
                             <th scope="row">
                                 <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle">
                                     <i class="fa-solid fa-user"></i>
@@ -156,6 +180,10 @@
             @forelse ($fundis as $fundi)
                 <div class="fundi-card" wire:key="mobile-{{ $fundi->id }}">
                     <div class="card-header">
+                        <div class="fundi-checkbox">
+                            <input type="checkbox" wire:model.live="selectedFundis" value="{{ $fundi->id }}"
+                                class="form-check-input">
+                        </div>
                         <div class="fundi-avatar">
                             <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle">
                                 <i class="fa-solid fa-user"></i>

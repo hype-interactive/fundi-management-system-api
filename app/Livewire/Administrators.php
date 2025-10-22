@@ -32,8 +32,10 @@ class Administrators extends Component
     public $lname;
     public $email;
     public $phone;
-    // public $password;
-    // public $rpassword;
+
+    protected $listeners = [
+        'executeDeleteAdmin' => 'executeDeleteAdmin'
+    ];
 
     public function mount()
     {
@@ -68,7 +70,9 @@ class Administrators extends Component
         $this->district_name = null;
     }
 
-    // Set admin details
+    /**
+     * Set admin details for editing
+     */
     public function setAdmin($admin)
     {
         $this->action_text = "Update";
@@ -101,7 +105,6 @@ class Administrators extends Component
             'lname' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $this->admin_id,
             'phone' => 'required|string|max:20',
-            // 'password' => 'nullable|string|min:8|confirmed',
             'district' => 'required|exists:districts,id',
         ]);
 
@@ -122,8 +125,7 @@ class Administrators extends Component
                         'phone' => $this->formatTanzanianNumber($this->phone),
                         'role_id' => $this->role,
                         'status' => 'active',
-                        // 'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
-                        'password' => bcrypt($isNewUser ? $defaultPassword : $this->admin->password), // Use default password for new users
+                        'password' => bcrypt($isNewUser ? $defaultPassword : $this->admin->password),
                     ]
                 );
 
@@ -155,24 +157,62 @@ class Administrators extends Component
     }
 
     /**
-     * Delete an administrator.
+     * Delete an administrator - Show confirmation
      */
     public function deleteAdmin($adminId)
     {
+        // Find the admin to show their name in the confirmation
         $admin = User::find($adminId);
 
-        if ($admin) {
-            $admin->delete();
-            session()->flash('message', "Administrator deleted successfully.");
-        } else {
-            session()->flash('error', "Failed to delete administrator.");
+        if (!$admin) {
+            $this->showErrorAlert('Error', 'Administrator not found');
+            return;
+        }
+
+        $this->showDeleteConfirmation(
+            'executeDeleteAdmin',
+            ['adminId' => $adminId],
+            'Delete Administrator?',
+            "Are you sure you want to delete {$admin->full_name}? This action cannot be undone."
+        );
+    }
+
+    /**
+     * Execute delete - Called after confirmation
+     */
+    public function executeDeleteAdmin($adminId)
+    {
+        $result = $this->handleOperation(
+            function () use ($adminId) {
+                $admin = User::find($adminId);
+                if ($admin) {
+                    return $admin->delete();
+                }
+                return false;
+            },
+            'Deleted!',
+            'Administrator deleted successfully',
+            'Error',
+            'Failed to delete administrator',
+            true // Use toast
+        );
+
+        // Optionally refresh the list after deletion
+        if ($result) {
+            $this->admins = User::where('role_id', "!=", 3)
+                ->orWhereNull('role_id')
+                ->get();
         }
     }
 
     public function render()
     {
         $this->districts = $this->getDistricts();
-        $this->admins = User::where('role_id', "!=", 3)->orWhereNull('role_id')->get(); // Assuming 3 is the role_id for 'operator'
+
+        // Load administrators excluding operators (role_id = 3)
+        $this->admins = User::where('role_id', "!=", 3)
+            ->orWhereNull('role_id')
+            ->get();
 
         return view('livewire.administrators');
     }

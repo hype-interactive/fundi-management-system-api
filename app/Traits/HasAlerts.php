@@ -1,9 +1,5 @@
 <?php
 
-// ===========================================
-// File: app/Traits/HasAlerts.php
-// ===========================================
-
 namespace App\Traits;
 
 use Illuminate\Support\Facades\Log;
@@ -14,44 +10,104 @@ trait HasAlerts
     /**
      * Show success alert
      */
-    public function showSuccessAlert(string $title, string $message)
+    public function showSuccessAlert(string $title, string $message, int $timer = 3000)
     {
         LivewireAlert::title($title)
             ->text($message)
             ->success()
+            ->timer($timer)
             ->show();
     }
 
     /**
      * Show error alert
      */
-    public function showErrorAlert(string $title, string $message)
+    public function showErrorAlert(string $title, string $message, int $timer = 3000)
     {
         LivewireAlert::title($title)
             ->text($message)
             ->error()
+            ->timer($timer)
             ->show();
     }
 
     /**
      * Show warning alert
      */
-    public function showWarningAlert(string $title, string $message)
+    public function showWarningAlert(string $title, string $message, int $timer = 3000)
     {
         LivewireAlert::title($title)
             ->text($message)
             ->warning()
+            ->timer($timer)
             ->show();
     }
 
     /**
      * Show info alert
      */
-    public function showInfoAlert(string $title, string $message)
+    public function showInfoAlert(string $title, string $message, int $timer = 3000)
     {
         LivewireAlert::title($title)
             ->text($message)
             ->info()
+            ->timer($timer)
+            ->show();
+    }
+
+    /**
+     * Show success toast notification
+     */
+    public function showSuccessToast(string $title, string $message = '', int $timer = 3000)
+    {
+        LivewireAlert::title($title)
+            ->text($message)
+            ->success()
+            ->toast()
+            ->position('top-end')
+            ->timer($timer)
+            ->show();
+    }
+
+    /**
+     * Show error toast notification
+     */
+    public function showErrorToast(string $title, string $message = '', int $timer = 3000)
+    {
+        LivewireAlert::title($title)
+            ->text($message)
+            ->error()
+            ->toast()
+            ->position('top-end')
+            ->timer($timer)
+            ->show();
+    }
+
+    /**
+     * Show warning toast notification
+     */
+    public function showWarningToast(string $title, string $message = '', int $timer = 3000)
+    {
+        LivewireAlert::title($title)
+            ->text($message)
+            ->warning()
+            ->toast()
+            ->position('top-end')
+            ->timer($timer)
+            ->show();
+    }
+
+    /**
+     * Show info toast notification
+     */
+    public function showInfoToast(string $title, string $message = '', int $timer = 3000)
+    {
+        LivewireAlert::title($title)
+            ->text($message)
+            ->info()
+            ->toast()
+            ->position('top-end')
+            ->timer($timer)
             ->show();
     }
 
@@ -149,53 +205,179 @@ trait HasAlerts
     }
 
     /**
-     * Show confirmation dialog and execute callback
+     * Show confirmation dialog using the new fluent API
+     *
+     * @param string $title Dialog title
+     * @param string $message Dialog message/text
+     * @param string $confirmMethod Method to call on confirmation
+     * @param array $confirmParams Parameters to pass to confirm method
+     * @param string $denyMethod Optional method to call on deny
+     * @param array $denyParams Parameters to pass to deny method
+     * @param string $confirmButtonText Text for confirm button (default: 'Yes, proceed')
+     * @param string $cancelButtonText Text for cancel button (default: 'Cancel')
+     * @param string $denyButtonText Text for deny button (optional)
      */
-    public function showConfirmation(string $title, string $message, string $method, array $params = [])
-    {
-        LivewireAlert::confirm([
-            'title' => $title,
-            'text' => $message,
-            'icon' => 'question',
-            'showCancelButton' => true,
-            'confirmButtonText' => 'Yes',
-            'cancelButtonText' => 'Cancel',
-            'onConfirmed' => [
-                'method' => $method,
-                'params' => $params
-            ]
-        ]);
+    public function showConfirmation(
+        string $title,
+        string $message,
+        string $confirmMethod,
+        array $confirmParams = [],
+        string $denyMethod = '',
+        array $denyParams = [],
+        string $confirmButtonText = 'Yes, proceed',
+        string $cancelButtonText = 'Cancel',
+        string $denyButtonText = ''
+    ) {
+        $alert = LivewireAlert::title($title)
+            ->text($message)
+            ->question()
+            ->position('center')
+            ->withConfirmButton($confirmButtonText)
+            ->confirmButtonColor('#3085d6')
+            ->withCancelButton($cancelButtonText)
+            ->cancelButtonColor('#d33')
+            ->onConfirm($confirmMethod, $confirmParams);
+
+        // Add deny button if method is provided
+        if (!empty($denyMethod)) {
+            $alert->withDenyButton($denyButtonText ?: 'No')
+                ->denyButtonColor('#6c757d')
+                ->onDeny($denyMethod, $denyParams);
+        }
+
+        $alert->show();
     }
 
     /**
-     * Show loading alert
+     * Show delete confirmation dialog (preset for delete operations)
+     */
+    public function showDeleteConfirmation(
+        string $confirmMethod,
+        array $confirmParams = [],
+        string $title = 'Are you sure?',
+        string $message = 'This action cannot be undone.'
+    ) {
+        LivewireAlert::title($title)
+            ->text($message)
+            ->warning()
+            ->position('center')
+            ->withConfirmButton('Yes, delete it')
+            ->confirmButtonColor('#d33')
+            ->withCancelButton('Cancel')
+            ->cancelButtonColor('#3085d6')
+            ->onConfirm($confirmMethod, $confirmParams)
+            ->show();
+    }
+
+    /**
+     * Show bulk delete confirmation dialog
+     */
+    public function showBulkDeleteConfirmation(
+        int $count,
+        string $confirmMethod,
+        array $confirmParams = []
+    ) {
+        LivewireAlert::title('Delete Multiple Items?')
+            ->text("You are about to permanently delete {$count} item(s). This action cannot be undone.")
+            ->warning()
+            ->position('center')
+            ->withConfirmButton("Yes, delete {$count} item(s)")
+            ->confirmButtonColor('#d33')
+            ->withCancelButton('Cancel')
+            ->cancelButtonColor('#3085d6')
+            ->onConfirm($confirmMethod, $confirmParams)
+            ->show();
+    }
+
+    /**
+     * Show simple confirm dialog using asConfirm()
+     */
+    public function showSimpleConfirm(
+        string $title,
+        string $message,
+        string $confirmMethod,
+        array $confirmParams = [],
+        string $denyMethod = '',
+        array $denyParams = []
+    ) {
+        $alert = LivewireAlert::title($title)
+            ->text($message)
+            ->asConfirm()
+            ->onConfirm($confirmMethod, $confirmParams);
+
+        if (!empty($denyMethod)) {
+            $alert->onDeny($denyMethod, $denyParams);
+        }
+
+        $alert->show();
+    }
+
+    /**
+     * Show loading alert (no auto-dismiss)
      */
     public function showLoadingAlert(string $title, string $message = 'Please wait...')
     {
         LivewireAlert::title($title)
             ->text($message)
             ->info()
+            ->timer(0) // No auto-dismiss
+            ->show();
+    }
+
+    /**
+     * Show loading toast
+     */
+    public function showLoadingToast(string $title, string $message = 'Processing...')
+    {
+        LivewireAlert::title($title)
+            ->text($message)
+            ->info()
+            ->toast()
+            ->position('top-end')
+            ->timer(0) // No auto-dismiss
             ->show();
     }
 
     /**
      * Handle operation with alerts (success/error handling)
      */
-    public function handleOperation(callable $operation, string $successTitle, string $successMessage, string $errorTitle = 'Error', string $errorMessage = 'An error occurred. Please try again.')
-    {
+    public function handleOperation(
+        callable $operation,
+        string $successTitle,
+        string $successMessage,
+        string $errorTitle = 'Error',
+        string $errorMessage = 'An error occurred. Please try again.',
+        bool $useToast = false
+    ) {
         try {
             $result = $operation();
 
             if ($result) {
-                $this->showSuccessAlert($successTitle, $successMessage);
+                if ($useToast) {
+                    $this->showSuccessToast($successTitle, $successMessage);
+                } else {
+                    $this->showSuccessAlert($successTitle, $successMessage);
+                }
                 return true;
             } else {
-                $this->showErrorAlert($errorTitle, $errorMessage);
+                if ($useToast) {
+                    $this->showErrorToast($errorTitle, $errorMessage);
+                } else {
+                    $this->showErrorAlert($errorTitle, $errorMessage);
+                }
                 return false;
             }
         } catch (\Exception $e) {
-            Log::error('Operation failed: ' . $e->getMessage());
-            $this->showErrorAlert($errorTitle, $errorMessage);
+            Log::error('Operation failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if ($useToast) {
+                $this->showErrorToast($errorTitle, $errorMessage);
+            } else {
+                $this->showErrorAlert($errorTitle, $errorMessage);
+            }
             return false;
         }
     }
@@ -203,8 +385,13 @@ trait HasAlerts
     /**
      * Handle operation with flash (for redirects)
      */
-    public function handleOperationWithFlash(callable $operation, string $successTitle, string $successMessage, string $errorTitle = 'Error', string $errorMessage = 'An error occurred. Please try again.')
-    {
+    public function handleOperationWithFlash(
+        callable $operation,
+        string $successTitle,
+        string $successMessage,
+        string $errorTitle = 'Error',
+        string $errorMessage = 'An error occurred. Please try again.'
+    ) {
         try {
             $result = $operation();
 
@@ -216,9 +403,51 @@ trait HasAlerts
                 return false;
             }
         } catch (\Exception $e) {
-            Log::error('Operation failed: ' . $e->getMessage());
+            Log::error('Operation failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
             $this->flashError($errorTitle, $errorMessage);
             return false;
         }
+    }
+
+    /**
+     * Show three-option dialog (Save, Delete, Cancel)
+     */
+    public function showThreeOptionDialog(
+        string $title,
+        string $message,
+        string $confirmMethod,
+        array $confirmParams = [],
+        string $denyMethod = '',
+        array $denyParams = [],
+        string $dismissMethod = '',
+        array $dismissParams = [],
+        string $confirmText = 'Save',
+        string $denyText = 'Delete',
+        string $cancelText = 'Cancel'
+    ) {
+        $alert = LivewireAlert::title($title)
+            ->text($message)
+            ->question()
+            ->position('center')
+            ->withConfirmButton($confirmText)
+            ->confirmButtonColor('#28a745')
+            ->withDenyButton($denyText)
+            ->denyButtonColor('#dc3545')
+            ->withCancelButton($cancelText)
+            ->cancelButtonColor('#6c757d')
+            ->onConfirm($confirmMethod, $confirmParams);
+
+        if (!empty($denyMethod)) {
+            $alert->onDeny($denyMethod, $denyParams);
+        }
+
+        if (!empty($dismissMethod)) {
+            $alert->onDismiss($dismissMethod, $dismissParams);
+        }
+
+        $alert->show();
     }
 }
