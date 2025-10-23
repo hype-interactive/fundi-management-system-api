@@ -173,13 +173,13 @@ jobs:
           cd /var/www
 
           # Create backup
-          if [ -d "dev.mafundi.magicbuilders.co.tz" ]; then
-            cp -r dev.mafundi.magicbuilders.co.tz dev-backup-$(date +%Y%m%d-%H%M%S)
+          if [ -d "dev.magicbuilders.co.tz" ]; then
+            cp -r dev.magicbuilders.co.tz dev-backup-$(date +%Y%m%d-%H%M%S)
           fi
 
           # Create fresh directory
-          rm -rf dev.mafundi.magicbuilders.co.tz-new
-          mkdir -p dev.mafundi.magicbuilders.co.tz-new
+          rm -rf dev.magicbuilders.co.tz-new
+          mkdir -p dev.magicbuilders.co.tz-new
 
     - name: Upload files to Development
       uses: appleboy/scp-action@v0.1.4
@@ -198,14 +198,14 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
           cd /var/www
-          tar -xzf app.tar.gz -C dev.mafundi.magicbuilders.co.tz-new/
+          tar -xzf app.tar.gz -C dev.magicbuilders.co.tz-new/
 
           # Copy .env
-          if [ -f "dev.mafundi.magicbuilders.co.tz/.env" ]; then
-            cp dev.mafundi.magicbuilders.co.tz/.env dev.mafundi.magicbuilders.co.tz-new/.env
+          if [ -f "dev.magicbuilders.co.tz/.env" ]; then
+            cp dev.magicbuilders.co.tz/.env dev.magicbuilders.co.tz-new/.env
           fi
 
-          cd dev.mafundi.magicbuilders.co.tz-new
+          cd dev.magicbuilders.co.tz-new
           composer install --optimize-autoloader
           php artisan key:generate --force
           php artisan migrate --force
@@ -214,17 +214,17 @@ jobs:
           php artisan route:cache
           php artisan view:cache
 
-          chown -R root:www-data /var/www/dev.mafundi.magicbuilders.co.tz-new
-          chmod -R 755 /var/www/dev.mafundi.magicbuilders.co.tz-new
-          chmod -R 775 /var/www/dev.mafundi.magicbuilders.co.tz-new/storage
-          chmod -R 775 /var/www/dev.mafundi.magicbuilders.co.tz-new/bootstrap/cache
+          chown -R root:www-data /var/www/dev.magicbuilders.co.tz-new
+          chmod -R 755 /var/www/dev.magicbuilders.co.tz-new
+          chmod -R 775 /var/www/dev.magicbuilders.co.tz-new/storage
+          chmod -R 775 /var/www/dev.magicbuilders.co.tz-new/bootstrap/cache
 
           # Atomic switch
-          if [ -d "/var/www/dev.mafundi.magicbuilders.co.tz" ]; then
-            rm -rf /var/www/dev.mafundi.magicbuilders.co.tz-old
-            mv /var/www/dev.mafundi.magicbuilders.co.tz /var/www/dev.mafundi.magicbuilders.co.tz-old
+          if [ -d "/var/www/dev.magicbuilders.co.tz" ]; then
+            rm -rf /var/www/dev.magicbuilders.co.tz-old
+            mv /var/www/dev.magicbuilders.co.tz /var/www/dev.magicbuilders.co.tz-old
           fi
-          mv /var/www/dev.mafundi.magicbuilders.co.tz-new /var/www/dev.mafundi.magicbuilders.co.tz
+          mv /var/www/dev.magicbuilders.co.tz-new /var/www/dev.magicbuilders.co.tz
 
           systemctl reload php8.3-fpm
           systemctl reload nginx
