@@ -53,50 +53,36 @@ class Fundi extends Model
     }
 
     /**
-     * Get the approval status with proper priority handling
-     * Priority order: Rejected > Approved > Pending
+     * Get the approval status based on most recent action
+     * Compares timestamps to determine if approved or rejected status takes precedence
+     *
+     * IMPORTANT: This method now properly handles cases where a fundi was:
+     * - First approved, then rejected (shows as Rejected)
+     * - First rejected, then approved (shows as Approved)
+     * - The most recent action always takes precedence
      */
     public function getApprovalStatusAttribute(): string
     {
-        // Check for rejection first (highest priority)
-        // A fundi is rejected if they have either rejected_at timestamp OR rejected_by user
-        if ($this->rejected_at !== null || $this->rejected_by !== null) {
-            return 'Rejected';
-        }
-
-        // Check for approval (second priority)
-        // A fundi is approved if they have both approved_at timestamp AND approved_by user
-        if ($this->approved_at !== null && $this->approved_by !== null) {
-            return 'Approved';
-        }
-
-        // Default to pending if neither rejected nor fully approved
-        return 'Pending';
-    }
-
-    /**
-     * Alternative method if you want more granular status checking
-     */
-    public function getDetailedApprovalStatusAttribute(): string
-    {
-        // Most recent action takes precedence based on timestamps
+        // Get timestamps (use 0 if null for comparison)
         $rejectedTime = $this->rejected_at?->timestamp ?? 0;
         $approvedTime = $this->approved_at?->timestamp ?? 0;
 
-        // If both timestamps exist, compare them
+        // If both actions exist, the most recent one takes precedence
         if ($rejectedTime > 0 && $approvedTime > 0) {
             return $rejectedTime > $approvedTime ? 'Rejected' : 'Approved';
         }
 
-        // Single action checks
+        // If only rejection exists
         if ($rejectedTime > 0 || $this->rejected_by !== null) {
             return 'Rejected';
         }
 
+        // If only approval exists (must have both timestamp and approver)
         if ($approvedTime > 0 && $this->approved_by !== null) {
             return 'Approved';
         }
 
+        // Default to pending if neither action has been taken
         return 'Pending';
     }
 
@@ -120,14 +106,17 @@ class Fundi extends Model
 
     /**
      * Scope methods for querying by approval status
+     * These scopes now properly handle the timestamp comparison logic
      */
     public function scopeApproved($query)
     {
         return $query->whereNotNull('approved_at')
             ->whereNotNull('approved_by')
             ->where(function ($q) {
+                // Either no rejection exists, or approval is more recent than rejection
                 $q->whereNull('rejected_at')
-                    ->whereNull('rejected_by');
+                    ->whereNull('rejected_by')
+                    ->orWhereRaw('approved_at > rejected_at');
             });
     }
 
@@ -136,15 +125,22 @@ class Fundi extends Model
         return $query->where(function ($q) {
             $q->whereNotNull('rejected_at')
                 ->orWhereNotNull('rejected_by');
+        })->where(function ($q) {
+            // Either no approval exists, or rejection is more recent than approval
+            $q->whereNull('approved_at')
+                ->whereNull('approved_by')
+                ->orWhereRaw('rejected_at > approved_at');
         });
     }
 
     public function scopePending($query)
     {
         return $query->where(function ($q) {
+            // No approval
             $q->whereNull('approved_at')
                 ->orWhereNull('approved_by');
         })->where(function ($q) {
+            // No rejection
             $q->whereNull('rejected_at')
                 ->whereNull('rejected_by');
         });
