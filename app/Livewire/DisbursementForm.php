@@ -41,6 +41,9 @@ class DisbursementForm extends Component
         $this->disbursement_date = now()->format('Y-m-d');
         $this->loadBudgetAllocations();
         $this->loadAvailableFundis();
+
+        // Display any flashed alerts
+        $this->displayFlashedAlerts();
     }
 
     public function loadBudgetAllocations()
@@ -141,49 +144,65 @@ class DisbursementForm extends Component
     {
         $this->saving = true;
 
+        // Validate final form
         try {
-            // Validate final form
             $this->validate([
                 'budget_allocation_id' => 'required|exists:budget_allocations,id',
                 'title' => 'required|string|max:255',
                 'disbursement_date' => 'required|date|after_or_equal:today',
             ]);
-
-            if (empty($this->selected_fundis)) {
-                throw new Exception('Please select at least one fundi.');
-            }
-
-            // Prepare recipients data
-            $recipients = array_map(function ($fundi) {
-                return [
-                    'fundi_id' => $fundi['fundi_id'],
-                    'amount' => $fundi['amount'],
-                ];
-            }, $this->selected_fundis);
-
-            // Use the Financial Management Service
-            $financialService = app(\App\Services\Financial\FinancialManagementService::class);
-
-            $batch = $financialService->processDisbursementBatch(
-                $this->budget_allocation_id,
-                [
-                    'title' => $this->title,
-                    'description' => $this->description,
-                    'disbursement_date' => $this->disbursement_date,
-                    'total_amount' => $this->total_amount,
-                    'recipients' => $recipients,
-                ]
-            );
-
+        } catch (\Illuminate\Validation\ValidationException $e) {
             $this->saving = false;
-            $this->showSuccessAlert('Success', 'Disbursement batch created successfully!');
-
-            $this->resetForm();
-            $this->dispatch('disbursementCreated', $batch->id);
-        } catch (Exception $e) {
-            $this->saving = false;
-            $this->showErrorAlert('Error', $e->getMessage());
+            $this->showErrorAlert('Validation Error', 'Please check the form fields and try again.');
+            throw $e;
         }
+
+        if (empty($this->selected_fundis)) {
+            $this->saving = false;
+            $this->showErrorAlert('Error', 'Please select at least one fundi.');
+            return;
+        }
+
+        // Show loading alert
+        $this->showLoadingAlert('Creating Disbursement', 'Please wait while we process the disbursement...');
+
+        $result = $this->handleOperation(
+            function () {
+                // Prepare recipients data
+                $recipients = array_map(function ($fundi) {
+                    return [
+                        'fundi_id' => $fundi['fundi_id'],
+                        'amount' => $fundi['amount'],
+                    ];
+                }, $this->selected_fundis);
+
+                // Use the Financial Management Service
+                $financialService = app(\App\Services\Financial\FinancialManagementService::class);
+
+                $batch = $financialService->processDisbursementBatch(
+                    $this->budget_allocation_id,
+                    [
+                        'title' => $this->title,
+                        'description' => $this->description,
+                        'disbursement_date' => $this->disbursement_date,
+                        'total_amount' => $this->total_amount,
+                        'recipients' => $recipients,
+                    ]
+                );
+
+                $this->resetForm();
+                $this->dispatch('disbursementCreated', $batch->id);
+
+                return true;
+            },
+            'Success',
+            'Disbursement batch created successfully!',
+            'Error',
+            'Failed to create disbursement batch. Please try again.',
+            false // Use alert for important actions
+        );
+
+        $this->saving = false;
     }
 
     public function resetForm()

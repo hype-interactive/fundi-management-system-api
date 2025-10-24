@@ -108,7 +108,7 @@ class FinancialDashboard extends Component
     public function refreshDashboard()
     {
         $this->loadDashboardData();
-        $this->showSuccessAlert('Dashboard Refreshed', 'Data has been updated successfully.');
+        $this->showSuccessToast('Refreshed', 'Dashboard data updated successfully');
     }
 
     public function render()

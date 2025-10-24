@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Fundi;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use App\Traits\HasAlerts;
 use App\Services\SmsService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class FundiProfile extends Component
 {
+    use HasAlerts;
+
     public $fundi;
     public $transactions;
     public $siteVisits;
@@ -19,6 +22,11 @@ class FundiProfile extends Component
     public $legacyData = null;
 
     protected $smsService;
+
+    protected $listeners = [
+        'refreshProfile' => '$refresh',
+        'fundiUpdated' => 'handleFundiUpdate',
+    ];
 
     public function boot(SmsService $smsService)
     {
@@ -31,6 +39,9 @@ class FundiProfile extends Component
         $this->loadTransactions();
         $this->loadSiteVisits();
         $this->checkLegacyMatch();
+
+        // Display any flashed alerts using trait method
+        $this->displayFlashedAlerts();
     }
 
     public function loadTransactions()
@@ -67,8 +78,48 @@ class FundiProfile extends Component
         }
     }
 
+    /**
+     * Refresh profile data
+     */
+    public function refreshProfile()
+    {
+        $this->fundi->refresh();
+        $this->loadTransactions();
+        $this->loadSiteVisits();
+        $this->checkLegacyMatch();
+
+        // Using trait method for simple toast notification
+        $this->showSuccessToast('Refreshed', 'Profile data has been updated.');
+    }
+
+    /**
+     * Handle fundi update event
+     */
+    public function handleFundiUpdate($message = null)
+    {
+        $this->fundi->refresh();
+        $this->loadTransactions();
+        $this->loadSiteVisits();
+
+        if ($message) {
+            // Using trait method for simple toast notification
+            $this->showSuccessToast('Updated', $message);
+        }
+    }
+
+    /**
+     * Show approval confirmation dialog
+     * Using custom ConfirmationModal for complex UI with item details
+     */
     public function confirmApprove()
     {
+        if ($this->fundi->approved_at) {
+            // Using trait method for simple validation warning
+            $this->showWarningAlert('Already Approved', 'This fundi has already been approved.');
+            return;
+        }
+
+        // Use custom ConfirmationModal for complex confirmation with item details
         $this->dispatch('showConfirmation', [
             'title' => 'Approve Fundi',
             'message' => 'Are you sure you want to approve this fundi?',
@@ -85,8 +136,19 @@ class FundiProfile extends Component
         ]);
     }
 
+    /**
+     * Show rejection confirmation dialog
+     * Using custom ConfirmationModal because it requires rejection reason input
+     */
     public function confirmReject()
     {
+        if ($this->fundi->approved_at) {
+            // Using trait method for simple validation warning
+            $this->showWarningAlert('Cannot Reject', 'This fundi has already been approved and cannot be rejected.');
+            return;
+        }
+
+        // Use custom ConfirmationModal for rejection with reason input
         $this->dispatch('showConfirmation', [
             'title' => 'Reject Fundi',
             'message' => 'Please provide a reason for rejecting this fundi.',
@@ -103,14 +165,18 @@ class FundiProfile extends Component
         ]);
     }
 
+    /**
+     * Show delete confirmation dialog
+     * Using custom ConfirmationModal for complex confirmation with related data display
+     */
     public function confirmDelete()
     {
         // Check if fundi has related data
         $hasTransactions = $this->fundi->transactions()->exists();
         $hasSiteVisits = $this->fundi->siteVisits()->exists();
-        
+
         $warningMessage = 'Are you sure you want to delete this fundi? This action cannot be undone.';
-        
+
         if ($hasTransactions || $hasSiteVisits) {
             $relatedData = [];
             if ($hasTransactions) {
@@ -121,10 +187,11 @@ class FundiProfile extends Component
                 $visitCount = $this->fundi->siteVisits()->count();
                 $relatedData[] = "{$visitCount} site visit(s)";
             }
-            
+
             $warningMessage = 'WARNING: This fundi has ' . implode(' and ', $relatedData) . '. ' . $warningMessage;
         }
 
+        // Use custom ConfirmationModal for delete with detailed item information
         $this->dispatch('showConfirmation', [
             'title' => 'Delete Fundi',
             'message' => $warningMessage,
@@ -143,91 +210,324 @@ class FundiProfile extends Component
         ]);
     }
 
+    /**
+     * Approve the fundi
+     * Using trait method for operation handling
+     */
     #[On('approveFundi')]
     public function approveFundi()
     {
         if ($this->fundi->approved_at) {
-            session()->flash('message', 'Fundi has already been approved.');
+            // Using trait method for simple flash message
+            $this->flashWarning('Already Approved', 'Fundi has already been approved.');
             return;
         }
 
-        $this->fundi->update([
-            'status' => 'active',
-            'approved_at' => now(),
-            'approved_by' => Auth::id(),
-        ]);
+        // Using trait method for operation with flash (for page refresh/redirect scenarios)
+        $result = $this->handleOperationWithFlash(
+            function () {
+                $this->fundi->update([
+                    'status' => 'active',
+                    'approved_at' => now(),
+                    'approved_by' => Auth::id(),
+                ]);
 
-        // Send welcome SMS message
-        $this->sendWelcomeSms();
+                // Send welcome SMS message
+                $this->sendWelcomeSms();
 
-        $this->dispatch('fundiStatusChanged');
-        session()->flash('message', 'Fundi approved successfully.');
+                // Dispatch event to notify other components
+                $this->dispatch('fundiStatusChanged');
+
+                Log::info("Fundi approved: {$this->fundi->full_name} (ID: {$this->fundi->id})", [
+                    'approved_by' => Auth::id(),
+                    'approved_by_name' => Auth::user()->full_name ?? 'Unknown',
+                    'approved_at' => now(),
+                ]);
+
+                return true;
+            },
+            'Fundi Approved',
+            "Fundi {$this->fundi->full_name} has been approved successfully. A welcome SMS has been sent.",
+            'Approval Failed',
+            'Failed to approve fundi. Please try again.'
+        );
+
+        if ($result) {
+            // Refresh the fundi data
+            $this->fundi->refresh();
+        }
     }
 
+    /**
+     * Reject the fundi
+     * Using trait method for operation handling
+     */
     #[On('rejectFundi')]
     public function rejectFundi($reason = null)
     {
         if ($this->fundi->approved_at) {
-            session()->flash('message', 'Fundi cannot be rejected at this stage.');
+            // Using trait method for simple flash message
+            $this->flashWarning('Cannot Reject', 'Fundi cannot be rejected after approval.');
             return;
         }
 
-        $this->fundi->update([
-            'status' => 'inactive',
-            'rejection_reason' => $reason,
-            'rejected_at' => now(),
-            'rejected_by' => Auth::id(),
-        ]);
+        // Using trait method for operation with flash
+        $result = $this->handleOperationWithFlash(
+            function () use ($reason) {
+                $this->fundi->update([
+                    'status' => 'inactive',
+                    'rejection_reason' => $reason,
+                    'rejected_at' => now(),
+                    'rejected_by' => Auth::id(),
+                ]);
 
-        // Optionally send rejection SMS
-        // $this->sendRejectionSms($reason);
+                // Optionally send rejection SMS
+                if ($reason) {
+                    $this->sendRejectionSms($reason);
+                }
 
-        $this->dispatch('fundiStatusChanged');
-        session()->flash('message', 'Fundi rejected successfully.');
+                // Dispatch event to notify other components
+                $this->dispatch('fundiStatusChanged');
+
+                Log::info("Fundi rejected: {$this->fundi->full_name} (ID: {$this->fundi->id})", [
+                    'rejected_by' => Auth::id(),
+                    'rejected_by_name' => Auth::user()->full_name ?? 'Unknown',
+                    'rejected_at' => now(),
+                    'reason' => $reason,
+                ]);
+
+                return true;
+            },
+            'Fundi Rejected',
+            "Fundi {$this->fundi->full_name} has been rejected successfully.",
+            'Rejection Failed',
+            'Failed to reject fundi. Please try again.'
+        );
+
+        if ($result) {
+            // Refresh the fundi data
+            $this->fundi->refresh();
+        }
     }
 
+    /**
+     * Delete the fundi
+     * Using trait method for operation handling with flash
+     */
     #[On('deleteFundi')]
     public function deleteFundi()
     {
-        try {
-            DB::transaction(function () {
-                $fundiName = $this->fundi->full_name;
-                $fundiId = $this->fundi->id;
+        // Using trait method for operation with flash (for redirect scenario)
+        $result = $this->handleOperationWithFlash(
+            function () {
+                DB::transaction(function () {
+                    $fundiName = $this->fundi->full_name;
+                    $fundiId = $this->fundi->id;
 
-                // Log the deletion with related data count
-                $transactionCount = $this->fundi->transactions()->count();
-                $siteVisitCount = $this->fundi->siteVisits()->count();
+                    // Log the deletion with related data count
+                    $transactionCount = $this->fundi->transactions()->count();
+                    $siteVisitCount = $this->fundi->siteVisits()->count();
 
-                // Soft delete if your model uses SoftDeletes trait
-                // Or hard delete if not
-                $this->fundi->delete();
+                    // Soft delete if your model uses SoftDeletes trait
+                    // Or hard delete if not
+                    $this->fundi->delete();
 
-                // Log the deletion
-                Log::info("Fundi deleted: {$fundiName} (ID: {$fundiId})", [
-                    'deleted_by' => Auth::id(),
-                    'deleted_by_name' => Auth::user()->full_name ?? 'Unknown',
-                    'had_transactions' => $transactionCount,
-                    'had_site_visits' => $siteVisitCount,
-                    'deleted_at' => now(),
-                ]);
+                    // Log the deletion
+                    Log::info("Fundi deleted: {$fundiName} (ID: {$fundiId})", [
+                        'deleted_by' => Auth::id(),
+                        'deleted_by_name' => Auth::user()->full_name ?? 'Unknown',
+                        'had_transactions' => $transactionCount,
+                        'had_site_visits' => $siteVisitCount,
+                        'deleted_at' => now(),
+                    ]);
+                });
 
-                // Optional: Add to activity log if you have one
-                // addLog('delete', "Fundi [{$fundiId}] {$fundiName} deleted");
-            });
+                return true;
+            },
+            'Fundi Deleted',
+            'Fundi has been deleted successfully.',
+            'Deletion Failed',
+            'Failed to delete fundi. Please try again or contact support.'
+        );
 
-            session()->flash('message', 'Fundi deleted successfully.');
-            
+        if ($result) {
             // Redirect to fundis list page
             return redirect()->route('fundis');
-            
-        } catch (\Exception $e) {
-            Log::error("Failed to delete fundi {$this->fundi->id}: " . $e->getMessage(), [
-                'exception' => $e,
-                'user_id' => Auth::id(),
-            ]);
-
-            session()->flash('error', 'Failed to delete fundi. Please try again or contact support.');
         }
+    }
+
+    /**
+     * Reactivate an inactive fundi
+     * Using trait method for simple confirmation
+     */
+    public function reactivateFundi()
+    {
+        if ($this->fundi->status === 'active') {
+            // Using trait method for simple validation warning
+            $this->showWarningAlert('Already Active', 'This fundi is already active.');
+            return;
+        }
+
+        // Using trait method for simple confirmation (no complex UI needed)
+        $this->showConfirmation(
+            'Reactivate Fundi',
+            "Are you sure you want to reactivate {$this->fundi->full_name}? This will change their status to active.",
+            'confirmReactivate',
+            [],
+            '',
+            [],
+            'Yes, reactivate',
+            'Cancel'
+        );
+    }
+
+    /**
+     * Confirm reactivation
+     * Using trait method for operation handling
+     */
+    public function confirmReactivate()
+    {
+        // Using trait method for simple operation
+        $this->handleOperation(
+            function () {
+                $this->fundi->update([
+                    'status' => 'active',
+                    'reactivated_at' => now(),
+                    'reactivated_by' => Auth::id(),
+                ]);
+
+                Log::info("Fundi reactivated: {$this->fundi->full_name} (ID: {$this->fundi->id})", [
+                    'reactivated_by' => Auth::id(),
+                    'reactivated_at' => now(),
+                ]);
+
+                $this->dispatch('fundiStatusChanged');
+                $this->fundi->refresh();
+
+                return true;
+            },
+            'Fundi Reactivated',
+            "{$this->fundi->full_name} has been reactivated successfully.",
+            'Reactivation Failed',
+            'Failed to reactivate fundi. Please try again.'
+        );
+    }
+
+    /**
+     * Deactivate an active fundi
+     * Using trait method for simple confirmation
+     */
+    public function deactivateFundi()
+    {
+        if ($this->fundi->status === 'inactive') {
+            // Using trait method for simple validation warning
+            $this->showWarningAlert('Already Inactive', 'This fundi is already inactive.');
+            return;
+        }
+
+        // Using trait method for simple confirmation (no complex UI needed)
+        $this->showConfirmation(
+            'Deactivate Fundi',
+            "Are you sure you want to deactivate {$this->fundi->full_name}? They will not be able to receive new assignments.",
+            'confirmDeactivate',
+            [],
+            '',
+            [],
+            'Yes, deactivate',
+            'Cancel'
+        );
+    }
+
+    /**
+     * Confirm deactivation
+     * Using trait method for operation handling
+     */
+    public function confirmDeactivate()
+    {
+        // Using trait method for simple operation
+        $this->handleOperation(
+            function () {
+                $this->fundi->update([
+                    'status' => 'inactive',
+                    'deactivated_at' => now(),
+                    'deactivated_by' => Auth::id(),
+                ]);
+
+                Log::info("Fundi deactivated: {$this->fundi->full_name} (ID: {$this->fundi->id})", [
+                    'deactivated_by' => Auth::id(),
+                    'deactivated_at' => now(),
+                ]);
+
+                $this->dispatch('fundiStatusChanged');
+                $this->fundi->refresh();
+
+                return true;
+            },
+            'Fundi Deactivated',
+            "{$this->fundi->full_name} has been deactivated successfully.",
+            'Deactivation Failed',
+            'Failed to deactivate fundi. Please try again.'
+        );
+    }
+
+    /**
+     * Resend welcome SMS
+     * Using trait method for simple confirmation
+     */
+    public function resendWelcomeSms()
+    {
+        if (!$this->fundi->approved_at) {
+            // Using trait method for simple validation warning
+            $this->showWarningAlert('Not Approved', 'Welcome SMS can only be sent to approved fundis.');
+            return;
+        }
+
+        // Using trait method for simple confirmation (no complex UI needed)
+        $this->showConfirmation(
+            'Resend Welcome SMS',
+            "Send a welcome SMS to {$this->fundi->full_name} at {$this->fundi->primary_phone}?",
+            'confirmResendWelcomeSms',
+            [],
+            '',
+            [],
+            'Yes, send SMS',
+            'Cancel'
+        );
+    }
+
+    /**
+     * Confirm resend welcome SMS
+     * Using trait method for operation handling
+     */
+    public function confirmResendWelcomeSms()
+    {
+        // Using trait method for simple operation
+        $this->handleOperation(
+            function () {
+                $phoneNumber = $this->getValidPhoneNumber();
+
+                if (!$phoneNumber) {
+                    $this->showErrorAlert('Invalid Phone', 'No valid phone number found for this fundi.');
+                    return false;
+                }
+
+                $message = $this->generateWelcomeMessage();
+                $result = $this->smsService->sendSms($phoneNumber, $message);
+
+                if (!$result['success']) {
+                    Log::error("Failed to resend welcome SMS to fundi {$this->fundi->full_name}: " . ($result['error'] ?? 'Unknown error'));
+                    return false;
+                }
+
+                Log::info("Welcome SMS resent to fundi {$this->fundi->full_name} ({$phoneNumber})");
+                return true;
+            },
+            'SMS Sent',
+            'Welcome SMS has been sent successfully.',
+            'SMS Failed',
+            'Failed to send SMS. Please try again.',
+            true // Use toast for SMS operations
+        );
     }
 
     /**
@@ -255,14 +555,19 @@ class FundiProfile extends Component
                 Log::info("Welcome SMS sent successfully to fundi {$this->fundi->full_name} ({$phoneNumber})");
             } else {
                 Log::error("Failed to send welcome SMS to fundi {$this->fundi->full_name}: " . ($result['error'] ?? 'Unknown error'));
+
+                // Note: Don't fail the approval, just log the SMS failure
+                // The approval already succeeded at this point
             }
         } catch (\Exception $e) {
             Log::error("Exception sending welcome SMS to fundi {$this->fundi->id}: " . $e->getMessage());
+
+            // Note: Don't fail the approval, just log the SMS failure
         }
     }
 
     /**
-     * Send rejection SMS to fundi (optional)
+     * Send rejection SMS to fundi
      */
     private function sendRejectionSms($reason = null)
     {
@@ -270,6 +575,7 @@ class FundiProfile extends Component
             $phoneNumber = $this->getValidPhoneNumber();
 
             if (!$phoneNumber) {
+                Log::warning("No valid phone number found for fundi ID: {$this->fundi->id}");
                 return;
             }
 
@@ -344,6 +650,22 @@ class FundiProfile extends Component
         $message .= " Unaweza kujaribu tena baadaye. Asante.";
 
         return $message;
+    }
+
+    /**
+     * View all transactions for this fundi
+     */
+    public function viewAllTransactions()
+    {
+        return redirect()->route('transactions', ['fundi_id' => $this->fundi->id]);
+    }
+
+    /**
+     * View all site visits for this fundi
+     */
+    public function viewAllSiteVisits()
+    {
+        return redirect()->route('site-visits', ['fundi_id' => $this->fundi->id]);
     }
 
     public function render()

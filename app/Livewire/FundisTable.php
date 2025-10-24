@@ -62,6 +62,15 @@ class FundisTable extends Component
     public $showMobileFilters = false;
     public $compactView = false;
 
+    // Bulk selection properties
+    public $selectedFundis = [];
+    public $selectAll = false;
+
+    protected $listeners = [
+        'executeSingleDelete' => 'executeSingleDelete',
+        'executeBulkDelete' => 'executeBulkDelete'
+    ];
+
     public function mount()
     {
         // For non-admin/root users, set their primary location
@@ -81,11 +90,20 @@ class FundisTable extends Component
         // Auto-hide mobile filters initially on mobile
         $this->showMobileFilters = false;
 
-        // Set compact view based on screen size (you can add logic to detect this)
+        // Set compact view based on screen size
         $this->compactView = false;
 
         // Display any flashed alerts
         $this->displayFlashedAlerts();
+    }
+
+    public function updatedSelectAll($value)
+    {
+        if ($value) {
+            $this->selectedFundis = $this->fetch()->pluck('id')->toArray();
+        } else {
+            $this->selectedFundis = [];
+        }
     }
 
     public function updatedRegion($value)
@@ -249,7 +267,7 @@ class FundisTable extends Component
     private function getCachedUsers(string $type): \Illuminate\Support\Collection
     {
         $cacheKey = "fundis_users_{$type}";
-        
+
         return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($type) {
             return \App\Models\User::select('id', 'fname', 'lname', 'email')
                 ->whereIn('id', function ($query) use ($type) {
@@ -294,16 +312,87 @@ class FundisTable extends Component
     }
 
     /**
-     * Clear user-related caches
+     * Delete single fundi - Show confirmation
      */
-    private function clearUserCache()
+    public function deleteFundi($fundi_id)
     {
-        Cache::forget('fundis_users_created_by');
-        Cache::forget('fundis_users_approved_by');
+        $this->showDeleteConfirmation(
+            'executeSingleDelete',
+            ['fundi_id' => $fundi_id],
+            'Delete Fundi?',
+            'Are you sure you want to permanently delete this fundi? This action cannot be undone.'
+        );
     }
 
     /**
-     * Download the PDF of fundis - optimized for large datasets
+     * Execute single delete - Called after confirmation
+     */
+    public function executeSingleDelete($fundi_id)
+    {
+        $result = $this->handleOperation(
+            function () use ($fundi_id) {
+                return Fundi::where('id', $fundi_id)->delete();
+            },
+            'Deleted!',
+            'Fundi deleted successfully',
+            'Error',
+            'Failed to delete fundi',
+            true // Use toast
+        );
+
+        if ($result) {
+            // Remove from selected array
+            $this->selectedFundis = array_diff($this->selectedFundis, [$fundi_id]);
+        }
+    }
+
+    /**
+     * Bulk delete fundis - Show confirmation
+     */
+    public function bulkDelete()
+    {
+        if (empty($this->selectedFundis)) {
+            $this->showWarningAlert('No Selection', 'Please select at least one fundi to delete');
+            return;
+        }
+
+        $count = count($this->selectedFundis);
+
+        $this->showBulkDeleteConfirmation(
+            $count,
+            'executeBulkDelete'
+        );
+    }
+
+    /**
+     * Execute bulk delete - Called after confirmation
+     */
+    public function executeBulkDelete()
+    {
+        if (empty($this->selectedFundis)) {
+            return;
+        }
+
+        $count = count($this->selectedFundis);
+
+        $result = $this->handleOperation(
+            function () {
+                return Fundi::whereIn('id', $this->selectedFundis)->delete();
+            },
+            'Deleted!',
+            "Successfully deleted {$count} fundi(s)",
+            'Error',
+            'Failed to delete fundis'
+        );
+
+        if ($result) {
+            $this->selectedFundis = [];
+            $this->selectAll = false;
+        }
+    }
+
+    /**
+     * Download the PDF of fundis
      */
     public function downloadFundiPDF()
     {
@@ -313,7 +402,7 @@ class FundisTable extends Component
         return response()->streamDownload(function () {
             // Use chunk to avoid memory issues with large datasets
             $query = $this->getFundiQuery();
-            
+
             $rows = [];
             $query->chunk(500, function ($fundis) use (&$rows) {
                 foreach ($fundis as $fundi) {
@@ -412,7 +501,9 @@ class FundisTable extends Component
             'approval_status',
             'created_by',
             'approved_by',
-            'legacy_match'
+            'legacy_match',
+            'selectedFundis',
+            'selectAll'
         ]);
 
         // Don't reset region/district for non-admin/root users
