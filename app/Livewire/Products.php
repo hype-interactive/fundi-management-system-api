@@ -119,7 +119,7 @@ class Products extends Component
             $query->where('availability', $this->availability_filter);
         }
 
-        return $query->orderBy('created_at', 'desc');
+        return $query->orderBy('created_at', 'asc');
     }
 
     /**

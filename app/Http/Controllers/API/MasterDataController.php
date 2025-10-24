@@ -38,7 +38,7 @@ class MasterDataController extends BaseAPIController
             $query->where('availability', 'available');
         }
 
-        $products = $query->orderBy('name')->get();
+        $products = $query->orderBy('created_at','asc')->get();
 
         return $this->successResponse(
             ProductResource::collection($products),
