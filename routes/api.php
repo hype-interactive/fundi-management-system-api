@@ -39,7 +39,7 @@ Route::prefix('v1')->middleware(['auth:api'])->group(function () {
         Route::get('/', [FundiController::class, 'index']);
         Route::post('/', [FundiController::class, 'store']);
         Route::get('/search', [FundiController::class, 'searchForSiteVisit']);
-        Route::get('/{fundi}', [FundiController::class, 'show']);
+        Route::get('/{unique_id}', [FundiController::class, 'show']);
         Route::put('/{fundi}', [FundiController::class, 'update']);
         Route::delete('/{fundi}', [FundiController::class, 'destroy']);
 

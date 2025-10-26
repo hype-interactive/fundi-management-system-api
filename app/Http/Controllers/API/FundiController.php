@@ -94,8 +94,9 @@ class FundiController extends BaseAPIController
         ]);
     }
 
-    public function show(Fundi $fundi): JsonResponse
+    public function show(String $unique_id): JsonResponse
     {
+        $fundi = Fundi::where('unique_id',$unique_id)->first();
         // Check if operator has access to this fundi
         if (!$this->getOperatorDistricts()->contains($fundi->ward->district_id)) {
             return $this->errorResponse('Unauthorized access', null, 403);

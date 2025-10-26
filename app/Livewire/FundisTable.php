@@ -85,6 +85,7 @@ class FundisTable extends Component
             if ($primaryRegion) {
                 $this->region = $primaryRegion->id;
             }
+
         }
 
         // Auto-hide mobile filters initially on mobile
@@ -95,7 +96,26 @@ class FundisTable extends Component
 
         // Display any flashed alerts
         $this->displayFlashedAlerts();
+
+        $this->processQrCodesInBackground();
+
     }
+
+    public function processQrCodesInBackground()
+    {
+        // Get fundis without QR codes (limit to avoid timeout)
+        $fundisWithoutQr = Fundi::whereNull('qr_code_path')
+            ->orWhere('qr_code_path', '')
+            ->limit(100)
+            ->latest('created_at')
+            ->get();
+
+        foreach ($fundisWithoutQr as $fundi) {
+            $fundi->generateQrCode();
+        }
+    }
+
+    
 
     public function updatedSelectAll($value)
     {

@@ -10,6 +10,7 @@ use App\Services\SmsService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class FundiProfile extends Component
 {
@@ -90,6 +91,19 @@ class FundiProfile extends Component
 
         // Using trait method for simple toast notification
         $this->showSuccessToast('Refreshed', 'Profile data has been updated.');
+    }
+
+    public function downloadQrCode()
+    {
+        if (!$this->fundi->qr_code_path || !Storage::disk('public')->exists($this->fundi->qr_code_path)) {
+            session()->flash('error', 'QR Code not found');
+            return;
+        }
+
+        return Storage::disk('public')->download(
+            $this->fundi->qr_code_path,
+            'Fundi_' . $this->fundi->full_name.'_'.$this->fundi->primary_phone. '_' . '_qrcode.' . pathinfo($this->fundi->qr_code_path, PATHINFO_EXTENSION)
+        );
     }
 
     /**

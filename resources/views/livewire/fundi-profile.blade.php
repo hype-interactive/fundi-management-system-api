@@ -140,32 +140,43 @@
             </div>
         @endif
     </div>
+    @if ($fundi->qr_code_path)
+        <div class="actions-card text-center mt-4">
+            <img src="{{ asset('storage/' . $fundi->qr_code_path) }}" alt="Profile Picture">
+            <div class="action-buttons">
 
-<!-- Actions Section -->
-@if (!$fundi->approved_at || !$fundi->rejected_at)
-    <div class="actions-card mt-4">
-        <h6 class="card-title">
-            <i class="fa-solid fa-cogs mr-2"></i>
-            Actions
-        </h6>
-        <div class="action-buttons">
-            @if (!$fundi->approved_at)
-                <button class="btn btn-success btn-sm" wire:click="confirmApprove">
-                    <i class="fa-solid fa-check me-1"></i>
-                    Approve 
+                <button class="btn btn-primary btn-sm mt-3" wire:click="downloadQrCode">
+                    <i class="fa-solid fa-qrcode me-1"></i>
+                    Download QR-Code
                 </button>
-                <button class="btn btn-warning btn-sm" wire:click="confirmReject">
-                    <i class="fa-solid fa-times me-1"></i>
-                    Reject 
-                </button>
-            @endif
-            <button class="btn btn-danger btn-sm" wire:click="confirmDelete">
-                <i class="fa-solid fa-trash me-1"></i>
-                Delete
-            </button>
+            </div>
         </div>
-    </div>
-@endif
+    @endif
+    <!-- Actions Section -->
+    @if (!$fundi->approved_at || !$fundi->rejected_at)
+        <div class="actions-card mt-4">
+            <h6 class="card-title">
+                <i class="fa-solid fa-cogs mr-2"></i>
+                Actions
+            </h6>
+            <div class="action-buttons">
+                @if (!$fundi->approved_at)
+                    <button class="btn btn-success btn-sm" wire:click="confirmApprove">
+                        <i class="fa-solid fa-check me-1"></i>
+                        Approve
+                    </button>
+                    <button class="btn btn-warning btn-sm" wire:click="confirmReject">
+                        <i class="fa-solid fa-times me-1"></i>
+                        Reject
+                    </button>
+                @endif
+                <button class="btn btn-danger btn-sm" wire:click="confirmDelete">
+                    <i class="fa-solid fa-trash me-1"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    @endif
 
     <!-- Legacy Match Section -->
     @if ($legacyMatch)

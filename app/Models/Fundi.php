@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Support\Facades\Storage;
 
 class Fundi extends Model
 {
@@ -34,6 +36,7 @@ class Fundi extends Model
         'rejected_by',
         'legacy_match',
         'legacy_id',
+        'qr_code_path'
     ];
 
     protected $casts = [
@@ -51,6 +54,56 @@ class Fundi extends Model
     {
         return trim($this->ranking == 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi');
     }
+
+      protected static function booted()
+    {
+        static::created(function ($fundi) {
+            $fundi->generateQrCodeQuitely();
+        });
+    }
+
+    // In your Fundi model
+    public function generateQrCode()
+    {
+        if ($this->qr_code_path && Storage::exists($this->qr_code_path)) {
+            return $this->qr_code_path;
+        }
+
+        $qrCode = QrCode::format('svg')
+        ->size(300)
+        ->generate($this->unique_id); // or route to profile
+
+        $filename = 'qrcodes/fundi_' . $this->id . '_' . time() . '.svg';
+        Storage::disk('public')->put($filename, $qrCode);
+
+        $this->update(['qr_code_path' => $filename]);
+
+        return $filename;
+    }
+
+        public function generateQrCodeQuitely()
+    {
+        // Skip if already exists
+        if ($this->qr_code_path && Storage::disk('public')->exists($this->qr_code_path)) {
+            return $this->qr_code_path;
+        }
+
+        // Generate QR code
+        $qrCode = QrCode::format('svg')
+        ->size(300)
+        ->generate($this->unique_id);// or url to profile
+
+        // Save to storage
+        $filename = 'qrcodes/fundi_' . $this->id . '_' . time() . '.svg';
+        Storage::disk('public')->put($filename, $qrCode);
+
+        // Update model without triggering events again
+        $this->updateQuietly(['qr_code_path' => $filename]);
+
+        return $filename;
+    }
+
+
 
     /**
      * Get the approval status based on most recent action
