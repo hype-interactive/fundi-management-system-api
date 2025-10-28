@@ -90,10 +90,10 @@
             <table class="table">
                 <thead class="thead-light">
                     <tr>
-                        <th scope="col">
+                        {{-- <th scope="col">
                             <input type="checkbox" wire:model.live="selectAll" class="form-check-input"
                                 @if (count($fundis) === 0) disabled @endif>
-                        </th>
+                        </th> --}}
                         <th scope="col">
                             <a wire:click="refresh">
                                 <i class="fa-solid fa-arrows-rotate"></i>
@@ -114,10 +114,10 @@
                 <tbody>
                     @forelse ($fundis as $fundi)
                         <tr>
-                            <td>
+                            {{-- <td>
                                 <input type="checkbox" wire:model.live="selectedFundis" value="{{ $fundi->id }}"
                                     class="form-check-input">
-                            </td>
+                            </td> --}}
                             <th scope="row">
                                 <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle">
                                     <i class="fa-solid fa-user"></i>

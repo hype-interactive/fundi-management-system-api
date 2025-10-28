@@ -56,6 +56,8 @@
                                         class="fa-regular fa-folder-open"></i></a>
                                 <a href="/products" class="btn btn-custom inner-btn mt-3">Products <i
                                         class="fa-solid fa-shopping-bag"></i></a>
+                                        <a href="{{route('locations.manage')}}" class="btn btn-custom inner-btn mt-3">Locations <i
+                                        class="fa-solid fa-map"></i></a>
                             </div>
                         </div>
                     </li>

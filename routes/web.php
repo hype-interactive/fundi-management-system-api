@@ -8,6 +8,7 @@ use App\Http\Controllers\OperatorController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SiteVisitController;
 use App\Http\Controllers\LegacyDataController;
+use App\Livewire\LocationManager;
 
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -48,6 +49,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/operators', function () {
         return view('pages.operators');
     })->name('operators');
+
+    Route::get('/locations', function(){
+        return view('pages.location-manager');
+    })->name('locations.manage');
 
     Route::get('/operators/{operator}', [OperatorController::class, 'show'])->name('operator');
 
