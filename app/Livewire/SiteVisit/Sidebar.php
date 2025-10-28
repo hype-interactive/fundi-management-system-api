@@ -57,6 +57,26 @@ class Sidebar extends Component
         ]);
     }
 
+    public function confirmDelete()
+    {
+        $this->dispatch('showConfirmation', [
+            'title' => 'Delete Site Visit',
+            'message' => 'Are you sure you want to permanently delete this site visit? This action cannot be undone.',
+            'type' => 'delete',
+            'itemName' => "Site Visit #{$this->siteVisit->id}",
+            'itemDetails' => [
+                'Site Name' => $this->siteVisit->site_name ?? 'Not specified',
+                'Created by' => $this->siteVisit->operator?->full_name ?? 'Unknown',
+                'Date' => $this->siteVisit->created_at?->format('M d, Y g:i A'),
+                'Photos' => $this->siteVisit->photos?->count(),
+                'Products' => $this->siteVisit->products?->count(),
+                'Mafundi' => $this->siteVisit->fundis?->count(),
+            ],
+            'confirmMethod' => 'deleteVisit',
+            'confirmParams' => []
+        ]);
+    }
+
     #[On('approveVisit')]
     public function approveVisit()
     {
@@ -88,6 +108,25 @@ class Sidebar extends Component
 
         $this->dispatch('visitStatusChanged');
         session()->flash('message', 'Site visit rejected.');
+    }
+
+    #[On('deleteVisit')]
+    public function deleteVisit()
+    {
+        try {
+            $siteVisitId = $this->siteVisit->id;
+            
+            // Delete the site visit (photos, products, and fundis relationships should be handled by cascade or model events)
+            $this->siteVisit->delete();
+
+            session()->flash('message', "Site visit #{$siteVisitId} has been deleted successfully.");
+            
+            // Redirect to site visits list
+            return redirect()->route('site-visits');
+        } catch (\Exception $e) {
+            Log::error("Failed to delete site visit {$this->siteVisit->id}: " . $e->getMessage());
+            session()->flash('error', 'Failed to delete site visit. Please try again.');
+        }
     }
 
     public function exportVisit()

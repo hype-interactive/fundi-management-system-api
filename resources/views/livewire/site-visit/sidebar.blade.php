@@ -81,6 +81,11 @@
                     Generating PDF...
                 </span>
             </button>
+
+            <button class="btn btn-danger btn-sm" wire:click="confirmDelete">
+                <i class="fa-solid fa-trash me-1"></i>
+                Delete Visit
+            </button>
         </div>
     </div>
 
