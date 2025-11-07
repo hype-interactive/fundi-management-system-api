@@ -129,18 +129,16 @@
                                 </td>
                             @endif
                             <td class="d-lg-table-cell d-none">
-                                @include('components.general-status-badge', ['status' => $operator->status])
+                                @include('components.general-status-badge', [
+                                    'status' => $operator->status,
+                                ])
                             </td>
                             <td class="d-xl-table-cell d-none">
                                 <div class="districts-list">
                                     @if ($operator->districts->count() > 0)
-                                        @foreach ($operator->districts->take(2) as $district)
+                                        @foreach ($operator->districts as $district)
                                             <span class="district-badge">{{ $district->name }}</span>
                                         @endforeach
-                                        @if ($operator->districts->count() > 2)
-                                            <small class="text-muted">+{{ $operator->districts->count() - 2 }}
-                                                more</small>
-                                        @endif
                                     @else
                                         <span class="text-muted">No districts</span>
                                     @endif
@@ -192,7 +190,9 @@
                             </a>
                             <div class="operator-meta">
                                 {{-- @include('components.role-badge', ['role' => $operator->role]) --}}
-                                @include('components.general-status-badge', ['status' => $operator->status])
+                                @include('components.general-status-badge', [
+                                    'status' => $operator->status,
+                                ])
                             </div>
                         </div>
                     </div>

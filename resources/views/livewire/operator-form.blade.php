@@ -397,31 +397,44 @@
                     <!-- District Selection -->
                     @if ($selected_region && $districts->count() > 0)
                         <div class="form-group mt-4">
-                            <label for="selected_district">Assigned District <span
+                            <label for="selected_districts">Assigned Districts <span
                                     class="text-danger">*</span></label>
-                            <select wire:model="selected_district" id="selected_district" class="form-control">
-                                <option value="">-- Select District --</option>
+                            <div class="districts-checkboxes"
+                                style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; padding: 10px; border-radius: 4px;">
                                 @foreach ($districts as $district)
-                                    <option value="{{ $district->id }}">{{ $district->name }}</option>
+                                    <div class="form-check">
+                                        <input type="checkbox" wire:model="selected_districts"
+                                            value="{{ $district->id }}" class="form-check-input"
+                                            id="district_{{ $district->id }}">
+                                        <label class="form-check-label" for="district_{{ $district->id }}">
+                                            {{ $district->name }}
+                                        </label>
+                                    </div>
                                 @endforeach
-                            </select>
+                            </div>
                             <small class="form-text text-muted">
-                                Select the district this operator will manage in
+                                Select one or more districts this operator will manage in
                                 {{ $regions->where('id', $selected_region)->first()->name ?? 'the selected region' }}
                                 @if ($editing && $this->has_multiple_districts)
                                     <br><strong>Note:</strong> This will replace all currently assigned districts.
                                 @endif
                             </small>
-                            @error('selected_district')
+                            @error('selected_districts')
+                                <span class="error text-danger"><small>{{ $message }}</small></span>
+                            @enderror
+                            @error('selected_districts.*')
                                 <span class="error text-danger"><small>{{ $message }}</small></span>
                             @enderror
 
-                            @if ($selected_district)
+                            {{-- Show selected districts count --}}
+                            @if (count($selected_districts) > 0)
                                 <div class="mt-3">
                                     <small class="text-success">
                                         <i class="fas fa-check-circle mr-1"></i>
-                                        District selected:
-                                        {{ $districts->where('id', $selected_district)->first()->name ?? '' }}
+                                        {{ count($selected_districts) }} district(s) selected:
+                                        @foreach ($districts->whereIn('id', $selected_districts) as $district)
+                                            <span class="badge badge-primary mr-1">{{ $district->name }}</span>
+                                        @endforeach
                                     </small>
                                 </div>
                             @endif

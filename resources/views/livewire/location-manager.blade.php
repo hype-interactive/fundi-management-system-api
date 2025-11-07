@@ -266,7 +266,9 @@
                             <i class="fa-solid fa-map me-2"></i>
                             {{ $isEditingDistrict ? 'Edit District' : 'Add New District' }}
                         </h5>
-                        <button type="button" class="btn-close" wire:click="closeDistrictModal"></button>
+                        <button type="button" class="close" data-dismiss="modal" wire:click="closeDistrictModal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
@@ -321,7 +323,9 @@
                             <i class="fa-solid fa-map-pin me-2"></i>
                             {{ $isEditingWard ? 'Edit Ward' : 'Add New Ward' }}
                         </h5>
-                        <button type="button" class="btn-close" wire:click="closeWardModal"></button>
+                        <button type="button" class="close" data-dismiss="" wire:click="closeWardModal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">

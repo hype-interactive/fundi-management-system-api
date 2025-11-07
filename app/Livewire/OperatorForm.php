@@ -37,7 +37,7 @@ class OperatorForm extends Component
 
     // Region and District assignment
     public $selected_region = null;
-    public $selected_district = null;
+    public $selected_districts = []; // Changed to array
     public $available_districts = [];
 
     // UI state properties
@@ -145,18 +145,10 @@ class OperatorForm extends Component
         // Load assigned districts and determine region
         $assignedDistricts = $operator->districts;
         if ($assignedDistricts->count() > 0) {
+            $this->selected_districts = $assignedDistricts->pluck('id')->toArray();
             $firstDistrict = $assignedDistricts->first();
-
-            // For backward compatibility: if operator has multiple districts, use the first one
-            $this->selected_district = $firstDistrict->id;
             $this->selected_region = $firstDistrict->region_id;
             $this->loadDistrictsByRegion();
-
-            // Optional: Log or notify if operator had multiple districts (for migration tracking)
-            if ($assignedDistricts->count() > 1) {
-                // You can add logging here if needed
-                Log::info("Operator {$operator->id} had multiple districts, using first one: {$firstDistrict->name}");
-            }
         }
 
         // Handle existing photo
@@ -221,7 +213,7 @@ class OperatorForm extends Component
     {
         if (!$this->selected_region) {
             $this->districts = collect();
-            $this->selected_district = null;
+            $this->selected_districts = null;
             return;
         }
 
@@ -243,9 +235,7 @@ class OperatorForm extends Component
 
         // Clear selected district if it doesn't belong to the new region - CHANGED
         $availableDistrictIds = $this->districts->pluck('id')->toArray();
-        if ($this->selected_district && !in_array($this->selected_district, $availableDistrictIds)) {
-            $this->selected_district = null;
-        }
+        $this->selected_districts = array_intersect($this->selected_districts, $availableDistrictIds);
     }
 
     /**
@@ -351,7 +341,7 @@ class OperatorForm extends Component
             'password',
             'password_confirmation',
             'selected_region',
-            'selected_district',
+            'selected_districts',
             'editing',
             'existing_photo_url',
             'existing_photo_public_id',
@@ -365,7 +355,7 @@ class OperatorForm extends Component
         $this->status = 'active';
         $this->show_password = true;
         $this->use_default_password = false;
-        $this->selected_district = null;
+        $this->selected_districts = [];
     }
 
     /**
@@ -438,7 +428,8 @@ class OperatorForm extends Component
             'role_id' => 'required|exists:roles,id',
             'status' => 'required|in:active,inactive,pending',
             'selected_region' => 'required|exists:regions,id',
-            'selected_district' => 'required|exists:districts,id',
+            'selected_districts' => 'required|array|min:1',
+            'selected_districts.*' => 'required|exists:districts,id',
         ];
 
         // Add image validation
@@ -541,7 +532,7 @@ class OperatorForm extends Component
 
         if ($operator) {
             // Sync district
-            $operator->districts()->sync([$this->selected_district]);
+            $operator->districts()->sync($this->selected_districts);
 
             // SEND NOTIFICATIONS
             if ($willSendNotifications && $passwordForNotification) {
