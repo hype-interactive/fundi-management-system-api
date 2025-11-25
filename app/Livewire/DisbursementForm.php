@@ -5,10 +5,13 @@ namespace App\Livewire;
 use App\Models\BudgetAllocation;
 use App\Models\DisbursementBatch;
 use App\Models\Fundi;
+use App\Services\Financial\FinancialManagementService;
+use App\Services\Payment\SelcomService;
 use App\Traits\HasAlerts;
 use Livewire\Component;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class DisbursementForm extends Component
 {
@@ -19,13 +22,15 @@ class DisbursementForm extends Component
     public $title = '';
     public $description = '';
     public $disbursement_date = '';
-    public $recipients = [];
     public $selected_fundis = [];
 
     // UI state
     public $saving = false;
-    public $step = 1; // 1: Basic Info, 2: Select Fundis, 3: Review
+    public $checking_balance = false;
+    public $step = 1;
     public $total_amount = 0;
+    public $provider_balance = null;
+    public $balance_check_error = null;
 
     // Data
     public $budget_allocations = [];
@@ -41,8 +46,6 @@ class DisbursementForm extends Component
         $this->disbursement_date = now()->format('Y-m-d');
         $this->loadBudgetAllocations();
         $this->loadAvailableFundis();
-
-        // Display any flashed alerts
         $this->displayFlashedAlerts();
     }
 
@@ -84,6 +87,10 @@ class DisbursementForm extends Component
                 return;
             }
             $this->calculateTotalAmount();
+
+            // Check provider balance before review
+            $this->checkProviderBalance();
+
             $this->step = 3;
         }
     }
@@ -110,13 +117,16 @@ class DisbursementForm extends Component
             unset($this->selected_fundis[$fundiId]);
         } else {
             $fundi = Fundi::find($fundiId);
-            $this->selected_fundis[$fundiId] = [
-                'fundi_id' => $fundiId,
+            if ($fundi) {
+                $this->selected_fundis[$fundiId] = [
+                    'fundi_id' => $fundiId,
                 'name' => $fundi->full_name,
-                'phone' => $fundi->primary_phone,
-                'amount' => 50000, // Default amount
-            ];
+                    'phone' => $fundi->primary_phone,
+                    'amount' => 50000,
+                ];
+            }
         }
+        $this->calculateTotalAmount();
     }
 
     public function updateAmount($fundiId, $amount)
@@ -140,11 +150,51 @@ class DisbursementForm extends Component
         $this->calculateTotalAmount();
     }
 
+    /**
+     * Check SELCOM provider balance
+     */
+    public function checkProviderBalance()
+    {
+        $this->checking_balance = true;
+        $this->balance_check_error = null;
+
+        try {
+            $selcomService = app(SelcomService::class);
+            $result = $selcomService->checkBalance();
+
+            if ($result['success']) {
+                $this->provider_balance = $result['balance'];
+
+                Log::info('Provider balance checked', [
+                    'balance' => $this->provider_balance,
+                    'required' => $this->total_amount,
+                ]);
+
+                if ($this->provider_balance < $this->total_amount) {
+                    $this->balance_check_error = sprintf(
+                        'Insufficient provider balance. Available: %s TZS, Required: %s TZS',
+                        number_format($this->provider_balance),
+                        number_format($this->total_amount)
+                    );
+                }
+            } else {
+                $this->balance_check_error = 'Unable to verify provider balance. Please try again.';
+                Log::error('Balance check failed', ['error' => $result['error'] ?? 'Unknown']);
+            }
+
+        } catch (Exception $e) {
+            $this->balance_check_error = 'Balance check error: ' . $e->getMessage();
+            Log::error('Balance check exception', ['error' => $e->getMessage()]);
+        } finally {
+            $this->checking_balance = false;
+        }
+    }
+
     public function createDisbursement()
     {
         $this->saving = true;
 
-        // Validate final form
+        // Final validation
         try {
             $this->validate([
                 'budget_allocation_id' => 'required|exists:budget_allocations,id',
@@ -163,8 +213,14 @@ class DisbursementForm extends Component
             return;
         }
 
-        // Show loading alert
-        $this->showLoadingAlert('Creating Disbursement', 'Please wait while we process the disbursement...');
+        // Check if balance error exists
+        if ($this->balance_check_error) {
+            $this->saving = false;
+            $this->showErrorAlert('Balance Error', $this->balance_check_error);
+            return;
+        }
+
+        $this->showLoadingAlert('Creating Disbursement', 'Please wait while we process the disbursement batch...');
 
         $result = $this->handleOperation(
             function () {
@@ -176,8 +232,8 @@ class DisbursementForm extends Component
                     ];
                 }, $this->selected_fundis);
 
-                // Use the Financial Management Service
-                $financialService = app(\App\Services\Financial\FinancialManagementService::class);
+                // Process through Financial Management Service
+                $financialService = app(FinancialManagementService::class);
 
                 $batch = $financialService->processDisbursementBatch(
                     $this->budget_allocation_id,
@@ -190,16 +246,21 @@ class DisbursementForm extends Component
                     ]
                 );
 
+                Log::info('Disbursement batch created via Livewire', [
+                    'batch_id' => $batch->id,
+                    'created_by' => Auth::id(),
+                ]);
+
                 $this->resetForm();
                 $this->dispatch('disbursementCreated', $batch->id);
 
                 return true;
             },
             'Success',
-            'Disbursement batch created successfully!',
+            'Disbursement batch created successfully! Processing will continue in the background.',
             'Error',
             'Failed to create disbursement batch. Please try again.',
-            false // Use alert for important actions
+            false
         );
 
         $this->saving = false;
@@ -214,7 +275,9 @@ class DisbursementForm extends Component
             'selected_fundis',
             'total_amount',
             'saving',
-            'search_fundi'
+            'search_fundi',
+            'provider_balance',
+            'balance_check_error',
         ]);
         $this->step = 1;
         $this->disbursement_date = now()->format('Y-m-d');

@@ -2,324 +2,248 @@
 
 namespace App\Services\Financial;
 
-use Exception;
-use Carbon\Carbon;
-use App\Models\Fundi;
-use App\Models\Transaction;
 use App\Models\BudgetAllocation;
 use App\Models\DisbursementBatch;
+use App\Models\Transaction;
+use App\Services\Payment\SelcomService;
+use App\Jobs\ProcessDisbursementJob;
 use Illuminate\Support\Facades\DB;
-use App\Exceptions\SelcomException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use App\Services\Payment\Selcom\FinancialSelcomService;
+use Exception;
 
 class FinancialManagementService
 {
-    private FinancialSelcomService $selcomService;
+    protected SelcomService $selcomService;
 
-    public function __construct(FinancialSelcomService $selcomService)
+    public function __construct(SelcomService $selcomService)
     {
         $this->selcomService = $selcomService;
     }
 
     /**
-     * Create a new budget allocation
-     */
-    public function createBudgetAllocation(array $data): BudgetAllocation
-    {
-        return BudgetAllocation::create([
-            'title' => $data['title'],
-            'description' => $data['description'] ?? null,
-            'total_amount' => $data['total_amount'],
-            'remaining_amount' => $data['total_amount'],
-            'created_by' => Auth::id(),
-            'status' => 'active',
-        ]);
-    }
-
-    /**
-     * Create and process a disbursement batch
+     * Process disbursement batch with balance check and async processing
      */
     public function processDisbursementBatch(int $budgetAllocationId, array $data): DisbursementBatch
     {
         return DB::transaction(function () use ($budgetAllocationId, $data) {
-            $budget = BudgetAllocation::findOrFail($budgetAllocationId);
 
-            // Validate budget has sufficient funds
-            if ($data['total_amount'] > $budget->remaining_amount) {
-                throw new Exception('Insufficient budget remaining for this disbursement');
+            Log::info('=== PROCESSING DISBURSEMENT BATCH ===', [
+                'budget_allocation_id' => $budgetAllocationId,
+                'total_amount' => $data['total_amount'],
+                'recipients_count' => count($data['recipients']),
+            ]);
+
+            // 1. Validate budget allocation
+            $budgetAllocation = BudgetAllocation::lockForUpdate()->findOrFail($budgetAllocationId);
+
+            if ($budgetAllocation->status !== 'active') {
+                throw new Exception('Budget allocation is not active');
             }
 
-            // Create disbursement batch
+            if ($budgetAllocation->remaining_amount < $data['total_amount']) {
+                throw new Exception('Insufficient budget remaining');
+            }
+
+            // 2. Check SELCOM balance
+            $balanceCheck = $this->selcomService->checkBalance();
+
+            if (!$balanceCheck['success']) {
+                throw new Exception('Unable to verify payment provider balance: ' . ($balanceCheck['error'] ?? 'Unknown error'));
+            }
+
+            $providerBalance = $balanceCheck['balance'];
+
+            Log::info('SELCOM balance check', [
+                'provider_balance' => $providerBalance,
+                'required_amount' => $data['total_amount'],
+            ]);
+
+            if ($providerBalance < $data['total_amount']) {
+                throw new Exception(sprintf(
+                    'Insufficient provider balance. Required: %s, Available: %s',
+                    number_format($data['total_amount']),
+                    number_format($providerBalance)
+                ));
+            }
+
+            // 3. Create disbursement batch
             $batch = DisbursementBatch::create([
                 'budget_allocation_id' => $budgetAllocationId,
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
                 'total_amount' => $data['total_amount'],
-                'disbursement_date' => $data['disbursement_date'] ?? Carbon::now(),
+                'disbursement_date' => $data['disbursement_date'],
                 'status' => 'pending',
                 'created_by' => Auth::id(),
             ]);
 
-            // Create individual transactions
+            Log::info('Disbursement batch created', [
+                'batch_id' => $batch->id,
+            ]);
+
+            // 4. Create transaction records
+            $transactions = [];
             foreach ($data['recipients'] as $recipient) {
-                Transaction::create([
+                $transaction = Transaction::create([
                     'disbursement_batch_id' => $batch->id,
                     'fundi_id' => $recipient['fundi_id'],
                     'amount' => $recipient['amount'],
-                    'transaction_reference' => $this->generateTransactionReference(),
                     'status' => 'pending',
                 ]);
+
+                $transactions[] = $transaction;
             }
 
-            // Update budget remaining amount
-            $budget->decrement('remaining_amount', $data['total_amount']);
+            Log::info('Transactions created', [
+                'batch_id' => $batch->id,
+                'transaction_count' => count($transactions),
+            ]);
 
-            // Process transactions asynchronously
-            dispatch(function () use ($batch) {
-                $this->processTransactions($batch);
-            })->delay(now()->addSeconds(10));
+            // 5. Update budget allocation
+            $budgetAllocation->decrement('remaining_amount', $data['total_amount']);
+
+            Log::info('Budget allocation updated', [
+                'budget_allocation_id' => $budgetAllocation->id,
+                'new_remaining_amount' => $budgetAllocation->fresh()->remaining_amount,
+            ]);
+
+            // 6. Dispatch async jobs to process disbursements
+            $this->dispatchDisbursementJobs($transactions);
+
+            // 7. Update batch status to processing
+            $batch->update(['status' => 'processing']);
+
+            Log::info('=== DISBURSEMENT BATCH PROCESSING INITIATED ===', [
+                'batch_id' => $batch->id,
+                'jobs_dispatched' => count($transactions),
+            ]);
 
             return $batch;
         });
     }
 
     /**
-     * Process transactions in a batch
+     * Dispatch jobs to process individual disbursements
      */
-    public function processTransactions(DisbursementBatch $batch): void
+    protected function dispatchDisbursementJobs(array $transactions): void
     {
-        $batch->update(['status' => 'processing']);
+        foreach ($transactions as $index => $transaction) {
+            // Stagger job dispatch to avoid overwhelming the API
+            $delay = now()->addSeconds($index * 5); // 5 seconds between each
 
-        $transactions = $batch->transactions()->where('status', 'pending')->get();
+            ProcessDisbursementJob::dispatch($transaction)
+                ->delay($delay)
+                ->onQueue('disbursements');
 
-        foreach ($transactions as $transaction) {
-            try {
-                $this->processTransaction($transaction);
-            } catch (Exception $e) {
-                Log::error('Transaction processing failed', [
-                    'transaction_id' => $transaction->id,
-                    'error' => $e->getMessage(),
-                ]);
-
-                $transaction->update([
-                    'status' => 'failed',
-                    'failure_reason' => $e->getMessage(),
-                ]);
-            }
+            Log::info('Disbursement job dispatched', [
+                'transaction_id' => $transaction->id,
+                'delay_seconds' => $index * 5,
+            ]);
         }
+    }
+
+    /**
+     * Get disbursement batch statistics
+     */
+    public function getBatchStatistics(DisbursementBatch $batch): array
+    {
+        $transactions = $batch->transactions;
+
+        return [
+            'total_count' => $transactions->count(),
+            'completed_count' => $transactions->where('status', 'completed')->count(),
+            'failed_count' => $transactions->where('status', 'failed')->count(),
+            'pending_count' => $transactions->whereIn('status', ['pending', 'processing'])->count(),
+            'total_amount' => $batch->total_amount,
+            'completed_amount' => $transactions->where('status', 'completed')->sum('amount'),
+            'failed_amount' => $transactions->where('status', 'failed')->sum('amount'),
+        ];
+    }
+
+    /**
+     * Retry failed transactions in a batch
+     */
+    public function retryFailedTransactions(DisbursementBatch $batch): int
+    {
+        $failedTransactions = $batch->transactions()
+            ->where('status', 'failed')
+            ->get();
+
+        if ($failedTransactions->isEmpty()) {
+            return 0;
+        }
+
+        Log::info('Retrying failed transactions', [
+            'batch_id' => $batch->id,
+            'failed_count' => $failedTransactions->count(),
+        ]);
+
+        // Check SELCOM balance before retrying
+        $balanceCheck = $this->selcomService->checkBalance();
+
+        if (!$balanceCheck['success']) {
+            throw new Exception('Unable to verify provider balance before retry');
+        }
+
+        $requiredAmount = $failedTransactions->sum('amount');
+
+        if ($balanceCheck['balance'] < $requiredAmount) {
+            throw new Exception('Insufficient provider balance for retry');
+        }
+
+        // Reset transactions and dispatch jobs
+        foreach ($failedTransactions as $transaction) {
+            $transaction->update([
+                'status' => 'pending',
+                'failure_reason' => null,
+            ]);
+        }
+
+        $this->dispatchDisbursementJobs($failedTransactions->all());
 
         // Update batch status
-        $this->updateBatchStatus($batch);
+        $batch->update(['status' => 'processing']);
+
+        return $failedTransactions->count();
     }
 
     /**
-     * Process individual transaction
+     * Cancel pending batch
      */
-    private function processTransaction(Transaction $transaction): void
+    public function cancelBatch(DisbursementBatch $batch): bool
     {
-        $transaction->update(['status' => 'processing']);
-
-        try {
-            // Validate fundi is eligible for disbursement
-            $validation = $this->selcomService->validateFundiForDisbursement($transaction->fundi);
-
-            if (!$validation['valid']) {
-                $issues = array_keys(array_filter($validation['validation'], fn($v) => !$v));
-                throw new Exception('Fundi validation failed: ' . implode(', ', $issues));
-            }
-
-            // Process payment through Selcom
-            $response = $this->selcomService->processCashin($transaction);
-
-            if ($response->isSuccessful()) {
-                $transaction->update([
-                    'status' => 'sent',
-                    'mno_response' => json_encode($response->getData()),
-                    'processed_at' => Carbon::now(),
-                ]);
-
-                Log::info('Transaction sent successfully', [
-                    'transaction_id' => $transaction->id,
-                    'selcom_reference' => $response->getReference(),
-                ]);
-            } else {
-                throw new Exception($response->getMessage());
-            }
-
-        } catch (SelcomException $e) {
-            $transaction->update([
-                'status' => 'failed',
-                'failure_reason' => $e->getMessage(),
-                'mno_response' => json_encode(['error' => $e->getMessage()]),
-            ]);
-
-            throw $e;
-        }
-    }
-
-    /**
-     * Handle payment callback from Selcom
-     */
-    public function handlePaymentCallback(array $callbackData): void
-    {
-        $transactionRef = $callbackData['transid'] ?? null;
-        $result = $callbackData['result'] ?? 'UNKNOWN';
-
-        if (!$transactionRef) {
-            Log::warning('Payment callback received without transaction reference', $callbackData);
-            return;
+        if (!in_array($batch->status, ['pending', 'processing'])) {
+            throw new Exception('Only pending or processing batches can be cancelled');
         }
 
-        $transaction = Transaction::where('transaction_reference', $transactionRef)->first();
-
-        if (!$transaction) {
-            Log::warning('Payment callback for unknown transaction', [
-                'transaction_ref' => $transactionRef,
-                'callback_data' => $callbackData,
-            ]);
-            return;
-        }
-
-        DB::transaction(function () use ($transaction, $callbackData, $result) {
-            if ($result === 'SUCCESS' && ($callbackData['resultcode'] ?? null) === '000') {
-                $transaction->update([
-                    'status' => 'completed',
-                    'mno_response' => json_encode($callbackData),
-                    'processed_at' => Carbon::now(),
+        return DB::transaction(function () use ($batch) {
+            // Cancel pending transactions
+            $batch->transactions()
+                ->whereIn('status', ['pending'])
+                ->update([
+                    'status' => 'cancelled',
+                    'failure_reason' => 'Batch cancelled by user',
                 ]);
 
-                Log::info('Transaction completed successfully', [
-                    'transaction_id' => $transaction->id,
-                    'amount' => $transaction->amount,
-                    'fundi_id' => $transaction->fundi_id,
-                ]);
-            } else {
-                $transaction->update([
-                    'status' => 'failed',
-                    'failure_reason' => $callbackData['message'] ?? 'Payment failed',
-                    'mno_response' => json_encode($callbackData),
-                ]);
+            // Refund budget allocation for cancelled transactions
+            $cancelledAmount = $batch->transactions()
+                ->where('status', 'cancelled')
+                ->sum('amount');
 
-                // Release funds back to budget
-                $batch = $transaction->disbursementBatch;
-                $batch->budgetAllocation->increment('remaining_amount', $transaction->amount);
+            if ($cancelledAmount > 0) {
+                $batch->budgetAllocation->increment('remaining_amount', $cancelledAmount);
 
-                Log::warning('Transaction failed', [
-                    'transaction_id' => $transaction->id,
-                    'failure_reason' => $callbackData['message'] ?? 'Unknown',
+                Log::info('Budget refunded for cancelled transactions', [
+                    'batch_id' => $batch->id,
+                    'refunded_amount' => $cancelledAmount,
                 ]);
             }
 
             // Update batch status
-            $this->updateBatchStatus($transaction->disbursementBatch);
+            $batch->update(['status' => 'cancelled']);
+
+            return true;
         });
-    }
-
-    /**
-     * Update batch status based on transaction results
-     */
-    private function updateBatchStatus(DisbursementBatch $batch): void
-    {
-        $transactions = $batch->transactions;
-
-        $completed = $transactions->where('status', 'completed')->count();
-        $failed = $transactions->where('status', 'failed')->count();
-        $pending = $transactions->whereIn('status', ['pending', 'processing', 'sent'])->count();
-
-        if ($pending > 0) {
-            $status = 'processing';
-        } elseif ($failed === 0) {
-            $status = 'completed';
-        } elseif ($completed === 0) {
-            $status = 'failed';
-        } else {
-            $status = 'partial';
-        }
-
-        $batch->update(['status' => $status]);
-    }
-
-    /**
-     * Generate unique transaction reference
-     */
-    private function generateTransactionReference(): string
-    {
-        return 'TXN_' . strtoupper(uniqid()) . '_' . time();
-    }
-
-    /**
-     * Get dashboard summary
-     */
-    public function getDashboardSummary(): array
-    {
-        // Budget Summary
-        $budgetSummary = [
-            'total_budgets' => BudgetAllocation::where('status', 'active')->count(),
-            'total_allocated' => BudgetAllocation::where('status', 'active')->sum('total_amount'),
-            'total_remaining' => BudgetAllocation::where('status', 'active')->sum('remaining_amount'),
-        ];
-
-        $budgetSummary['utilization_rate'] = $budgetSummary['total_allocated'] > 0
-            ? round((($budgetSummary['total_allocated'] - $budgetSummary['total_remaining']) / $budgetSummary['total_allocated']) * 100, 2)
-            : 0;
-
-        // Transaction Summary
-        $transactionSummary = [
-            'total_transactions' => Transaction::count(),
-            'completed_transactions' => Transaction::where('status', 'completed')->count(),
-            'failed_transactions' => Transaction::where('status', 'failed')->count(),
-            'total_successful_amount' => Transaction::where('status', 'completed')->sum('amount'),
-        ];
-
-        $transactionSummary['success_rate'] = $transactionSummary['total_transactions'] > 0
-            ? round(($transactionSummary['completed_transactions'] / $transactionSummary['total_transactions']) * 100, 2)
-            : 0;
-
-        // Recent Activities
-        $recentTransactions = Transaction::with(['fundi', 'disbursementBatch'])
-            ->latest()
-            ->limit(10)
-            ->get()
-            ->map(function ($transaction) {
-                return [
-                    'id' => $transaction->id,
-                    'reference' => $transaction->transaction_reference,
-                    'amount' => $transaction->amount,
-                    'status' => $transaction->status,
-                    'fundi_name' => $transaction->fundi->full_name ?? 'Unknown',
-                    'fundi_mobile' => $transaction->fundi->primary_phone ?? 'Unknown',
-                    'batch_title' => $transaction->disbursementBatch->title,
-                    'created_at' => $transaction->created_at,
-                    'processed_at' => $transaction->processed_at,
-                ];
-            })
-            ->toArray();
-
-        return [
-            'budget_summary' => $budgetSummary,
-            'transaction_summary' => $transactionSummary,
-            'recent_transactions' => $recentTransactions,
-        ];
-    }
-
-    /**
-     * Retry failed transaction
-     */
-    public function retryTransaction(Transaction $transaction): void
-    {
-        if ($transaction->status !== 'failed') {
-            throw new Exception('Only failed transactions can be retried');
-        }
-
-        $transaction->update([
-            'status' => 'pending',
-            'failure_reason' => null,
-            'mno_response' => null,
-        ]);
-
-        // Process the transaction
-        $this->processTransaction($transaction);
     }
 }
