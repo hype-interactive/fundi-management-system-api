@@ -4,13 +4,19 @@
 require 'vendor/autoload.php'; // Composer autoload if using Selcom client
 
 use Selcom\ApigwClient\Client;
+use Dotenv\Dotenv;
+
+// Load environment variables
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
 // ------------------
 // Selcom credentials
 // ------------------
-$apiKey = config('selcom.api_key');
-$apiSecret = config('selcom.api_secret');
-$baseUrl = "https://apigw.selcommobile.com";  // correct base URL
+$apiKey = $_ENV['SELCOM_API_KEY'];
+$apiSecret = $_ENV['SELCOM_API_SECRET'];
+$vendorId = $_ENV['SELCOM_VENDOR_ID'];
+$baseUrl = "https://apigw.selcommobile.com";
 
 // Initialize Selcom client
 $client = new Client($baseUrl, $apiKey, $apiSecret);
@@ -19,7 +25,7 @@ $client = new Client($baseUrl, $apiKey, $apiSecret);
 // Order payload
 // ------------------
 $orderArray = [
-    "vendor" => config('selcom.vendor_id'), // Updated vendor ID from config
+    "vendor" => $vendorId,
     "order_id" => "1218d5Qb",
     "buyer_email" => "john@example.com",
     "buyer_name" => "John Joh",
