@@ -34,7 +34,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js"
         integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous">
     </script>
-    <script src="https://kit.fontawesome.com/68b4c1056b.js" crossorigin="anonymous"></script>
+    {{-- <script src="https://kit.fontawesome.com/68b4c1056b.js" crossorigin="anonymous"></script> OLD KIT--}}
+    <script src="https://kit.fontawesome.com/02c5b6d793.js" crossorigin="anonymous"></script>
     <script src="{{ asset('js/app.js') }}"></script>
 
     <script src="{{ asset('js/fundis-table.js') }}"></script>
