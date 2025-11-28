@@ -8,8 +8,8 @@ use Selcom\ApigwClient\Client;
 // ------------------
 // Selcom credentials
 // ------------------
-$apiKey = 'TILL61213801-4174f99e707345a190dbc9b46232b4e2';
-$apiSecret = 'bdf5e3-a96d8a-460899-1fef9a-b67e4d-ef';
+$apiKey = config('selcom.api_key');
+$apiSecret = config('selcom.api_secret');
 $baseUrl = "https://apigw.selcommobile.com";  // correct base URL
 
 // Initialize Selcom client
@@ -19,7 +19,7 @@ $client = new Client($baseUrl, $apiKey, $apiSecret);
 // Order payload
 // ------------------
 $orderArray = [
-    "vendor" => "VENDORTILL",
+    "vendor" => config('selcom.vendor_id'), // Updated vendor ID from config
     "order_id" => "1218d5Qb",
     "buyer_email" => "john@example.com",
     "buyer_name" => "John Joh",
