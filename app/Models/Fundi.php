@@ -62,6 +62,14 @@ class Fundi extends Model
         });
     }
 
+    function getAddressAttribute() {
+        $regionName = $this->ward->district->region->name;
+        $districtName = $this->ward->district->name;
+        $wardName = $this->ward->name;
+
+        return $wardName . "/". $districtName ."/". $regionName;
+    }
+
     // In your Fundi model
     public function generateQrCode()
     {

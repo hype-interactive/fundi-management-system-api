@@ -10,7 +10,10 @@
                 <div class="operator-forms">
                     <nav>
                         <div class="nav nav-tabs-custom" id="nav-tab" role="tablist">
-                            <button class="nav-link active " id="nav-home-tab" data-toggle="tab" data-target="#nav-home"
+                            <button class="nav-link active" id="nav-home-tab" data-toggle="tab" data-target="#nav-mafundi"
+                                type="button" role="tab" aria-controls="nav-home" aria-selected="true">Mafundi
+                            </button>
+                            <button class="nav-link " id="nav-home-tab" data-toggle="tab" data-target="#nav-home"
                                 type="button" role="tab" aria-controls="nav-home" aria-selected="true">Site Visits</button>
                             <button class="nav-link" id="nav-profile-tab" data-toggle="tab" data-target="#nav-profile"
                                 type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Operator's
@@ -18,13 +21,15 @@
                             </button>
                             {{-- <button class="nav-link" id="nav-incentives-tab" data-toggle="tab" data-target="#nav-incentives"
                                 type="button" role="tab" aria-controls="nav-incentives"
-                                aria-selected="false">Incentives
-                                &
-                                Performance</button> --}}
+                                aria-selected="false">Incentives & Performance</button> --}}
                         </div>
                     </nav>
                     <div class="tab-content" id="nav-tabContent">
-                        <div class="tab-pane fade show active" id="nav-home" role="tabpanel"
+                        <div class="tab-pane fade show active" id="nav-mafundi" role="tabpanel"
+                            aria-labelledby="nav-home-tab">
+                            @livewire('operator-mafundi', ['operator' => $operator])
+                        </div>
+                        <div class="tab-pane fade show" id="nav-home" role="tabpanel"
                             aria-labelledby="nav-home-tab">
                             @livewire('operator-site-visits', ['operator' => $operator])
                         </div>

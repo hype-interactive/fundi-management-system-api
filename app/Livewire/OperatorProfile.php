@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\Attributes\On;
+use Carbon\Carbon;
 
 class OperatorProfile extends Component
 {
@@ -139,6 +140,38 @@ class OperatorProfile extends Component
     public function getTotalSiteVisitsAttribute()
     {
         return $this->operator->siteVisits()->count();
+    }
+
+    function getFundiRegistrationSummary(String $type)
+    {
+        $mafundi = $this->operator->createdFundis();
+
+        switch ($type) {
+
+            case 'today':
+                return $mafundi
+                    ->whereDate('created_at', Carbon::today())
+                    ->count();
+
+            case 'week':
+                return $mafundi
+                    ->whereBetween('created_at', [
+                        Carbon::now()->startOfWeek(),
+                        Carbon::now()->endOfWeek()
+                    ])
+                    ->count();
+
+            case 'month':
+                return $mafundi
+                    ->whereBetween('created_at', [
+                        Carbon::now()->startOfMonth(),
+                        Carbon::now()->endOfMonth()
+                    ])
+                    ->count();
+
+            default:
+                return $mafundi->count();
+        }
     }
 
     public function getCompletedSiteVisitsAttribute()

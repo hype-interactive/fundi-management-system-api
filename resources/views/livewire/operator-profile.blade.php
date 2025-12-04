@@ -54,7 +54,7 @@
             </div>
         </div>
 
-        <div class="row">
+        <div class="row mt-4">
             <div class="col-md-12">
                 <div class="title">Role & Access</div>
             </div>
@@ -80,31 +80,52 @@
             </div>
         </div>
 
-        <div class="row">
+        <div class="row mt-4">
             <div class="col-md-12">
-                <div class="title">Assigned Districts</div>
+                <div class="title">Fundi Registration Summary</div>
             </div>
         </div>
 
-        @if(count($districts) > 0)
-            @foreach($districts as $district)
-                <div class="row">
-                    <div class="col-md-12">
-                        <span class="badge bg-info me-1">{{ $district->name }}</span>
-                    </div>
-                </div>
-            @endforeach
-        @else
-            <div class="row">
-                <div class="col-md-12">
-                    <small class="text-muted">No districts assigned</small>
-                </div>
-            </div>
-        @endif
-
         <div class="row">
+            <div class="col-md-5">
+                <div class="label">Today</div>
+            </div>
+
+            <div class="col-md-7">
+                {{ $this->getFundiRegistrationSummary('today') }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-5">
+                <div class="label">This Week</div>
+            </div>
+            
+            <div class="col-md-7">
+                {{ $this->getFundiRegistrationSummary('week') }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-5">
+                <div class="label">This Month</div>
+            </div>
+            
+            <div class="col-md-7">
+                {{ $this->getFundiRegistrationSummary('month') }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-5">
+                <div class="label">All Time</div>
+            </div>
+            
+            <div class="col-md-7">
+                {{ $this->getFundiRegistrationSummary('all_time') }}
+            </div>
+        </div>
+
+        <div class="row mt-4">
             <div class="col-md-12">
-                <div class="title">Performance Summary</div>
+                <div class="title">Site Visit Summary</div>
             </div>
         </div>
 
@@ -125,15 +146,40 @@
                 {{ $this->getCompletedSiteVisitsAttribute() }}
             </div>
         </div>
-
-        <div class="row">
+        {{-- <div class="row">
             <div class="col-md-5">
                 <div class="label">Total Incentives</div>
             </div>
             <div class="col-md-7">
                 TZS {{ number_format($this->getTotalIncentivesAttribute()) }}
             </div>
+        </div> --}}
+
+                <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="title">Assigned Districts</div>
+            </div>
         </div>
+
+        @if(count($districts) > 0)
+            @foreach($districts as $district)
+                <div class="row">
+                    <div class="col-md-12">
+                        <span class="badge bg-secondary me-1">{{ $district->name }}</span>
+                    </div>
+                </div>
+            @endforeach
+        @else
+            <div class="row">
+                <div class="col-md-12">
+                    <small class="text-muted">No districts assigned</small>
+                </div>
+            </div>
+        @endif
+
+        
+
+        
     </div>
 
     <!-- Actions Section -->
