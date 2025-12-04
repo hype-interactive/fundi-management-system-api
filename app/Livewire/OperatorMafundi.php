@@ -22,6 +22,6 @@ class OperatorMafundi extends Component
     public function render()
     {
         
-        return view('livewire.operator-mafundi', ['fundis'=> $this->operator->createdFundis()->paginate(12)]);
+        return view('livewire.operator-mafundi', ['fundis'=> $this->operator->createdFundis()->latest('created_at')->paginate(12)]);
     }
 }
