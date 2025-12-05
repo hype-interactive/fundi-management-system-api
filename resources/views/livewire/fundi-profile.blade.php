@@ -147,7 +147,7 @@
 
                 <button class="btn btn-primary btn-sm mt-3" wire:click="downloadQrCode">
                     <i class="fa-solid fa-qrcode me-1"></i>
-                    Download QR-Code
+                    Download Fundi ID
                 </button>
             </div>
         </div>

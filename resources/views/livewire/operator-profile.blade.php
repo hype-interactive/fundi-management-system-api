@@ -157,7 +157,7 @@
 
     <div class="row mt-4">
         <div class="col-md-12">
-            <div class="title">Assigned Districts</div>
+            <div class="title">Current Assigned Districts</div>
         </div>
     </div>
 
@@ -166,7 +166,7 @@
             <div class="col-md-12">
                 <div class="d-flex flex-wrap gap-2">
                     @foreach($districts as $district)
-                        <span class="badge bg-secondary m-2">{{ $district->name }}</span>
+                        <span class="badge bg-secondary m-1">{{ $district->name }}</span>
                     @endforeach
                 </div>
             </div>

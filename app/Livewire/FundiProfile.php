@@ -93,18 +93,33 @@ class FundiProfile extends Component
         $this->showSuccessToast('Refreshed', 'Profile data has been updated.');
     }
 
-    public function downloadQrCode()
-    {
-        if (!$this->fundi->qr_code_path || !Storage::disk('public')->exists($this->fundi->qr_code_path)) {
-            session()->flash('error', 'QR Code not found');
-            return;
-        }
-
-        return Storage::disk('public')->download(
-            $this->fundi->qr_code_path,
-            'Fundi_' . $this->fundi->full_name.'_'.$this->fundi->primary_phone. '_' . '_qrcode.' . pathinfo($this->fundi->qr_code_path, PATHINFO_EXTENSION)
-        );
+public function downloadQrCode()
+{
+    if (!$this->fundi->qr_code_path || !Storage::disk('public')->exists($this->fundi->qr_code_path)) {
+        session()->flash('error', 'QR Code not found');
+        return;
     }
+
+    // Prepare data for ID card generation
+    $data = [
+        'company_name' => 'MAGIC BUILDERS AFRICA',
+        'id_number' => $this->fundi->unique_id ?? 'FNS-01X251',
+        'name' => $this->fundi->full_name,
+        'gender' => $this->fundi->gender ?? 'N/A',
+        'address' => $this->fundi->address ?? 'Sinza, Kinondoni, Dar Es Salaam',
+        'registered' => $this->fundi->created_at ? $this->fundi->created_at->format('d/m/Y') : date('d/m/Y'),
+        'expire' => $this->fundi->expire_date ? $this->fundi->expire_date->format('d/m/Y') : date('d/m/Y', strtotime('+5 years')),
+        'photo' => $this->fundi->photo_path ? Storage::disk('public')->path($this->fundi->photo_path) : public_path('images/profile.jpg'),
+        'logo' => public_path('images/logo.png'),
+        'qrcode' => Storage::disk('public')->path($this->fundi->qr_code_path),
+    ];
+
+    // Store data in session temporarily
+    session()->put('id_card_data', $data);
+
+    // Redirect to the ID card generation route
+    return redirect()->route('fundi_id_download');
+}
 
     /**
      * Handle fundi update event

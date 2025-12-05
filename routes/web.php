@@ -6,6 +6,7 @@ use App\Http\Controllers\FundiController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\OperatorController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\IdCardController;
 use App\Http\Controllers\SiteVisitController;
 use App\Http\Controllers\LegacyDataController;
 use App\Livewire\LocationManager;
@@ -143,6 +144,10 @@ Route::get('/register-fundi', App\Livewire\PublicFundiRegistration::class)
 Route::get('/app', function () {
     return view('pages.app-download');
 })->name('');
+
+//ID - Generator 
+
+Route::get('/id-card', [IdCardController::class, 'generate'])->name('fundi_id_download');
 
 //file download
 // Route::get('/download-apk', function () {
