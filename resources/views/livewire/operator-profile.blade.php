@@ -155,30 +155,29 @@
             </div>
         </div> --}}
 
-                <div class="row mt-4">
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="title">Assigned Districts</div>
+        </div>
+    </div>
+
+    @if(count($districts) > 0)
+        <div class="row">
             <div class="col-md-12">
-                <div class="title">Assigned Districts</div>
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach($districts as $district)
+                        <span class="badge bg-secondary">{{ $district->name }}</span>
+                    @endforeach
+                </div>
             </div>
         </div>
-
-        @if(count($districts) > 0)
-            @foreach($districts as $district)
-                <div class="row">
-                    <div class="col-md-12">
-                        <span class="badge bg-secondary me-1">{{ $district->name }}</span>
-                    </div>
-                </div>
-            @endforeach
-        @else
-            <div class="row">
-                <div class="col-md-12">
-                    <small class="text-muted">No districts assigned</small>
-                </div>
+    @else
+        <div class="row">
+            <div class="col-md-12">
+                <small class="text-muted">No districts assigned</small>
             </div>
-        @endif
-
-        
-
+        </div>
+    @endif
         
     </div>
 
