@@ -166,7 +166,7 @@
             <div class="col-md-12">
                 <div class="d-flex flex-wrap gap-2">
                     @foreach($districts as $district)
-                        <span class="badge bg-secondary">{{ $district->name }}</span>
+                        <span class="badge bg-secondary m-2">{{ $district->name }}</span>
                     @endforeach
                 </div>
             </div>
