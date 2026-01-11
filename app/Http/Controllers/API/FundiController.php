@@ -119,13 +119,8 @@ class FundiController extends BaseAPIController
             'mname' => 'nullable|string|max:255',
             'lname' => 'required|string|max:255',
             'gender' => 'required|in:male,female',
-            'nida_number' => [
-                'nullable',
-                'string',
-                'max:20',
-                Rule::unique('fundis', 'nida_number')->whereNotNull('nida_number')
-            ],
-            'primary_phone' => 'required|string|max:15',
+            'nida_number' => 'nullable|string|max:20|unique:fundis,nida_number',
+            'primary_phone' => 'required|string|max:15|unique:fundis,primary_phone',
             'transaction_phone' => 'required|string|max:15',
             'ward_id' => [
                 'required',
@@ -147,9 +142,25 @@ class FundiController extends BaseAPIController
             ],
             'ranking' => 'nullable|string|in:fundi_kuu,fundi_msaidizi',
             'profile_photo' => 'nullable|image|max:2048',
-            'profile_photo_url' => 'nullable|string|url', // For Cloudinary URL from Flutter
-            'profile_photo_public_id' => 'nullable|string', // For Cloudinary public_id from Flutter
+            'profile_photo_url' => 'nullable|string|url',
+            'profile_photo_public_id' => 'nullable|string',
         ]);
+
+        // Check for duplicate: fname + lname + (transaction_phone OR ward_id)
+        $duplicateExists = Fundi::where('fname', $request->fname)
+            ->where('lname', $request->lname)
+            ->where(function ($query) use ($request) {
+                $query->where('transaction_phone', $request->transaction_phone)
+                    ->orWhere('ward_id', $request->ward_id);
+            })
+            ->exists();
+
+        if ($duplicateExists) {
+            return $this->errorResponse(
+                'A fundi with the same name and transaction phone or ward already exists.',
+                422
+            );
+        }
 
         DB::beginTransaction();
         try {
@@ -159,31 +170,19 @@ class FundiController extends BaseAPIController
             $data['status'] = 'active';
 
             // Handle profile photo
-            $profilePhotoUrl = null;
-            $profilePhotoPublicId = null;
-
-            // Priority 1: Use Cloudinary URL and public_id from Flutter (direct upload)
             if ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id')) {
-                $profilePhotoUrl = $request->profile_photo_url;
-                $profilePhotoPublicId = $request->profile_photo_public_id;
-            }
-            // Priority 2: Upload file to Cloudinary if provided
-            elseif ($request->hasFile('profile_photo')) {
+                $data['profile_photo'] = $request->profile_photo_url;
+                $data['profile_photo_public_id'] = $request->profile_photo_public_id;
+            } elseif ($request->hasFile('profile_photo')) {
                 $uploadResult = $this->cloudinaryService->upload(
                     $request->file('profile_photo'),
                     'FundiApp/Fundis'
                 );
 
                 if ($uploadResult) {
-                    $profilePhotoUrl = $uploadResult['url'];
-                    $profilePhotoPublicId = $uploadResult['public_id'];
+                    $data['profile_photo'] = $uploadResult['url'];
+                    $data['profile_photo_public_id'] = $uploadResult['public_id'];
                 }
-            }
-
-            // Save profile photo data if available
-            if ($profilePhotoUrl) {
-                $data['profile_photo'] = $profilePhotoUrl;
-                $data['profile_photo_public_id'] = $profilePhotoPublicId;
             }
 
             $fundi = Fundi::create($data);

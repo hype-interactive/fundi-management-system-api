@@ -10,7 +10,7 @@
             </div>
             <div class="col-md-9">
                 <div class="row">
-                    @if (isRoot())
+                    {{-- @if (isRoot()) --}}
                         <div class="col">
                             <div class="select">
                                 @include('components.selects.select_region')
@@ -21,7 +21,7 @@
                                 @include('components.selects.select_district')
                             </div>
                         </div>
-                    @endif
+                    {{-- @endif --}}
                     <div class="col">
                         <div class="select">
                             @include('components.selects.select_ward')

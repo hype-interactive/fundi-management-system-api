@@ -388,39 +388,64 @@ class LegacyFundisTable extends Component
     /**
      * Export filtered data
      */
-    public function export()
-    {
-        $query = $this->getLegacyFundis();
-        $filename = 'legacy_fundis_' . date('Y-m-d_H-i-s') . '.csv';
+public function export()
+{
+     //add execution time to 5 minutes
+    set_time_limit(2500);
+    $filename = 'legacy_fundis_' . date('Y-m-d_H-i-s') . '.csv';
 
-        return response()->streamDownload(function () use ($query) {
-            $handle = fopen('php://output', 'w');
+    return response()->streamDownload(function () {
+        $handle = fopen('php://output', 'w');
 
-            // Headers
-            fputcsv($handle, [
-                'ID', 'Name', 'Phone', 'NIDA', 'Region', 'District',
-                'Ward', 'Status', 'Match Status', 'Matched Fundi ID'
-            ]);
+        // Headers
+        fputcsv($handle, [
+            'ID', 'Name', 'Phone', 'NIDA', 'Region', 'District',
+            'Ward', 'Status', 'Match Status', 'Matched Fundi ID'
+        ]);
 
-            // Data
-            $query->chunk(500, function ($legacyFundis) use ($handle) {
-                foreach ($legacyFundis as $legacy) {
-                    fputcsv($handle, [
-                        $legacy->id,
-                        $legacy->name,
-                        $legacy->primary_phone,
-                        $legacy->nida_number ?? 'N/A',
-                        $legacy->region ?? 'N/A',
-                        $legacy->district ?? 'N/A',
-                        $legacy->ward ?? 'N/A',
-                        ucfirst($legacy->status),
-                        ucfirst($legacy->match_status),
-                        $legacy->matchedFundi?->id ?? 'N/A'
-                    ]);
-                }
+        // Use cursor for memory-efficient iteration over large datasets
+        // Make sure getLegacyFundis() returns a Query Builder, not a Collection
+        $this->getLegacyFundisQuery()
+            ->with('matchedFundi:id') // Eager load only the id
+            ->cursor()
+            ->each(function ($legacy) use ($handle) {
+                fputcsv($handle, [
+                    $legacy->id,
+                    $legacy->name,
+                    $legacy->primary_phone,
+                    $legacy->nida_number ?? 'N/A',
+                    $legacy->region ?? 'N/A',
+                    $legacy->district ?? 'N/A',
+                    $legacy->ward ?? 'N/A',
+                    ucfirst($legacy->status),
+                    ucfirst($legacy->match_status),
+                    $legacy->matchedFundi?->id ?? 'N/A'
+                ]);
             });
 
-            fclose($handle);
-        }, $filename);
-    }
+        fclose($handle);
+    }, $filename, [
+        'Content-Type' => 'text/csv',
+    ]);
+}
+
+/**
+ * Get the query builder (not the result) for legacy fundis
+ */
+private function getLegacyFundisQuery()
+{
+    // Return the query builder WITHOUT calling ->get()
+    return LegacyFundi::query()
+        ->when($this->search, function ($query) {
+            $query->where(function ($q) {
+                $q->where('name', 'like', "%{$this->search}%")
+                  ->orWhere('primary_phone', 'like', "%{$this->search}%")
+                  ->orWhere('nida_number', 'like', "%{$this->search}%");
+            });
+        });
+        // ->when($this->selectedRegion, fn($q) => $q->where('region', $this->selectedRegion))
+        // ->when($this->selectedDistrict, fn($q) => $q->where('district', $this->selectedDistrict))
+        // ->when($this->selectedStatus, fn($q) => $q->where('status', $this->selectedStatus))
+        // ->when($this->selectedMatchStatus, fn($q) => $q->where('match_status', $this->selectedMatchStatus));
+}
 }

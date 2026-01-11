@@ -78,10 +78,16 @@ Route::middleware('auth')->group(function () {
         return view('pages.financial.reports');
     })->name('financial.reports');
 
+    Route::get('/seminars', function () {
+        return view('pages.seminars');
+    })->name('seminars');
+
+
     /* Legacy fundis management routes
     * These routes handle the import, export, and management of legacy fundis data.
     * They include features like bulk operations, manual linking/unlinking, and progress tracking.
     */
+    
     Route::prefix('legacy-data')->name('legacy-fundis.')->group(function () {
         // Main legacy fundis page
         Route::get('/', [LegacyDataController::class, 'index'])

@@ -126,20 +126,26 @@
                 </button>
             </div>
 
-            {{-- <div class="d-flex gap-2">
+            <div class="d-flex gap-2">
                 <!-- Auto Match -->
-                <button wire:click="runBulkAutoMatch" class="btn btn-sm btn-success"
+                {{-- <button wire:click="runBulkAutoMatch" class="btn btn-sm btn-success mr-3"
                     onclick="return confirm('Run auto-matching for high confidence matches?')">
                     <i class="fa-solid fa-magic mr-1"></i>
                     Auto Match
-                </button>
+                </button> --}}
+                <select wire:model.live="region" class="select mr-3">
+                            <option value="">All Regions</option>
+                            @foreach ($regions as $region)
+                                <option value="{{ $region }}">{{ $region }}</option>
+                            @endforeach
+                        </select>
 
                 <!-- Export -->
                 <button wire:click="export" class="btn btn-sm btn-outline-primary">
                     <i class="fa-solid fa-download mr-1"></i>
                     Export
                 </button>
-            </div> --}}
+            </div>
         </div>
     </div>
 

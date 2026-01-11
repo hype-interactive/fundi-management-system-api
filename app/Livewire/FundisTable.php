@@ -523,19 +523,21 @@ class FundisTable extends Component
             'approved_by',
             'legacy_match',
             'selectedFundis',
-            'selectAll'
+            'selectAll',
+            'region',
+            'district'
         ]);
 
         // Don't reset region/district for non-admin/root users
-        if ($this->isAdminOrRoot()) {
-            $this->reset(['region', 'district']);
-        }
+        // if ($this->isAdminOrRoot()) {
+        //     $this->reset(['region', 'district']);
+        // }
 
         // Clear cache on refresh
-        $this->clearUserCache();
+        // $this->clearUserCache();
 
         // Hide mobile filters after refresh
-        $this->showMobileFilters = false;
+        // $this->showMobileFilters = false;
     }
 
     public function render()

@@ -26,6 +26,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{route('seminars')}}">
+                            <i class="fa-solid fa-person-chalkboard"></i>
+                            Seminars
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="/financials">
                             <i class="fa-solid fa-coins"></i></i>
                             Financials

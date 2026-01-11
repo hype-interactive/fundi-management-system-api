@@ -362,59 +362,113 @@ class FundiForm extends Component
     /**
      * Handle the actual saving logic
      */
-    private function saveFundi($isCreating)
-    {
-        // Handle profile photo upload to Cloudinary
-        $photo_url = $this->profile_photo_url;
-        $photo_public_id = $this->profile_photo_public_id;
-
-        // Handle photo upload
-        if ($this->profile_photo) {
-            $photoResult = $this->handlePhotoUpload();
-            if (!$photoResult) {
-                return false; // Photo upload failed
-            }
-            $photo_url = $photoResult['url'];
-            $photo_public_id = $photoResult['public_id'];
-        } elseif ($this->remove_photo && $this->editing) {
-            // Remove existing photo
-            $this->handlePhotoRemoval();
-            $photo_url = null;
-            $photo_public_id = null;
-        }
-
-        // Prepare data for create/update
-        $fundiData = [
-            'fname' => $this->fname,
-            'mname' => $this->mname,
-            'lname' => $this->lname,
-            'gender' => $this->gender,
-            'nida_number' => $this->nida_number,
-            'primary_phone' => $this->primary_phone,
-            'transaction_phone' => $this->transaction_phone,
-            'ward_id' => $this->ward_id,
-            'ranking' => $this->ranking,
-            'profile_photo_url' => $photo_url,
-            'profile_photo_public_id' => $photo_public_id,
-            'status' => $isCreating ? 'pending' : $this->status,
-            'legacy_match' => $this->legacy_match,
-            'legacy_id' => $this->legacy_match ? $this->legacy_id : null,
-        ];
-
-        // Only add unique_id and created_by for new records
-        if ($isCreating) {
-            $fundiData['unique_id'] = 'F' . date('Ymd') . rand(1000, 9999);
-            $fundiData['created_by'] = Auth::id();
-        }
-
-        // Create or update the fundi
-        $fundi = Fundi::updateOrCreate(
-            ['id' => $this->fundi_id],
-            $fundiData
-        );
-
-        return $fundi ? true : false;
+private function saveFundi($isCreating)
+{
+    // Check for duplicates before proceeding
+    if (!$this->validateNoDuplicates($isCreating)) {
+        return false;
     }
+
+    // Handle profile photo upload to Cloudinary
+    $photo_url = $this->profile_photo_url;
+    $photo_public_id = $this->profile_photo_public_id;
+
+    // Handle photo upload
+    if ($this->profile_photo) {
+        $photoResult = $this->handlePhotoUpload();
+        if (!$photoResult) {
+            return false; // Photo upload failed
+        }
+        $photo_url = $photoResult['url'];
+        $photo_public_id = $photoResult['public_id'];
+    } elseif ($this->remove_photo && $this->editing) {
+        // Remove existing photo
+        $this->handlePhotoRemoval();
+        $photo_url = null;
+        $photo_public_id = null;
+    }
+
+    // Prepare data for create/update
+    $fundiData = [
+        'fname' => $this->fname,
+        'mname' => $this->mname,
+        'lname' => $this->lname,
+        'gender' => $this->gender,
+        'nida_number' => $this->nida_number,
+        'primary_phone' => $this->primary_phone,
+        'transaction_phone' => $this->transaction_phone,
+        'ward_id' => $this->ward_id,
+        'ranking' => $this->ranking,
+        'profile_photo_url' => $photo_url,
+        'profile_photo_public_id' => $photo_public_id,
+        'status' => $isCreating ? 'pending' : $this->status,
+        'legacy_match' => $this->legacy_match,
+        'legacy_id' => $this->legacy_match ? $this->legacy_id : null,
+    ];
+
+    // Only add unique_id and created_by for new records
+    if ($isCreating) {
+        $fundiData['unique_id'] = 'F' . date('Ymd') . rand(1000, 9999);
+        $fundiData['created_by'] = Auth::id();
+    }
+
+    // Create or update the fundi
+    $fundi = Fundi::updateOrCreate(
+        ['id' => $this->fundi_id],
+        $fundiData
+    );
+
+    return $fundi ? true : false;
+}
+
+/**
+ * Validate that no duplicate fundi exists based on business rules:
+ * 1. Primary phone must be entirely unique
+ * 2. Combination of fname + lname + (transaction_phone OR ward_id) must be unique
+ */
+private function validateNoDuplicates(bool $isCreating): bool
+{
+    $excludeId = $isCreating ? null : $this->fundi_id;
+
+    // Rule 1: Check primary phone uniqueness
+    $primaryPhoneExists = Fundi::where('primary_phone', $this->primary_phone)
+        ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+        ->exists();
+
+    if ($primaryPhoneExists) {
+        $this->addError('primary_phone', 'This primary phone number is already registered.');
+        return false;
+    }
+
+    // Rule 2: Check fname + lname + (transaction_phone OR ward_id) uniqueness
+    $nameCombinationExists = Fundi::where('fname', $this->fname)
+        ->where('lname', $this->lname)
+        ->where(function ($query) {
+            $query->where('transaction_phone', $this->transaction_phone)
+                  ->orWhere('ward_id', $this->ward_id);
+        })
+        ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+        ->exists();
+
+    if ($nameCombinationExists) {
+        $this->addError('fname', 'A fundi with this name and transaction phone or ward already exists.');
+        return false;
+    }
+
+    // Optional: Check NIDA uniqueness if provided
+    if ($this->nida_number) {
+        $nidaExists = Fundi::where('nida_number', $this->nida_number)
+            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+            ->exists();
+
+        if ($nidaExists) {
+            $this->addError('nida_number', 'This NIDA number is already registered.');
+            return false;
+        }
+    }
+
+    return true;
+}
 
     /**
      * Handle photo upload with error handling
