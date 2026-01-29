@@ -20,6 +20,7 @@ class AuthController extends BaseAPIController
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+        
         // Rate limiting for login attempts
         $key = 'login.' . $request->ip();
         // if (RateLimiter::tooManyAttempts($key, 5)) {

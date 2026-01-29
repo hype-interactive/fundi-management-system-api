@@ -85,7 +85,6 @@ class FundisTable extends Component
             if ($primaryRegion) {
                 $this->region = $primaryRegion->id;
             }
-
         }
 
         // Auto-hide mobile filters initially on mobile
@@ -98,7 +97,6 @@ class FundisTable extends Component
         $this->displayFlashedAlerts();
 
         $this->processQrCodesInBackground();
-
     }
 
     public function processQrCodesInBackground()
@@ -115,7 +113,7 @@ class FundisTable extends Component
         }
     }
 
-    
+
 
     public function updatedSelectAll($value)
     {
@@ -190,71 +188,86 @@ class FundisTable extends Component
         return $this->getFundiQuery()->paginate($this->perPage);
     }
 
-    public function getFundiQuery()
-    {
-        $this->loadData();
+   public function getFundiQuery()
+{
+    $this->loadData();
 
-        $query = Fundi::query()
-            ->select([
-                'fundis.id',
-                'fundis.fname',
-                'fundis.mname',
-                'fundis.lname',
-                'fundis.gender',
-                'fundis.primary_phone',
-                'fundis.transaction_phone',
-                'fundis.nida_number',
-                'fundis.ranking',
-                'fundis.status',
-                'fundis.ward_id',
-                'fundis.approved_at',
-                'fundis.rejected_at',
-                'fundis.approved_by',
-                'fundis.created_by',
-                'fundis.created_at',
-                'fundis.legacy_match',
-                'fundis.legacy_id',
-                // Add computed full_name to avoid N+1 on accessor
-                DB::raw("CONCAT_WS(' ', fname, mname, lname) as full_name")
-            ])
-            ->with([
-                'ward:id,name,district_id',
-                'ward.district:id,name,region_id',
-                'ward.district.region:id,name'
-            ]);
+    $query = Fundi::query()
+        ->select([
+            'fundis.id',
+            'fundis.fname',
+            'fundis.mname',
+            'fundis.lname',
+            'fundis.gender',
+            'fundis.primary_phone',
+            'fundis.transaction_phone',
+            'fundis.nida_number',
+            'fundis.ranking',
+            'fundis.status',
+            'fundis.ward_id',
+            'fundis.approved_at',
+            'fundis.rejected_at',
+            'fundis.approved_by',
+            'fundis.created_by',
+            'fundis.created_at',
+            'fundis.legacy_match',
+            'fundis.legacy_id',
+            DB::raw("CONCAT_WS(' ', fname, mname, lname) as full_name")
+        ])
+        ->with([
+            'ward:id,name,district_id',
+            'ward.district:id,name,region_id',
+            'ward.district.region:id,name'
+        ]);
 
-        // Apply location-based filters using the trait method
-        $this->applyLocationFiltersToQuery($query, $this->region, $this->district, $this->ward);
+    $this->applyLocationFiltersToQuery($query, $this->region, $this->district, $this->ward);
 
-        // Optimize search with indexes
-        if ($this->search_key) {
-            $searchTerm = '%' . $this->search_key . '%';
-            $query->where(function ($q) use ($searchTerm) {
-                $q->whereRaw("CONCAT_WS(' ', fname, mname, lname) LIKE ?", [$searchTerm])
-                    ->orWhere('primary_phone', 'LIKE', $searchTerm)
-                    ->orWhere('transaction_phone', 'LIKE', $searchTerm)
-                    ->orWhere('nida_number', 'LIKE', $searchTerm);
-            });
-        }
+    if ($this->search_key) {
+        $searchTerm = '%' . $this->search_key . '%';
+        $query->where(function ($q) use ($searchTerm) {
+            $q->whereRaw("CONCAT_WS(' ', fname, mname, lname) LIKE ?", [$searchTerm]);
 
-        // Apply filters efficiently
-        return $query
-            ->when($this->gender, fn($q, $gender) => $q->where('fundis.gender', $gender))
-            ->when($this->ranking, fn($q, $ranking) => $q->where('fundis.ranking', $ranking))
-            ->when($this->approval_status, function ($q, $approval_status) {
-                if ($approval_status === 'approved') {
-                    $q->whereNotNull('fundis.approved_at')->whereNull('fundis.rejected_at');
-                } elseif ($approval_status === 'rejected') {
-                    $q->whereNotNull('fundis.rejected_at');
-                } elseif ($approval_status === 'pending') {
-                    $q->whereNull('fundis.approved_at')->whereNull('fundis.rejected_at');
-                }
-            })
-            ->when($this->created_by, fn($q, $created_by) => $q->where('fundis.created_by', $created_by))
-            ->when($this->approved_by, fn($q, $approved_by) => $q->where('fundis.approved_by', $approved_by))
-            ->when($this->legacy_match, fn($q, $legacy_match) => $q->where('fundis.legacy_match', $legacy_match))
-            ->latest('fundis.created_at');
+            // Handle phone search if the search term looks like a phone number
+            if (preg_match('/^[0-9\s\-\+]+$/', $this->search_key)) {
+                $formattedPhone = $this->formatSearchStringForPhoneSearch($this->search_key);
+                
+                // Search by removing spaces from stored phone numbers
+                $q->orWhereRaw("REPLACE(REPLACE(primary_phone, ' ', ''), '-', '') LIKE ?", [$formattedPhone])
+                  ->orWhereRaw("REPLACE(REPLACE(transaction_phone, ' ', ''), '-', '') LIKE ?", [$formattedPhone]);
+            }
+        });
     }
+
+    return $query
+        ->when($this->gender, fn($q, $gender) => $q->where('fundis.gender', $gender))
+        ->when($this->ranking, fn($q, $ranking) => $q->where('fundis.ranking', $ranking))
+        ->when($this->approval_status, function ($q, $approval_status) {
+            if ($approval_status === 'approved') {
+                $q->whereNotNull('fundis.approved_at')->whereNull('fundis.rejected_at');
+            } elseif ($approval_status === 'rejected') {
+                $q->whereNotNull('fundis.rejected_at');
+            } elseif ($approval_status === 'pending') {
+                $q->whereNull('fundis.approved_at')->whereNull('fundis.rejected_at');
+            }
+        })
+        ->when($this->created_by, fn($q, $created_by) => $q->where('fundis.created_by', $created_by))
+        ->when($this->approved_by, fn($q, $approved_by) => $q->where('fundis.approved_by', $approved_by))
+        ->when($this->legacy_match, fn($q, $legacy_match) => $q->where('fundis.legacy_match', $legacy_match))
+        ->latest('fundis.created_at');
+}
+
+// Format search string for phone searchability  
+public function formatSearchStringForPhoneSearch($searchTerm)
+{
+    // Remove all non-digit characters (spaces, dashes, etc.)
+    $digitsOnly = preg_replace('/\D/', '', $searchTerm);
+    
+    // Remove leading zeros
+    $digitsOnly = ltrim($digitsOnly, '0');
+    
+    // Add country code and wildcard for LIKE query
+    return '%+255' . $digitsOnly . '%';
+}
 
     public function loadData()
     {
