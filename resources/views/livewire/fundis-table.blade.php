@@ -61,13 +61,17 @@
     <!-- Desktop Actions -->
     <div class="results-summary mb-2 d-flex justify-content-between align-items-center">
         <div class="d-flex gap-2">
+            <div class="results-card">
+                <i class="fa-solid fa-users me-2"></i>
+                <span>{{ $fundis->total() }} Fundi{{ $fundis->total() !== 1 ? 's' : '' }}</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
             <button wire:click="$toggle('compactView')"
                 class="btn btn-sm {{ $compactView ? 'btn-primary' : 'btn-outline-primary' }}">
                 <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }}"></i>
                 {{ $compactView ? 'Expand' : 'Compact' }}
             </button>
-        </div>
-        <div class="d-flex gap-2">
             <button wire:click="refresh" class="btn btn-outline-secondary btn-sm">
                 <i class="fa-solid fa-arrows-rotate me-1"></i>
                 Clear Filters

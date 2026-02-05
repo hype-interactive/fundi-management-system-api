@@ -108,22 +108,18 @@
     <!-- Desktop Actions -->
     <div class="results-summary mb-2 d-none d-md-flex justify-content-between align-items-center">
         <div class="d-flex gap-2 align-items-center">
+            <span class="results-count">
+                <i class="fa-solid fa-location me-1"></i>
+                {{ $siteVisits->total() }} Sites
+            </span>
+        </div>
+
+        <div class="d-flex gap-2">
             <button wire:click="toggleCompactView"
                 class="btn btn-sm {{ $compactView ? 'btn-primary' : 'btn-outline-primary' }}">
                 <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }}"></i>
                 {{ $compactView ? 'Expand' : 'Compact' }}
             </button>
-
-            <!-- Results Summary for Desktop -->
-            <small class="text-muted ms-2">
-                Showing {{ $siteVisits->count() }} of {{ $siteVisits->total() }} site visits
-                @if ($search_key || $status || $operator_id || $visit_date_from || $visit_date_to)
-                    (filtered)
-                @endif
-            </small>
-        </div>
-
-        <div class="d-flex gap-2">
             <button wire:click="refresh" class="btn btn-outline-secondary btn-sm">
                 <i class="fa-solid fa-arrows-rotate me-1"></i>
                 Clear Filters
