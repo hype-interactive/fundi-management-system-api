@@ -1,4 +1,8 @@
 <div>
+    <!-- Add polling when download is in progress -->
+    @if ($bulkDownloadInProgress)
+        <div wire:poll.2s="checkBulkDownloadStatus"></div>
+    @endif
     <!-- Filters Section -->
     <div class="filter mb-1">
         <div class="row">
@@ -11,16 +15,16 @@
             <div class="col-md-9">
                 <div class="row">
                     {{-- @if (isRoot()) --}}
-                        <div class="col">
-                            <div class="select">
-                                @include('components.selects.select_region')
-                            </div>
+                    <div class="col">
+                        <div class="select">
+                            @include('components.selects.select_region')
                         </div>
-                        <div class="col">
-                            <div class="select">
-                                @include('components.selects.select_district')
-                            </div>
+                    </div>
+                    <div class="col">
+                        <div class="select">
+                            @include('components.selects.select_district')
                         </div>
+                    </div>
                     {{-- @endif --}}
                     <div class="col">
                         <div class="select">
@@ -41,6 +45,35 @@
             </div>
         </div>
     </div>
+    {{-- Download Status Alert --}}
+    @if ($bulkDownloadInProgress)
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
+            <div>
+                <i class="fa-solid fa-spinner fa-spin me-2"></i>
+                <strong>Generating ID cards...</strong> This may take a few minutes. Please wait.
+            </div>
+            <button wire:click="resetDownload" class="btn btn-sm btn-outline-secondary">
+                Cancel
+            </button>
+        </div>
+    @endif
+
+ @if ($downloadUrl)
+    <div class="alert alert-success mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fa-solid fa-check-circle me-2"></i>
+                Your ID cards are ready!
+            </span>
+            <a href="{{ $downloadUrl }}" 
+               download 
+               class="btn btn-success btn-sm">
+                <i class="fa-solid fa-download me-1"></i>
+                Download ZIP ({{ round(Storage::disk('public')->size('downloads/' . basename($downloadUrl)) / 1024 / 1024, 2) }} MB)
+            </a>
+        </div>
+    </div>
+@endif
 
     {{-- Bulk Actions Bar --}}
     @if (count($selectedFundis) > 0)
@@ -57,6 +90,8 @@
             </div>
         </div>
     @endif
+
+
 
     <!-- Desktop Actions -->
     <div class="results-summary mb-2 d-flex justify-content-between align-items-center">
@@ -80,12 +115,16 @@
                 <i class="fa-solid fa-file-excel me-1"></i>
                 Export Excel
             </button>
-            <button wire:click="downloadFundiPDF" class="btn btn-outline-danger btn-sm">
-                <i class="fa-solid fa-file-pdf me-1"></i>
-                Download PDF
+
+            {{-- Bulk Download ID Cards Button --}}
+            <button wire:click="bulkDownloadIdCards" class="btn btn-outline-danger btn-sm"
+                @if ($bulkDownloadInProgress) disabled @endif>
+                <i class="fa-solid fa-id-card me-1"></i>
+                Download ID Cards ({{ $fundis->total() }})
             </button>
         </div>
     </div>
+
 
     <!-- Table Container -->
     <div class="custom-table">
@@ -243,4 +282,23 @@
     <div class="pagination-wrapper d-flex justify-content-center mt-3">
         {{ $fundis->links() }}
     </div>
+    @script
+        <script>
+            // Auto-trigger download when ready
+            $wire.on('trigger-download', (event) => {
+                console.log('Triggering download:', event.url);
+
+                // Create temporary link and click it
+                const link = document.createElement('a');
+                link.href = event.url;
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Optional: Show success notification
+                alert('Download started! Check your Downloads folder.');
+            });
+        </script>
+    @endscript
 </div>

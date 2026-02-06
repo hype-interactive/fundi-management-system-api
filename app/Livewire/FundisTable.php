@@ -10,6 +10,9 @@ use Livewire\WithPagination;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use App\Jobs\GenerateFundiIdCards;
+use Illuminate\Support\Str;
 
 class FundisTable extends Component
 {
@@ -70,6 +73,10 @@ class FundisTable extends Component
         'executeSingleDelete' => 'executeSingleDelete',
         'executeBulkDelete' => 'executeBulkDelete'
     ];
+
+    public $bulkDownloadInProgress = false;
+    public $bulkDownloadBatchId = null;
+    public $downloadUrl = null;
 
     public function mount()
     {
@@ -186,6 +193,122 @@ class FundisTable extends Component
     public function fetch()
     {
         return $this->getFundiQuery()->paginate($this->perPage);
+    }
+
+    /**
+     * Bulk download ID cards for filtered fundis
+     */
+    public function bulkDownloadIdCards()
+    {
+        // Get filtered fundi IDs
+        $fundiIds = $this->getFilteredQuery()->pluck('id')->toArray();
+
+        if (empty($fundiIds)) {
+            session()->flash('error', 'No fundis found to download.');
+            return;
+        }
+
+        if (count($fundiIds) > 5000) {
+            session()->flash('error', 'Too many fundis selected. Please narrow your filters (max 5000).');
+            return;
+        }
+
+        // Generate unique batch ID (cast to string for Livewire)
+        $batchId = (string) Str::uuid();
+        $this->bulkDownloadBatchId = $batchId;
+        $this->bulkDownloadInProgress = true;
+        $this->downloadUrl = null;
+
+        // Dispatch job
+        GenerateFundiIdCards::dispatch($fundiIds, auth()->id(), $batchId);
+
+        session()->flash('success', 'ID cards are being generated. This may take a few minutes.');
+    }
+
+    /**
+     * Check if bulk download is ready
+     */
+    public function checkBulkDownloadStatus()
+    {
+        if (!$this->bulkDownloadBatchId || !$this->bulkDownloadInProgress) {
+            return;
+        }
+
+        $fileName = "fundi_ids_{$this->bulkDownloadBatchId}.zip";
+        
+        if (Storage::disk('public')->exists("downloads/{$fileName}")) {
+            $this->bulkDownloadInProgress = false;
+            $this->downloadUrl = Storage::url("downloads/{$fileName}");
+            
+            session()->flash('success', 'Download ready! Click the button to download.');
+            
+            // Trigger browser download via JavaScript
+            $this->dispatch('trigger-download', url: $this->downloadUrl);
+        }
+    }
+
+        public function resetDownload()
+    {
+        $this->bulkDownloadInProgress = false;
+        $this->bulkDownloadBatchId = null;
+        $this->downloadUrl = null;
+    }
+
+        /**
+     * Get filtered query (reusable method)
+     */
+    protected function getFilteredQuery()
+    {
+        $query = Fundi::query()
+            ->with(['ward.district.region', 'creator']);
+
+        // Apply search
+        if ($this->search_key) {
+            $query->where(function ($q) {
+                $q->where('fname', 'like', '%' . $this->search_key . '%')
+                    ->orWhere('lname', 'like', '%' . $this->search_key . '%')
+                    ->orWhere('mname', 'like', '%' . $this->search_key . '%')
+                    ->orWhere('unique_id', 'like', '%' . $this->search_key . '%')
+                    ->orWhere('primary_phone', 'like', '%' . $this->search_key . '%');
+            });
+        }
+
+        // Apply region filter
+        if ($this->region) {
+            $query->whereHas('ward.district.region', function ($q) {
+                $q->where('id', $this->region);
+            });
+        }
+
+        // Apply district filter
+        if ($this->district) {
+            $query->whereHas('ward.district', function ($q) {
+                $q->where('id', $this->district);
+            });
+        }
+
+        // Apply ward filter
+        if ($this->ward) {
+            $query->where('ward_id', $this->ward);
+        }
+
+        // Apply ranking filter
+        if ($this->ranking) {
+            $query->where('ranking', $this->ranking);
+        }
+
+        // Apply approval filter
+        if ($this->approval_status) {
+            if ($this->approval_status === 'approved') {
+                $query->approved();
+            } elseif ($this->approval_status === 'rejected') {
+                $query->rejected();
+            } elseif ($this->approval_status === 'pending') {
+                $query->pending();
+            }
+        }
+
+        return $query;
     }
 
    public function getFundiQuery()
@@ -459,7 +582,7 @@ public function formatSearchStringForPhoneSearch($searchTerm)
 
             $title = 'Mafundi | Magic Builders';
             $date = date('D, M/d/Y');
-            $html_view = view('documents.fundis', compact('title', 'date', 'rows'))->render();
+            $html_view = view('documents.id-card', compact('title', 'date', 'rows'))->render();
             $pdf = app('dompdf.wrapper');
             $pdf->loadHTML($html_view);
             $pdf->setPaper('A4', 'landscape');
