@@ -98,7 +98,7 @@
         <div class="d-flex gap-2">
             <div class="results-card">
                 <i class="fa-solid fa-users me-2"></i>
-                <span>{{ $fundis->total() }} Fundi{{ $fundis->total() !== 1 ? 's' : '' }}</span>
+                <span>{{ number_format($fundis->total()) }} Fundi{{ $fundis->total() !== 1 ? 's' : '' }}</span>
             </div>
         </div>
         <div class="d-flex gap-2">
