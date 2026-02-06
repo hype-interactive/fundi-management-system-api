@@ -100,6 +100,24 @@ public function downloadQrCode()
         return;
     }
 
+    // Get absolute paths
+        $qrCodePath = storage_path('app/public/' . $this->fundi->qr_code_path);
+        $logoPath = public_path('images/logo.png');
+        
+        // Convert images to base64
+        $qrCodeBase64 = null;
+        if (file_exists($qrCodePath)) {
+            $qrCodeData = file_get_contents($qrCodePath);
+            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
+            $qrCodeBase64 = 'data:image/' . $qrCodeType . ';base64,' . base64_encode($qrCodeData);
+        }
+        
+        $logoBase64 = null;
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+        }
+
     // Prepare data for ID card generation
     $data = [
         'company_name' => 'MAGIC BUILDERS AFRICA',
@@ -110,8 +128,8 @@ public function downloadQrCode()
         'registered' => $this->fundi->created_at ? $this->fundi->created_at->format('d/m/Y') : date('d/m/Y'),
         'expire' => $this->fundi->expire_date ? $this->fundi->expire_date->format('d/m/Y') : date('d/m/Y', strtotime('+5 years')),
         'photo' => $this->fundi->photo_path ? Storage::disk('public')->path($this->fundi->photo_path) : public_path('images/profile.jpg'),
-        'logo' => public_path('images/logo.png'),
-        'qrcode' => Storage::disk('public')->path($this->fundi->qr_code_path),
+        'logo' => $logoBase64, // Base64 encoded
+        'qrcode' => $qrCodeBase64, 
     ];
 
     // Store data in session temporarily

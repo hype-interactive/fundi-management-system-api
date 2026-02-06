@@ -74,6 +74,42 @@ class GenerateFundiIdCards implements ShouldQueue
                             $fundi->generateQrCodeQuietly();
                         }
 
+                        // Get absolute paths
+                        $qrCodePath = storage_path('app/public/' . $this->fundi->qr_code_path);
+                        $logoPath = public_path('images/logo.png');
+
+                        // Convert images to base64
+                        $qrCodeBase64 = null;
+                        if (file_exists($qrCodePath)) {
+                            $qrCodeData = file_get_contents($qrCodePath);
+                            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
+                            $qrCodeBase64 = 'data:image/' . $qrCodeType . ';base64,' . base64_encode($qrCodeData);
+                        }
+
+                        $logoBase64 = null;
+                        if (file_exists($logoPath)) {
+                            $logoData = file_get_contents($logoPath);
+                            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+                        }
+
+                        // Get absolute paths
+                        $qrCodePath = storage_path('app/public/' . $fundi->qr_code_path);
+                        $logoPath = public_path('images/logo.png');
+
+                        // Convert images to base64
+                        $qrCodeBase64 = null;
+                        if (file_exists($qrCodePath)) {
+                            $qrCodeData = file_get_contents($qrCodePath);
+                            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
+                            $qrCodeBase64 = 'data:image/' . $qrCodeType . ';base64,' . base64_encode($qrCodeData);
+                        }
+
+                        $logoBase64 = null;
+                        if (file_exists($logoPath)) {
+                            $logoData = file_get_contents($logoPath);
+                            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+                        }
+
                         $data = [
                             'company_name' => 'MAGIC BUILDERS AFRICA',
                             'id_number' => $fundi->unique_id ?? 'FNS-01X251',
@@ -83,27 +119,27 @@ class GenerateFundiIdCards implements ShouldQueue
                             'registered' => $fundi->created_at ? $fundi->created_at->format('d/m/Y') : date('d/m/Y'),
                             'expire' => $fundi->created_at ? $fundi->created_at->addYears(5)->format('d/m/Y') : date('d/m/Y', strtotime('+5 years')),
                             'photo' => $fundi->profile_photo_url ?? public_path('images/profile.jpg'),
-                            'logo' => public_path('images/logo.png'),
-                            'qrcode' => Storage::disk('public')->path($fundi->qr_code_path),
+                            'logo' => $logoBase64, // Base64 encoded
+                            'qrcode' => $qrCodeBase64,
                         ];
 
                         // IMPORTANT: Use the EXACT same configuration as the controller
                         $pdf = Pdf::loadView('documents.id-card', $data);
 
-// Set paper BEFORE any other options
-$pdf->setPaper([0, 0, 300, 530], 'landscape');
+                        // Set paper BEFORE any other options
+                        $pdf->setPaper([0, 0, 300, 530], 'landscape');
 
-// Set all options explicitly
-$pdf->setOptions([
-    'isHtml5ParserEnabled' => true,
-    'isRemoteEnabled' => true,
-    'isFontSubsettingEnabled' => true,
-    'defaultFont' => 'Arial',
-    'dpi' => 96,
-    'defaultPaperSize' => 'custom',
-]);
+                        // Set all options explicitly
+                        $pdf->setOptions([
+                            'isHtml5ParserEnabled' => true,
+                            'isRemoteEnabled' => true,
+                            'isFontSubsettingEnabled' => true,
+                            'defaultFont' => 'Arial',
+                            'dpi' => 96,
+                            'defaultPaperSize' => 'custom',
+                        ]);
 
-$pdfContent = $pdf->output();
+                        $pdfContent = $pdf->output();
 
                         // Sanitize filename
                         $fileName = $this->sanitizeFileName($fundi);
