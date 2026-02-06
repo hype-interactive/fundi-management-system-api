@@ -75,7 +75,7 @@ class GenerateFundiIdCards implements ShouldQueue
                         }
 
                         // Get absolute paths
-                        $qrCodePath = storage_path('app/public/' . $this->fundi->qr_code_path);
+                        $qrCodePath = storage_path('app/public/' . $fundi->qr_code_path);
                         $logoPath = public_path('images/logo.png');
 
                         // Convert images to base64
