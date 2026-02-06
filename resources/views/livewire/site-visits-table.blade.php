@@ -110,7 +110,7 @@
         <div class="d-flex gap-2 align-items-center">
             <span class="results-count">
                 <i class="fa-solid fa-location me-1"></i>
-                {{ $siteVisits->total() }} Sites
+                {{ number_format($siteVisits->total()) }} Sites
             </span>
         </div>
 
