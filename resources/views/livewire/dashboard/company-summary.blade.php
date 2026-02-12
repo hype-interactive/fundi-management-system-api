@@ -5,7 +5,7 @@
                 <i class="fa-solid fa-people-carry-box"></i>
             </div>
             <div class="title">
-                <div class="count">{{ $this->fundi_count }}</div>
+                <div class="count">{{ number_format($this->fundi_count) }}</div>
                 Mafundi
             </div>
         </div>
@@ -14,7 +14,7 @@
                 <i class="fa-solid fa-user-secret"></i>
             </div>
             <div class="title">
-                <div class="count">{{ $this->admin_count }}</div>
+                <div class="count">{{ number_format($this->admin_count) }}</div>
                 Administrators
             </div>
         </div>
@@ -23,7 +23,7 @@
                 <i class="fa-solid fa-users-gear"></i>
             </div>
             <div class="title">
-                <div class="count">{{ $this->operator_count }}</div>
+                <div class="count">{{ number_format($this->operator_count) }}</div>
                 Operators
             </div>
         </div>
