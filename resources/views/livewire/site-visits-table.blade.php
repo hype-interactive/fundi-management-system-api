@@ -25,43 +25,43 @@
 
         <!-- First Row: Search + Primary Location Filters -->
         <div class="row g-3 mb-3">
-            
+
             <!-- Primary Location Filters -->
             <div class="col-md-12 col-12">
                 <div class="row g-2">
-                    <div class="col-md-2 col-12">
-                <div class="search position-relative">
-                    <input wire:model.live.debounce.300ms="search_key" type="text" id="search"
-                        placeholder="Search site name, operator...">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    @if ($search_key)
-                        <button wire:click="$set('search_key', '')" class="btn btn-sm position-absolute"
-                            style="right: 35px; top: 50%; transform: translateY(-50%); border: none; background: none;">
-                            <i class="fa-solid fa-times text-muted"></i>
-                        </button>
-                    @endif
-                </div>
-            </div>
-                    @if (isRoot())
-                        <div class="col-lg-2 col-md-4 col-6">
-                            <div class="select">
-                                @include('components.selects.select_region')
-                            </div>
+                    <div class="col-md-6 col-12 mb-4">
+                        <div class="search position-relative">
+                            <input wire:model.live.debounce.300ms="search_key" type="text" id="search"
+                                placeholder="Search site name, operator...">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            @if ($search_key)
+                                <button wire:click="$set('search_key', '')" class="btn btn-sm position-absolute"
+                                    style="right: 35px; top: 50%; transform: translateY(-50%); border: none; background: none;">
+                                    <i class="fa-solid fa-times text-muted"></i>
+                                </button>
+                            @endif
                         </div>
-                        <div class="col-lg-2 col-md-4 col-6">
-                            <div class="select">
-                                @include('components.selects.select_district')
-                            </div>
+                    </div>
+                    {{-- @if (isRoot()) --}}
+                    <div class="col-lg-3 col-md-4 col-6 ">
+                        <div class="select">
+                            @include('components.selects.select_region')
                         </div>
-                    @endif
+                    </div>
+                    <div class="col-lg-3 col-md-4 col-6 ">
+                        <div class="select">
+                            @include('components.selects.select_district')
+                        </div>
+                    </div>
+                    {{-- @endif --}}
 
-                    <div class="col-lg-2 col-md-4 col-6">
+                    <div class="col-lg-2 col-md-4 col-6 ">
                         <div class="select">
                             @include('components.selects.select_ward')
                         </div>
                     </div>
 
-                    <div class="col-lg-2 col-md-4 col-6">
+                    <div class="col-lg-2 col-md-4 col-6 ">
                         <div class="select">
                             <select wire:model.live="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
@@ -72,7 +72,7 @@
                         </div>
                     </div>
                     <!-- Operator Filter -->
-                    <div class="col-lg-2 col-md-4 col-6">
+                    <div class="col-lg-2 col-md-4 col-6 ">
                         <div class="select">
                             <select wire:model.live="operator_id" class="form-select form-select-sm">
                                 <option value="">All Operators</option>
@@ -84,14 +84,14 @@
                     </div>
 
                     <!-- Date Filters -->
-                    <div class="col-lg-2 col-md-4 col-6">
+                    <div class="col-lg-3 col-md-4 col-6 ">
                         <div class="select">
                             <input wire:model.live="visit_date_from" type="date" class="form-select form-select-sm"
                                 placeholder="From Date" title="From Date">
                         </div>
                     </div>
 
-                    <div class="col-lg-2 col-md-4 col-6 ">
+                    <div class="col-lg-3 col-md-4 col-6 ">
                         <div class="select">
                             <input wire:model.live="visit_date_to" type="date" class="form-select form-select-sm"
                                 placeholder="To Date" title="To Date">
