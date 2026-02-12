@@ -5,7 +5,7 @@
             <div class="col-md-8">
                 <div class="custom-header">
                     <h2>{{ $operator->full_name }}</h2>
-                    <a href="{{ route('operators') }}" class="btn btn-custom"><i class="fa-solid fa-arrow-left"></i> Back</a>
+                    <a href="{{ url()->previous() }}" class="btn btn-custom"><i class="fa-solid fa-arrow-left"></i> Back</a>
                 </div>
                 <div class="operator-forms">
                     <nav>

@@ -5,7 +5,7 @@
             <div class="col-md-8">
                 <div class="custom-header">
                     <h2>{{ $fundi->fname }} {{ $fundi->mname }} {{ $fundi->lname }}</h2>
-                    <a href="{{ route('fundis') }}" class="btn btn-custom"><i class="fa-solid fa-arrow-left"></i> Back</a>
+                    <a href="{{ url()->previous() }}" class="btn btn-custom"><i class="fa-solid fa-arrow-left"></i> Back</a>
                 </div>
                 <div class="fundi-forms">
                     <nav>
