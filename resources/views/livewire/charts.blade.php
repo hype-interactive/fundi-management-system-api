@@ -1,24 +1,10 @@
 <div>
-    <div class="row">
-        <!-- Charts Section -->
-        <div class="col-md-9">
-            <div class="header mb-4">
-                <h2>Analytics</h2>
-                <p>Track your platform's performance and growth metrics</p>
-            </div>
-
-            @include('components.charts.charts-display')
-        </div>
-
-        <!-- Filters & Summary Section -->
-        <div class="col-md-3">
-            <div class="summary dark-bg">
-                @include('components.charts.chart-summary')
-                {{-- @include('components.charts.chart-filters') --}}
-            </div>
-        </div>
+    <!-- Charts Section -->
+    <div class="header mb-4">
+        <h2>Analytics</h2>
+        <p>Track your platform's performance and growth metrics</p>
     </div>
-
+    @include('components.charts.charts-display')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             let fundiChart = null;

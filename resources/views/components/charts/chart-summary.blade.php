@@ -1,5 +1,5 @@
 <!-- Chart Summary Component -->
-<div class="notifications">
+<div class="">
     <div class="tile">
         <div class="icon">
             <i class="fas fa-eye"></i>
@@ -46,4 +46,3 @@
     </div>
 </div>
 
-<div class="divider"></div>

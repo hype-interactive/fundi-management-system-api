@@ -26,9 +26,7 @@ class CompanySummary extends Component
                 $q->whereIn('districts.id', $districtIds);
             })->count();
 
-            $this->fundi_count = Fundi::whereHas('ward', function ($q) use ($districtIds) {
-                $q->whereIn('district_id', $districtIds);
-            })->count();
+            $this->fundi_count = Fundi::get()->count();
         }
         return view('livewire.dashboard.company-summary');
     }

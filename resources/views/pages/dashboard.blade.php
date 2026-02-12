@@ -14,6 +14,9 @@
             <div class="body">
                 <livewire:platform-summary>
             </div>
+            <div class="mt-4"></div>
+
+    <livewire:charts />
         </div>
         <div class="col-md-3">
             <div class="light-bg section-right summary">
@@ -21,8 +24,6 @@
             </div>
         </div>
     </div>
-    <div class="mt-4"></div>
-
-    <livewire:charts />
+    
 </div>
 @endsection

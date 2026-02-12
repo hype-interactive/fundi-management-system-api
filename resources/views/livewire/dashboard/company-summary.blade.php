@@ -2,6 +2,15 @@
     <div class="notifications">
         <div class="tile">
             <div class="icon">
+                <i class="fa-solid fa-people-carry-box"></i>
+            </div>
+            <div class="title">
+                <div class="count">{{ $this->fundi_count }}</div>
+                Mafundi
+            </div>
+        </div>
+        <div class="tile">
+            <div class="icon">
                 <i class="fa-solid fa-user-secret"></i>
             </div>
             <div class="title">
@@ -18,14 +27,7 @@
                 Operators
             </div>
         </div>
-        <div class="tile">
-            <div class="icon">
-                <i class="fa-solid fa-people-carry-box"></i>
-            </div>
-            <div class="title">
-                <div class="count">{{ $this->fundi_count }}</div>
-                Mafundi
-            </div>
-        </div>
+        @include('components.charts.chart-summary')
     </div>
+
 </div>

@@ -47,7 +47,7 @@ class PlatformSummary extends Component
     public function loadMetrics()
     {
         // Total Fundis with Month Comparison
-        $this->total_fundis = $this->getFundiTotal(null, $this->selected_district);
+        $this->total_fundis = $this->getFundiTotal("MONTH", $this->selected_district);
         $this->fundis_month_diff = abs($this->getFundiDiff("MONTH"));
         $this->fundis_month_status = $this->getFundiDiff("MONTH") >= 0;
 
