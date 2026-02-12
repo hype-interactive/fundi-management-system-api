@@ -550,7 +550,7 @@ public function formatSearchStringForPhoneSearch($searchTerm)
     /**
      * Download the PDF of fundis
      */
-    public function downloadFundiPDF()
+    public function downloadFundisPDF()
     {
         set_time_limit(300);
         ini_set("memory_limit", "1000M");
@@ -582,7 +582,7 @@ public function formatSearchStringForPhoneSearch($searchTerm)
 
             $title = 'Mafundi | Magic Builders';
             $date = date('D, M/d/Y');
-            $html_view = view('documents.id-card', compact('title', 'date', 'rows'))->render();
+            $html_view = view('documents.fundis', compact('title', 'date', 'rows'))->render();
             $pdf = app('dompdf.wrapper');
             $pdf->loadHTML($html_view);
             $pdf->setPaper('A4', 'landscape');

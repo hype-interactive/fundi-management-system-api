@@ -51,9 +51,9 @@
                     <th scope="col">Address</th>
                     <th scope="col">Primary Phone</th>
                     <th scope="col">Trans. Phone</th>
-                    <th scope="col">Jinsia</th>
-                    <th scope="col">Daraja</th>
-                    <th scope="col">Hali</th>
+                    <th scope="col">Gender</th>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Status</th>
                 </tr>
             </thead>
             <tbody>

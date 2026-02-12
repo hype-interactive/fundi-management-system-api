@@ -115,6 +115,10 @@
                 <i class="fa-solid fa-file-excel me-1"></i>
                 Export Excel
             </button>
+            <button wire:click="downloadFundisPDF" class="btn btn-outline-warning btn-sm">
+                <i class="fa-solid fa-file-pdf me-1"></i>
+                Download PDF
+            </button>
 
             {{-- Bulk Download ID Cards Button --}}
             <button wire:click="bulkDownloadIdCards" class="btn btn-outline-danger btn-sm"

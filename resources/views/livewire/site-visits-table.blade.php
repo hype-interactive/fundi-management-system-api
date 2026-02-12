@@ -98,11 +98,8 @@
                         </div>
                     </div>
                 </div>
-
-
             </div>
         </div>
-
     </div>
 
     <!-- Desktop Actions -->
