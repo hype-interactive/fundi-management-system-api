@@ -28,6 +28,14 @@ Route::middleware('auth')->group(function () {
         return  view('pages.unapproved-fundis');
     })->name('unapproved-fundis');
 
+    // routes/web.php
+
+    // Add this route in your fundis route group
+    Route::get('/duplicate_fundis', function () {
+        return view('pages.fundi-duplicates');
+    })->name('fundis.duplicates');
+
+
     Route::get('/site-visits', function () {
         return view('pages.site-visits');
     })->name('site-visits');
