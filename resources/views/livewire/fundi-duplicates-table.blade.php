@@ -131,8 +131,8 @@
                                     $isExpanded = in_array($key, $showDetails);
                                 @endphp
                                 <tr class="{{ $isExpanded ? 'table-active' : '' }}">
-                                    <td>{{ $duplicates->firstItem() + $index }}</td>
-                                    <td>
+                                    <td class="d-lg-table-cell d-none">{{ $duplicates->firstItem() + $index }}</td>
+                                    <td class="d-lg-table-cell d-none">
                                         <button wire:click="toggleDetails('{{ $key }}')"
                                             class="btn btn-link p-0 text-decoration-none">
                                             <i
