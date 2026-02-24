@@ -84,11 +84,11 @@
             <button wire:click="refresh" class="btn btn-outline-secondary btn-sm mr-2">
                 Refresh
             </button>
-            {{-- @if ($stats[$duplicateType] > 0)
+            @if ($stats[$duplicateType] > 0)
                 <button wire:click="bulkDeleteAllDuplicates" class="btn btn-danger btn-sm">
                     Delete All Duplicates (Keep Oldest)
                 </button>
-            @endif --}}
+            @endif
         </div>
     </div>
 
