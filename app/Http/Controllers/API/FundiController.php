@@ -17,7 +17,7 @@ use App\Http\Resources\FundiMinimalResource;
 class FundiController extends BaseAPIController
 {
     use CacheManagement;
-    
+
     protected CloudinaryImageService $cloudinaryService;
 
     public function __construct(CloudinaryImageService $cloudinaryService)
@@ -149,7 +149,7 @@ class FundiController extends BaseAPIController
     private function applySearchFilter($query, string $searchTerm): void
     {
         $search = '%' . $searchTerm . '%';
-        
+
         $query->where(function ($q) use ($search, $searchTerm) {
             $q->where('fname', 'like', $search)
                 ->orWhere('mname', 'like', $search)
@@ -160,13 +160,13 @@ class FundiController extends BaseAPIController
                     "CONCAT(COALESCE(fname, ''), ' ', COALESCE(mname, ''), ' ', COALESCE(lname, '')) LIKE ?",
                     [$search]
                 );
-            
+
             // Handle phone search
             if (preg_match('/^[0-9\s\-\+]+$/', $searchTerm)) {
                 $formattedPhone = $this->formatSearchStringForPhoneSearch($searchTerm);
-                
+
                 $q->orWhereRaw("REPLACE(REPLACE(primary_phone, ' ', ''), '-', '') LIKE ?", [$formattedPhone])
-                  ->orWhereRaw("REPLACE(REPLACE(transaction_phone, ' ', ''), '-', '') LIKE ?", [$formattedPhone]);
+                    ->orWhereRaw("REPLACE(REPLACE(transaction_phone, ' ', ''), '-', '') LIKE ?", [$formattedPhone]);
             }
         });
     }
@@ -219,7 +219,7 @@ class FundiController extends BaseAPIController
     private function buildFundiDetailData(string $unique_id): array
     {
         $fundi = Fundi::where('unique_id', $unique_id)->first();
-        
+
         if (!$fundi) {
             return [
                 'error' => true,
@@ -247,8 +247,8 @@ class FundiController extends BaseAPIController
                 $query->latest()->limit(10);
             }
         ])
-        ->loadCount('transactions')
-        ->loadSum('transactions', 'amount');
+            ->loadCount('transactions')
+            ->loadSum('transactions', 'amount');
 
         return (new FundiResource($fundi))->resolve();
     }
@@ -259,28 +259,126 @@ class FundiController extends BaseAPIController
      * @param Request $request
      * @return JsonResponse
      */
+    // public function store(Request $request): JsonResponse
+    // {
+    //     // Validate input
+    //     $validated = $this->validateFundiData($request);
+
+    //     // Check for duplicates
+    //     if ($this->isDuplicateFundi($validated)) {
+    //         return $this->errorResponse(
+    //             'A fundi with the same name and transaction phone or ward already exists.',
+    //             null,
+    //             422
+    //         );
+    //     }
+
+    //     DB::beginTransaction();
+    //     try {
+    //         $fundi = $this->createFundi($validated, $request);
+
+    //         DB::commit();
+
+    //         // Clear caches after successful creation
+    //         $this->clearFundiCaches();
+
+    //         return $this->successResponse(
+    //             new FundiResource($fundi),
+    //             'Fundi registered successfully',
+    //             201
+    //         );
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         Log::error('Failed to register fundi', [
+    //             'error' => $e->getMessage(),
+    //             'trace' => $e->getTraceAsString()
+    //         ]);
+
+    //         return $this->errorResponse(
+    //             'Failed to register fundi. Please try again.',
+    //             null,
+    //             500
+    //         );
+    //     }
+    // }
+
     public function store(Request $request): JsonResponse
     {
-        // Validate input
-        $validated = $this->validateFundiData($request);
+        $request->validate([
+            'fname' => 'required|string|max:255',
+            'mname' => 'nullable|string|max:255',
+            'lname' => 'required|string|max:255',
+            'gender' => 'required|in:male,female',
+            'nida_number' => 'nullable|string|max:20|unique:fundis,nida_number',
+            'primary_phone' => 'required|string|max:15|unique:fundis,primary_phone',
+            'transaction_phone' => 'required|max:15|unique:fundis,transaction_phone',
+            'ward_id' => [
+                'required',
+                'integer',
+                'exists:wards,id',
+                function ($attribute, $value, $fail) {
+                    $operatorDistricts = $this->getOperatorDistricts();
 
-        // Check for duplicates
-        if ($this->isDuplicateFundi($validated)) {
+                    $wardExists = Ward::where('id', $value)
+                        ->whereHas('district', function ($query) use ($operatorDistricts) {
+                            $query->whereIn('id', $operatorDistricts);
+                        })
+                        ->exists();
+
+                    if (!$wardExists) {
+                        $fail('The selected ward is not available in your operating districts.');
+                    }
+                },
+            ],
+            'ranking' => 'nullable|string|in:fundi_kuu,fundi_msaidizi',
+            'profile_photo' => 'nullable|image|max:2048',
+            'profile_photo_url' => 'nullable|string|url',
+            'profile_photo_public_id' => 'nullable|string',
+        ]);
+
+        // Check for duplicate: fname + lname + (transaction_phone OR ward_id)
+        $duplicateExists = Fundi::where('fname', $request->fname)
+            ->where('lname', $request->lname)
+            ->where(function ($query) use ($request) {
+                $query->where('transaction_phone', $request->transaction_phone)
+                    ->orWhere('ward_id', $request->ward_id);
+            })
+            ->exists();
+
+        if ($duplicateExists) {
             return $this->errorResponse(
                 'A fundi with the same name and transaction phone or ward already exists.',
-                null,
                 422
             );
         }
 
         DB::beginTransaction();
         try {
-            $fundi = $this->createFundi($validated, $request);
+            $data = $request->except('profile_photo');
+            $data['unique_id'] = $this->generateUniqueId();
+            $data['created_by'] = $this->getOperator()->id;
+            $data['status'] = 'active';
+
+            // Handle profile photo
+            if ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id')) {
+                $data['profile_photo'] = $request->profile_photo_url;
+                $data['profile_photo_public_id'] = $request->profile_photo_public_id;
+            } elseif ($request->hasFile('profile_photo')) {
+                $uploadResult = $this->cloudinaryService->upload(
+                    $request->file('profile_photo'),
+                    'FundiApp/Fundis'
+                );
+
+                if ($uploadResult) {
+                    $data['profile_photo'] = $uploadResult['url'];
+                    $data['profile_photo_public_id'] = $uploadResult['public_id'];
+                }
+            }
+
+            $fundi = Fundi::create($data);
+            $fundi->load(['ward.district.region', 'creator']);
 
             DB::commit();
-
-            // Clear caches after successful creation
-            $this->clearFundiCaches();
 
             return $this->successResponse(
                 new FundiResource($fundi),
@@ -289,16 +387,7 @@ class FundiController extends BaseAPIController
             );
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to register fundi', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return $this->errorResponse(
-                'Failed to register fundi. Please try again.',
-                null,
-                500
-            );
+            return $this->errorResponse('Failed to register fundi: ' . $e->getMessage());
         }
     }
 
@@ -349,7 +438,7 @@ class FundiController extends BaseAPIController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return $this->errorResponse(
                 'Failed to update fundi. Please try again.',
                 null,
@@ -382,8 +471,10 @@ class FundiController extends BaseAPIController
         ])->toArray();
 
         // Handle profile photo update
-        if ($request->hasFile('profile_photo') || 
-            ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id'))) {
+        if (
+            $request->hasFile('profile_photo') ||
+            ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id'))
+        ) {
             $this->handleProfilePhoto($request, $data, $fundi);
         }
 
@@ -444,7 +535,7 @@ class FundiController extends BaseAPIController
                 'fundi_id' => $fundi->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return $this->errorResponse(
                 'Failed to approve fundi. Please try again.',
                 null,
@@ -503,7 +594,7 @@ class FundiController extends BaseAPIController
                 'fundi_id' => $fundi->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return $this->errorResponse(
                 'Failed to reject fundi. Please try again.',
                 null,
@@ -612,7 +703,7 @@ class FundiController extends BaseAPIController
                 'fundi_id' => $fundi->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return $this->errorResponse(
                 'Failed to delete fundi. Please try again.',
                 null,
@@ -654,7 +745,7 @@ class FundiController extends BaseAPIController
                 'fundi_id' => $id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return $this->errorResponse(
                 'Failed to restore fundi. Please try again.',
                 null,
@@ -835,8 +926,10 @@ class FundiController extends BaseAPIController
         $data['status'] = 'active';
 
         // Handle profile photo
-        if ($request->hasFile('profile_photo') || 
-            ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id'))) {
+        if (
+            $request->hasFile('profile_photo') ||
+            ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id'))
+        ) {
             $this->handleProfilePhoto($request, $data);
         }
 
@@ -858,9 +951,11 @@ class FundiController extends BaseAPIController
     {
         if ($request->filled('profile_photo_url') && $request->filled('profile_photo_public_id')) {
             // Delete old photo if updating and ID changed
-            if ($fundi && 
-                $fundi->profile_photo_public_id && 
-                $fundi->profile_photo_public_id !== $request->profile_photo_public_id) {
+            if (
+                $fundi &&
+                $fundi->profile_photo_public_id &&
+                $fundi->profile_photo_public_id !== $request->profile_photo_public_id
+            ) {
                 try {
                     $this->cloudinaryService->delete($fundi->profile_photo_public_id);
                 } catch (\Exception $e) {
@@ -874,7 +969,6 @@ class FundiController extends BaseAPIController
             $data['profile_photo'] = $request->profile_photo_url;
             $data['profile_photo_url'] = $request->profile_photo_url;
             $data['profile_photo_public_id'] = $request->profile_photo_public_id;
-            
         } elseif ($request->hasFile('profile_photo')) {
             try {
                 $method = $fundi ? 'update' : 'upload';
