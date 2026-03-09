@@ -74,7 +74,7 @@ class ActivityLogs extends Component
             $query->whereBetween('created_at', [$this->from_date, $this->to_date]);
         }
 
-        return $query->latest('created_at')->paginate(50);
+        return $query->latest('created_at')->paginate(100);
     }
 
     public function render()

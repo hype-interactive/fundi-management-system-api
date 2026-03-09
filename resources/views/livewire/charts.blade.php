@@ -1,7 +1,7 @@
 <div>
     <!-- Charts Section -->
     <div class="header mb-4">
-        <h2>Analytics</h2>
+        <h3>Analytics</h3>
         <p>Track your platform's performance and growth metrics</p>
     </div>
     @include('components.charts.charts-display')

@@ -67,11 +67,11 @@
                             </div>
                         </div>
                     </li>
-                    @if (isRoot())
+                    {{-- @if (isRoot())
                         <li class="nav-item">
                             <a href="/logs" class="nav-link"><i class="fa-solid fa-file-shield"></i> Logs</a>
                         </li>
-                    @endif
+                    @endif --}}
                 </ul>
                 <div class="avatar-wrapper dropup">
                     <a class="avatar" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

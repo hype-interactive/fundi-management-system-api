@@ -18,7 +18,7 @@ class OperatorsTable extends Component
     #[Url]
     public $search_key = '';
 
-    public $perPage = 10;
+    public $perPage = 12;
 
     #[Url]
     public $region = null;
