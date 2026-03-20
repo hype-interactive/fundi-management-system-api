@@ -1,7 +1,7 @@
 <div>
     <div class="filter mb-3">
-        <div class="row g-2 align-items-center">
-            <div class="col-md-3">
+        <div class="row align-items-center">
+            <div class="col-md-2">
                 <div class="search">
                     <input wire:model.live.debounce.300ms="search_key" type="text" placeholder="Search operators...">
                     <i class="fa-solid fa-magnifying-glass"></i>
@@ -17,26 +17,21 @@
                             @include('components.selects.select_district', ['districts' => $districts])
                         </div>
                     @endif
-                    {{-- <div class="col">
-                        <select wire:model.live="status" class="form-select form-select-sm">
-                            <option value="">All Status</option>
-                            @foreach ($status_options as $key => $value)
-                                <option value="{{ $key }}">{{ $value }}</option>
-                            @endforeach
-                        </select>
-                    </div> --}}
                 </div>
             </div>
-            <div class="col-md-3 d-flex justify-content-end gap-2">
-                <button wire:click="refresh" class="btn btn-sm btn-outline-secondary">
+            <div class="col-md-4 ">
+                <div class="d-flex justify-content-end gap-2">
+                    <button wire:click="refresh" class="mr-2 btn btn-sm btn-outline-secondary">
                     <i class="fa-solid fa-arrows-rotate"></i>
                 </button>
-                <button wire:click="exportToExcel" class="btn btn-sm btn-outline-success">
+                <button wire:click="exportToExcel" class="mr-2 btn btn-sm btn-outline-success">
                     <i class="fa-solid fa-file-csv me-1"></i>Export
                 </button>
-                <button wire:click="downloadOperatorPDF" class="btn btn-sm btn-outline-danger">
+                <button wire:click="downloadOperatorPDF" class="mr-2 btn btn-sm btn-outline-danger">
                     <i class="fa-solid fa-file-pdf me-1"></i>PDF
                 </button>
+                </div>
+                
             </div>
         </div>
     </div>
@@ -45,8 +40,6 @@
     <div class="row g-3">
         @forelse ($operators as $operator)
             @php
-              
-
                 $todayVisits = $operator->siteVisits()->whereDate('created_at', today())->count();
                 $todayFundis = $operator->createdFundis()
                 ->whereDate('created_at', today())

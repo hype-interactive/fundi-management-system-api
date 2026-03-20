@@ -138,91 +138,111 @@ class OperatorsTable extends Component
     /**
      * Download the PDF of operators
      */
-    public function downloadOperatorPDF()
-    {
-        set_time_limit(300); // execution time to 5min
-        ini_set("memory_limit", "1000M");
+public function downloadOperatorPDF()
+{
+    set_time_limit(300);
+    ini_set("memory_limit", "1000M");
 
-        return response()->streamDownload(function () {
-            // Get the operators query
-            $operators = $this->getOperatorQuery()->get();
+    return response()->streamDownload(function () {
+        $operators = $this->getOperatorQuery()->get();
 
-            // Create an array of rows
-            $rows = [];
-            foreach ($operators as $operator) {
-                $districts = $operator->districts->pluck('name')->join(', ');
+        $rows = [];
+        foreach ($operators as $operator) {
+            $todayVisits = $operator->siteVisits()->whereDate('created_at', today())->count();
+            $todayFundis = $operator->createdFundis()->whereDate('created_at', today())->count();
+            $monthVisits = $operator->siteVisits()
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+            $monthFundis = $operator->createdFundis()
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+            $totalVisits = $operator->siteVisits()->count();
+            $totalFundis = $operator->createdFundis()->count();
 
-                $rows[] = [
-                    'name' => $operator->full_name,
-                    'email' => $operator->email,
-                    'phone' => $operator->phone,
-                    'role' => $operator->role->display_name ?? 'N/A',
-                    'districts' => $districts ?: 'N/A',
-                    'status' => ucfirst($operator->status),
-                ];
-            }
+            $rows[] = [
+                'name' => $operator->full_name,
+                'phone' => $operator->phone,
+                'site' => [
+                    'today' => $todayVisits,
+                    'month' => $monthVisits,
+                    'all_time' => $totalVisits,
+                ],
+                'fundis' => [
+                    'today' => $todayFundis,
+                    'month' => $monthFundis,
+                    'all_time' => $totalFundis,
+                ],
+            ];
+        }
 
-            $title = 'Operators | Magic Builders';
-            $date = date('D, M/d/Y');
-            $html_view = view('documents.operators', compact('title', 'date', 'rows'))->render();
-            $pdf = app('dompdf.wrapper');
-            $pdf->loadHTML($html_view);
+        $title = 'Operators | Magic Builders';
+        $date = date('D, M/d/Y');
+        $html_view = view('documents.operators', compact('title', 'date', 'rows'))->render();
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadHTML($html_view);
+        $pdf->setPaper('A4', 'landscape');
 
-            $pdf->setPaper('A4', 'landscape');
-
-            echo $pdf->stream();
-        }, 'magic_builders_operators.pdf');
-    }
+        echo $pdf->stream();
+    }, 'magic_builders_operators.pdf');
+}
 
     /**
      * Export current filtered data to Excel
      */
-    public function exportToExcel()
-    {
-        return response()->streamDownload(function () {
-            $operators = $this->getOperatorQuery()->get();
+public function exportToExcel()
+{
+    return response()->streamDownload(function () {
+        $operators = $this->getOperatorQuery()->get();
 
-            $headers = [
-                'Name',
-                'Email',
-                'Phone',
-                'Role',
-                'Status',
-                'Districts',
-                'Site Visits Count',
-                'Approved Fundis Count',
-                'Total Incentives',
-                'Created At',
-                'Last Updated'
-            ];
+        $headers = [
+            'Name',
+            'Email',
+            'Phone',
+            'Role',
+            'Status',
+            'Districts',
+            'Site Visits (Today)',
+            'Site Visits (Month)',
+            'Site Visits (All Time)',
+            'Fundis Registered (Today)',
+            'Fundis Registered (Month)',
+            'Fundis Registered (All Time)',
+            'Total Incentives',
+            'Created At',
+        ];
 
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, $headers);
+        $handle = fopen('php://output', 'w');
+        fputcsv($handle, $headers);
 
-            foreach ($operators as $operator) {
-                $districts = $operator->districts->pluck('name')->join(', ');
-                $totalIncentives = $operator->incentives()->sum('amount');
+        foreach ($operators as $operator) {
+            $districts = $operator->districts->pluck('name')->join(', ');
+            $totalIncentives = $operator->incentives()->sum('amount');
 
-                fputcsv($handle, [
-                    $operator->full_name,
-                    $operator->email,
-                    $operator->phone,
-                    $operator->role->display_name ?? 'N/A',
-                    ucfirst($operator->status),
-                    $districts ?: 'N/A',
-                    $operator->siteVisits()->count(),
-                    $operator->approvedFundis()->count(),
-                    number_format($totalIncentives, 2),
-                    $operator->created_at->format('Y-m-d H:i:s'),
-                    $operator->updated_at->format('Y-m-d H:i:s')
-                ]);
-            }
+            fputcsv($handle, [
+                $operator->full_name,
+                $operator->email,
+                $operator->phone,
+                $operator->role->display_name ?? 'N/A',
+                ucfirst($operator->status),
+                $districts ?: 'N/A',
+                $operator->siteVisits()->whereDate('created_at', today())->count(),
+                $operator->siteVisits()->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+                $operator->siteVisits()->count(),
+                $operator->createdFundis()->whereDate('created_at', today())->count(),
+                $operator->createdFundis()->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+                $operator->createdFundis()->count(),
+                number_format($totalIncentives, 2),
+                $operator->created_at->format('Y-m-d H:i:s'),
+            ]);
+        }
 
-            fclose($handle);
-        }, 'operators_export_' . date('Y-m-d_H-i-s') . '.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
-    }
+        fclose($handle);
+    }, 'operators_export_' . date('Y-m-d_H-i-s') . '.csv', [
+        'Content-Type' => 'text/csv',
+    ]);
+}
 
     public function mount()
     {

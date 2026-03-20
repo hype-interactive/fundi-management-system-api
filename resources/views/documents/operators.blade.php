@@ -14,11 +14,21 @@
             border: 1px solid #999;
             padding: 0.5rem;
             text-align: left;
+            font-size: 12px;
         }
 
         th {
             background-color: #f8f9fa;
             font-weight: bold;
+        }
+
+        th.group-header {
+            text-align: center;
+            background-color: #e9ecef;
+        }
+
+        td.number {
+            text-align: center;
         }
 
         .header {
@@ -40,30 +50,38 @@
 
 <body>
     <div class="header">
-        <img src="{{ assetToBase64('images/logo.png') }}" height="30" alt="Logo" srcset="">
+        <img src="{{ assetToBase64('images/logo.png') }}" height="30" alt="Logo">
     </div>
-    <div class="table-responsive" id="sailorTableArea">
+    <div class="table-responsive">
         <h3>{{ $title }} <span style="float:right; font-size:15px;">{{ $date }}</span></h3>
-        <table id="sailorTable" class="table" width="100%">
-            <thead class="thead-light">
+        <table width="100%">
+            <thead>
                 <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Phone number</th>
-                    {{-- <th scope="col">Role</th> --}}
-                    <th scope="col">Assigned Districts</th>
-                    <th scope="col">Status</th>
+                    <th rowspan="2">Name</th>
+                    <th rowspan="2">Phone</th>
+                    <th colspan="3" class="group-header">Site Visits</th>
+                    <th colspan="3" class="group-header">Fundis Registered</th>
+                </tr>
+                <tr>
+                    <th>Today</th>
+                    <th>Month</th>
+                    <th>All Time</th>
+                    <th>Today</th>
+                    <th>Month</th>
+                    <th>All Time</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($rows as $row)
                     <tr>
                         <td>{{ $row['name'] }}</td>
-                        <td>{{ $row['email'] }}</td>
                         <td>{{ $row['phone'] }}</td>
-                        {{-- <td>{{ $row['role'] }}</td> --}}
-                        <td>{{ $row['districts'] }}</td>
-                        <td>{{ $row['status'] }}</td>
+                        <td class="number">{{ $row['site']['today'] }}</td>
+                        <td class="number">{{ $row['site']['month'] }}</td>
+                        <td class="number">{{ $row['site']['all_time'] }}</td>
+                        <td class="number">{{ $row['fundis']['today'] }}</td>
+                        <td class="number">{{ $row['fundis']['month'] }}</td>
+                        <td class="number">{{ $row['fundis']['all_time'] }}</td>
                     </tr>
                 @endforeach
             </tbody>
