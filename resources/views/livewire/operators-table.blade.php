@@ -45,14 +45,18 @@
     <div class="row g-3">
         @forelse ($operators as $operator)
             @php
+              
+
                 $todayVisits = $operator->siteVisits()->whereDate('created_at', today())->count();
-                $todayFundis = $operator->approvedFundis()->whereDate('created_at', today())->count();
+                $todayFundis = $operator->createdFundis()
+                ->whereDate('created_at', today())
+                ->count();
                 $weekVisits = $operator
                     ->siteVisits()
                     ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
                     ->count();
                 $weekFundis = $operator
-                    ->approvedFundis()
+                    ->createdFundis()
                     ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
                     ->count();
                 $monthVisits = $operator
@@ -61,12 +65,12 @@
                     ->whereYear('created_at', now()->year)
                     ->count();
                 $monthFundis = $operator
-                    ->approvedFundis()
+                    ->createdFundis()
                     ->whereMonth('created_at', now()->month)
                     ->whereYear('created_at', now()->year)
                     ->count();
                 $totalVisits = $operator->siteVisits()->count();
-                $totalFundis = $operator->approvedFundis()->count();
+                $totalFundis = $operator->createdFundis()->count();
             @endphp
 
             <div class="col-md-4 col-lg-4" wire:key="op-{{ $operator->id }}">
