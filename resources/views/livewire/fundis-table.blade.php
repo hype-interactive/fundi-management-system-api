@@ -33,7 +33,12 @@
                     </div>
                     <div class="col">
                         <div class="select">
-                            @include('components.selects.select_ranking')
+                            <select wire:model.live="site_visit_count" class="form-select">
+                                <option value="">Site Visits</option>
+                                @foreach ($site_visit_count_options as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="col">
@@ -58,22 +63,22 @@
         </div>
     @endif
 
- @if ($downloadUrl)
-    <div class="alert alert-success mb-3">
-        <div class="d-flex justify-content-between align-items-center">
-            <span>
-                <i class="fa-solid fa-check-circle me-2"></i>
-                Your ID cards are ready!
-            </span>
-            <a href="{{ $downloadUrl }}" 
-               download 
-               class="btn btn-success btn-sm">
-                <i class="fa-solid fa-download me-1"></i>
-                Download ZIP ({{ round(Storage::disk('public')->size('downloads/' . basename($downloadUrl)) / 1024 / 1024, 2) }} MB)
-            </a>
+    @if ($downloadUrl)
+        <div class="alert alert-success mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fa-solid fa-check-circle me-2"></i>
+                    Your ID cards are ready!
+                </span>
+                <a href="{{ $downloadUrl }}" download class="btn btn-success btn-sm">
+                    <i class="fa-solid fa-download me-1"></i>
+                    Download ZIP
+                    ({{ round(Storage::disk('public')->size('downloads/' . basename($downloadUrl)) / 1024 / 1024, 2) }}
+                    MB)
+                </a>
+            </div>
         </div>
-    </div>
-@endif
+    @endif
 
     {{-- Bulk Actions Bar --}}
     @if (count($selectedFundis) > 0)
@@ -149,12 +154,13 @@
                         <th scope="col">Name</th>
                         @if (!$compactView)
                             <th scope="col" class="d-lg-table-cell d-none">Phone</th>
-                            <th scope="col" class="d-xl-table-cell d-none">Trans. Phone</th>
                         @else
                             <th scope="col">Contact</th>
                         @endif
                         <th scope="col" class="d-lg-table-cell d-none">Ranking</th>
                         <th scope="col" class="d-lg-table-cell d-none">Status</th>
+                        <th scope="col" class="d-xl-table-cell d-none">Site Visit</th>
+                        <th scope="col" class="d-xl-table-cell d-none">Location</th>
                         <th scope="col" class="d-xl-table-cell d-none">Registrar</th>
                     </tr>
                 </thead>
@@ -184,9 +190,6 @@
                                 <td class="d-lg-table-cell d-none">
                                     <span class="phone-number">{{ $fundi->primary_phone }}</span>
                                 </td>
-                                <td class="d-xl-table-cell d-none">
-                                    <span class="phone-number">{{ $fundi->transaction_phone ?? '-' }}</span>
-                                </td>
                             @else
                                 <td>
                                     <div class="contact-info">
@@ -205,6 +208,12 @@
                                     'approved_at' => $fundi->approved_at,
                                     'rejected_at' => $fundi->rejected_at,
                                 ])
+                            </td>
+                            <td class="d-xl-table-cell d-none">
+                                <span class="phone-number">{{ $fundi->siteVisitFundis()->count() ?? '0' }}</span>
+                            </td>
+                            <td class="d-xl-table-cell d-none">
+                                <span class="phone-number">{{ $fundi->address ?? '-' }}</span>
                             </td>
                             <td class="d-xl-table-cell d-none">
                                 <span class="creator-name">{{ $fundi->creator->full_name ?? 'N/A' }}</span>

@@ -52,7 +52,7 @@
                     <th scope="col">Primary Phone</th>
                     <th scope="col">Trans. Phone</th>
                     <th scope="col">Gender</th>
-                    <th scope="col">Rank</th>
+                    <th scope="col">Sites</th>
                     <th scope="col">Status</th>
                 </tr>
             </thead>
@@ -64,7 +64,7 @@
                         <td>{{ $row['primary_phone'] }}</td>
                         <td>{{ $row['transaction_phone'] }}</td>
                         <td>{{ $row['gender'] }}</td>
-                        <td>{{ $row['ranking'] }}</td>
+                        <td>{{ $row['sites'] }}</td>
                         <td>{{ $row['status'] }}</td>
                     </tr>
                 @endforeach

@@ -67,6 +67,9 @@ class Fundi extends Model
         return $this->ranking === 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi';
     }
 
+
+
+
     /**
      * Boot method for model events
      */
@@ -84,9 +87,11 @@ class Fundi extends Model
     public function getAddressAttribute(): string
     {
         // Check if relationship is loaded to prevent N+1
-        if (!$this->relationLoaded('ward') || 
-            !$this->ward->relationLoaded('district') || 
-            !$this->ward->district->relationLoaded('region')) {
+        if (
+            !$this->relationLoaded('ward') ||
+            !$this->ward->relationLoaded('district') ||
+            !$this->ward->district->relationLoaded('region')
+        ) {
             Log::warning('Address accessor called without eager loading relationships. This may cause N+1 queries.', [
                 'fundi_id' => $this->id
             ]);
@@ -216,13 +221,13 @@ class Fundi extends Model
                 // Either no rejection exists, or approval is more recent than rejection
                 $q->where(function ($subQ) {
                     $subQ->whereNull('rejected_at')
-                         ->whereNull('rejected_by');
+                        ->whereNull('rejected_by');
                 })
-                ->orWhere(function ($subQ) {
-                    // Both exist, but approval is more recent
-                    $subQ->whereNotNull('rejected_at')
-                         ->whereRaw('approved_at > rejected_at');
-                });
+                    ->orWhere(function ($subQ) {
+                        // Both exist, but approval is more recent
+                        $subQ->whereNotNull('rejected_at')
+                            ->whereRaw('approved_at > rejected_at');
+                    });
             });
     }
 
@@ -238,13 +243,13 @@ class Fundi extends Model
                 // Either no approval exists, or rejection is more recent than approval
                 $q->where(function ($subQ) {
                     $subQ->whereNull('approved_at')
-                         ->whereNull('approved_by');
+                        ->whereNull('approved_by');
                 })
-                ->orWhere(function ($subQ) {
-                    // Both exist, but rejection is more recent
-                    $subQ->whereNotNull('approved_at')
-                         ->whereRaw('rejected_at > approved_at');
-                });
+                    ->orWhere(function ($subQ) {
+                        // Both exist, but rejection is more recent
+                        $subQ->whereNotNull('approved_at')
+                            ->whereRaw('rejected_at > approved_at');
+                    });
             });
     }
 
@@ -257,11 +262,11 @@ class Fundi extends Model
         return $query->where(function ($q) {
             // No approval
             $q->whereNull('approved_at')
-              ->whereNull('approved_by');
+                ->whereNull('approved_by');
         })->where(function ($q) {
             // No rejection
             $q->whereNull('rejected_at')
-              ->whereNull('rejected_by');
+                ->whereNull('rejected_by');
         });
     }
 
@@ -318,9 +323,19 @@ class Fundi extends Model
     /**
      * Get site visits associated with this fundi
      */
+    // Update the existing relationship to include pivot data
     public function siteVisits()
     {
-        return $this->belongsToMany(SiteVisit::class, 'site_visit_fundis');
+        return $this->belongsToMany(SiteVisit::class, 'site_visit_fundis')
+            ->withPivot('notes')
+            ->withTimestamps();
+    }
+
+
+    // Add direct access to the pivot model if needed
+    public function siteVisitFundis()
+    {
+        return $this->hasMany(SiteVisitFundi::class);
     }
 
     /**
@@ -368,7 +383,7 @@ class Fundi extends Model
             'ward_id',      // Local key on fundi table (via ward)
             'region_id'     // Local key on district table
         )->join('wards', 'wards.district_id', '=', 'districts.id')
-         ->where('wards.id', $this->ward_id);
+            ->where('wards.id', $this->ward_id);
     }
 
     // ==================== CLOUDINARY IMAGE HELPERS ====================
