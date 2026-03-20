@@ -16,7 +16,7 @@ class FundiTransactionForm extends Component
     public $fundi;
     public $transactionsPerPage = 10;
     public $siteVisitsPerPage = 10;
-    public $activeTab = 'transactions';
+    public $activeTab = 'site_visits';
 
     // Filters for transactions
     public $transaction_status = null;

@@ -331,6 +331,18 @@ class Fundi extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Get total quantity of products across all site visits
+     */
+    public function getTotalProductQuantityAttribute(): int
+    {
+        return SiteVisitProduct::whereIn(
+            'site_visit_id',
+            $this->siteVisits()->select('site_visits.id')
+        )->sum('quantity');
+    }
+
+
 
     // Add direct access to the pivot model if needed
     public function siteVisitFundis()

@@ -13,14 +13,15 @@
 
     <div class="mb-5">
         <div class="btn-group" role="group">
-            <button type="button" class="btn {{ $activeTab == 'transactions' ? 'btn-primary' : 'btn-secondary' }}"
-                wire:click="switchTab('transactions')">
-                <i class="fa-solid fa-money-bill-transfer"></i> Transactions
-            </button>
             <button type="button" class="btn {{ $activeTab == 'site_visits' ? 'btn-primary' : 'btn-secondary' }}"
                 wire:click="switchTab('site_visits')">
                 <i class="fa-solid fa-hard-hat"></i> Site Visits
             </button>
+            <button type="button" class="btn {{ $activeTab == 'transactions' ? 'btn-primary' : 'btn-secondary' }}"
+                wire:click="switchTab('transactions')">
+                <i class="fa-solid fa-money-bill-transfer"></i> Transactions
+            </button>
+            
         </div>
     </div>
 
@@ -37,22 +38,6 @@
                         </div>
                     </div>
                 </div>
-                {{-- <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body">
-                            <h6 class="card-title">Pending</h6>
-                            <h4>{{ number_format($transactionSummary['total_pending']) }} TZS</h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body">
-                            <h6 class="card-title">Processing</h6>
-                            <h4>{{ number_format($transactionSummary['total_processing']) }} TZS</h4>
-                        </div>
-                    </div>
-                </div> --}}
                 <div class="col-md-3">
                     <div class="rounded-sm border border-danger">
                         <div class="p-2">
@@ -70,57 +55,6 @@
                     <h5 class="mb-0">Disbursement Transaction History</h5>
                 </div>
                 <div class="card-body">
-                    <!-- Filters -->
-                    {{-- <div class="mb-3">
-                        <div class="form-row">
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label for="transaction_status">Status</label>
-                                    <select class="form-control" id="transaction_status" wire:model="transaction_status">
-                                        <option value="">All Statuses</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="processing">Processing</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="failed">Failed</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="disbursement_batch_id">Disburse. Batch</label>
-                                    <select class="form-control" id="disbursement_batch_id" wire:model="disbursement_batch_id">
-                                        <option value="">All Batches</option>
-                                        @foreach ($disbursementBatches as $batch)
-                                            <option value="{{ $batch->id }}">{{ $batch->title }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="processed_date_from">Processed From</label>
-                                    <input type="date" class="form-control" id="processed_date_from"
-                                        wire:model="processed_date_from">
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="processed_date_to">Processed To</label>
-                                    <input type="date" class="form-control" id="processed_date_to"
-                                        wire:model="processed_date_to">
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group">
-                                    <label>&nbsp;</label>
-                                    <button class="btn btn-secondary form-control" wire:click="resetTransactionFilters">
-                                        <i class="fa-solid fa-filter-circle-xmark"></i> Clear
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div> --}}
-
                     <!-- Transactions Table -->
                     @if (count($transactions) > 0)
                         <div class="table-responsive">
@@ -215,54 +149,15 @@
                 <h5 class="mb-0">Site Visit History</h5>
             </div>
             <div class="card-body">
-                <!-- Filters -->
-                {{-- <div class="mb-3">
-                    <div class="form-row">
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="site_visit_status">Status</label>
-                                <select class="form-control" id="site_visit_status" wire:model="site_visit_status">
-                                    <option value="">All Statuses</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="site_visit_date_from">From Date</label>
-                                <input type="date" class="form-control" id="site_visit_date_from"
-                                    wire:model="site_visit_date_from">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label for="site_visit_date_to">To Date</label>
-                                <input type="date" class="form-control" id="site_visit_date_to"
-                                    wire:model="site_visit_date_to">
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label>&nbsp;</label>
-                                <button class="btn btn-secondary form-control" wire:click="resetSiteVisitFilters">
-                                    <i class="fa-solid fa-filter-circle-xmark"></i> Clear Filters
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div> --}}
-
-                <!-- Site Visits Table -->
                 @if (count($siteVisits) > 0)
                     <div class="table-responsive">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
                                     <th>Site</th>
+                                    <th>Bags</th>
+                                    <th>Inspector</th>
                                     <th>Date</th>
-                                    <th>Purpose</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -276,11 +171,12 @@
                                                 </div>
                                             </a>
                                         </td>
+                                        <td>{{ $visit->fundis->first()->total_product_quantity ?? '' }}</td>
+                                        <td>{{ $visit->operator->full_name ?? '' }}</td>
                                         <td>{{ $visit->visit_date->format('d M, Y') }}</td>
-                                        <td>{{ $visit->purpose ?? 'Site Visit' }}</td>
                                         <td>
                                             <span
-                                                class="badge {{ $visit->status == 'completed' ? 'bg-success' : ($visit->status == 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                                                class=" {{ $visit->status == 'completed' ? 'text-success' : ($visit->status == 'pending' ? 'text-warning' : 'text-danger') }}">
                                                 {{ ucfirst($visit->status) }}
                                             </span>
                                         </td>

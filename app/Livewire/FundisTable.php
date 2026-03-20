@@ -309,6 +309,17 @@ class FundisTable extends Component
             }
         }
 
+        if ($this->site_visit_count !== null && $this->site_visit_count !== '') {
+            $sub = '(SELECT COUNT(*) FROM site_visit_fundis WHERE site_visit_fundis.fundi_id = fundis.id)';
+            if ($this->site_visit_count === '0') {
+                $query->whereRaw("{$sub} = 0");
+            } elseif ($this->site_visit_count === '1-5') {
+                $query->whereRaw("{$sub} BETWEEN 1 AND 5");
+            } elseif ($this->site_visit_count === '5+') {
+                $query->whereRaw("{$sub} > 5");
+            }
+        }
+
         return $query;
     }
 
@@ -364,13 +375,13 @@ class FundisTable extends Component
 
         return $query
             ->when($this->gender, fn($q, $gender) => $q->where('fundis.gender', $gender))
-            ->when($this->site_visit_count, function ($q, $filter) {
+            ->when($this->site_visit_count !== null && $this->site_visit_count !== '', function ($q) {
                 $sub = '(SELECT COUNT(*) FROM site_visit_fundis WHERE site_visit_fundis.fundi_id = fundis.id)';
-                if ($filter === '0') {
+                if ($this->site_visit_count === '0') {
                     $q->whereRaw("{$sub} = 0");
-                } elseif ($filter === '1-5') {
+                } elseif ($this->site_visit_count === '1-5') {
                     $q->whereRaw("{$sub} BETWEEN 1 AND 5");
-                } elseif ($filter === '5+') {
+                } elseif ($this->site_visit_count === '5+') {
                     $q->whereRaw("{$sub} > 5");
                 }
             })
@@ -591,6 +602,7 @@ class FundisTable extends Component
                         'gender' => ucfirst($fundi->gender),
                         'ranking' => $this->ranking_options[$fundi->ranking] ?? 'N/A',
                         'sites' => $fundi->siteVisitFundis()->count() ?? '0',
+                        'bags' => $fundi->total_product_quantity ?? '0',
                         'status' => $fundi->approved_at ? 'Approved' : 'Pending',
                     ];
                 }

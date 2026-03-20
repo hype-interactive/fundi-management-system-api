@@ -159,7 +159,8 @@
                         @endif
                         <th scope="col" class="d-lg-table-cell d-none">Ranking</th>
                         <th scope="col" class="d-lg-table-cell d-none">Status</th>
-                        <th scope="col" class="d-xl-table-cell d-none">Site Visit</th>
+                        <th scope="col" class="d-xl-table-cell d-none">Sites</th>
+                        <th scope="col" class="d-xl-table-cell d-none">Bags</th>
                         <th scope="col" class="d-xl-table-cell d-none">Location</th>
                         <th scope="col" class="d-xl-table-cell d-none">Registrar</th>
                     </tr>
@@ -211,6 +212,9 @@
                             </td>
                             <td class="d-xl-table-cell d-none">
                                 <span class="phone-number">{{ $fundi->siteVisitFundis()->count() ?? '0' }}</span>
+                            </td>
+                             <td class="d-xl-table-cell d-none">
+                                <span class="phone-number">{{ $fundi->total_product_quantity ?? '0' }}</span>
                             </td>
                             <td class="d-xl-table-cell d-none">
                                 <span class="phone-number">{{ $fundi->address ?? '-' }}</span>
