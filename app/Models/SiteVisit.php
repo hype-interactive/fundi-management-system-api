@@ -56,6 +56,14 @@ class SiteVisit extends Model
             ->withPivot('quantity', 'notes');
     }
 
+        /**
+     * Get total quantity of products across all site visits
+     */
+    public function getTotalProductQuantityAttribute(): int
+    {
+        return $this->products()->sum('quantity');
+    }
+
     public function fundis()
     {
         return $this->belongsToMany(Fundi::class, 'site_visit_fundis')

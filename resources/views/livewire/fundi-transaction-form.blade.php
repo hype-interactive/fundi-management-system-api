@@ -171,7 +171,7 @@
                                                 </div>
                                             </a>
                                         </td>
-                                        <td>{{ $visit->fundis->first()->total_product_quantity ?? '' }}</td>
+                                        <td>{{ $visit->total_product_quantity ?? '' }}</td>
                                         <td>{{ $visit->operator->full_name ?? '' }}</td>
                                         <td>{{ $visit->visit_date->format('d M, Y') }}</td>
                                         <td>
