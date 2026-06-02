@@ -7,7 +7,7 @@
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="row g-2">
                     @if (isRoot())
                         <div class="col">
@@ -19,51 +19,65 @@
                     @endif
                 </div>
             </div>
-            <div class="col-md-4 ">
-                <div class="d-flex justify-content-end gap-2">
-                    <button wire:click="refresh" class="mr-2 btn btn-sm btn-outline-secondary">
-                    <i class="fa-solid fa-arrows-rotate"></i>
-                </button>
-                <button wire:click="exportToExcel" class="mr-2 btn btn-sm btn-outline-success">
-                    <i class="fa-solid fa-file-csv me-1"></i>Export
-                </button>
-                <button wire:click="downloadOperatorPDF" class="mr-2 btn btn-sm btn-outline-danger">
-                    <i class="fa-solid fa-file-pdf me-1"></i>PDF
-                </button>
+            {{-- Date Range Filters --}}
+            <div class="col-md-3">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <input type="date" 
+                               wire:model.live="date_from" 
+                               class="form-control form-control-sm py-3"
+                               placeholder="From"
+                               max="{{ now()->format('Y-m-d') }}"
+                               title="From Date">
+                    </div>
+                    <div class="col-6">
+                        <input type="date" 
+                               wire:model.live="date_to" 
+                               class="form-control form-control-sm py-3"
+                               placeholder="To"
+                               max="{{ now()->format('Y-m-d') }}"
+                               title="To Date">
+                    </div>
                 </div>
-                
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-end gap-2">
+                    <button wire:click="refresh" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                    <button wire:click="exportToExcel" class="btn btn-sm btn-outline-success ml-1">
+                        <i class="fa-solid fa-file-csv me-1"></i>Export
+                    </button>
+                    <button wire:click="downloadOperatorPDF" class="btn btn-sm btn-outline-danger ml-1">
+                        <i class="fa-solid fa-file-pdf me-1"></i>PDF
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+
+    {{-- Date Filter Active Indicator --}}
+    @if($this->hasDateFilter())
+        <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
+            <small>
+                <i class="fa-solid fa-filter me-1"></i>
+                Showing data from 
+                <strong>{{ $date_from ? \Carbon\Carbon::parse($date_from)->format('M d, Y') : 'Beginning' }}</strong>
+                to 
+                <strong>{{ $date_to ? \Carbon\Carbon::parse($date_to)->format('M d, Y') : 'Now' }}</strong>
+            </small>
+            <button wire:click="$set('date_from', null); $set('date_to', null)" class="btn btn-sm btn-outline-info">
+                <i class="fa-solid fa-times me-1"></i>Clear Dates
+            </button>
+        </div>
+    @endif
 
     {{-- Cards Grid --}}
     <div class="row g-3">
         @forelse ($operators as $operator)
             @php
-                $todayVisits = $operator->siteVisits()->whereDate('created_at', today())->count();
-                $todayFundis = $operator->createdFundis()
-                ->whereDate('created_at', today())
-                ->count();
-                $weekVisits = $operator
-                    ->siteVisits()
-                    ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
-                    ->count();
-                $weekFundis = $operator
-                    ->createdFundis()
-                    ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
-                    ->count();
-                $monthVisits = $operator
-                    ->siteVisits()
-                    ->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->count();
-                $monthFundis = $operator
-                    ->createdFundis()
-                    ->whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->count();
-                $totalVisits = $operator->siteVisits()->count();
-                $totalFundis = $operator->createdFundis()->count();
+                $stats = $this->getOperatorStats($operator);
+                $showFiltered = $this->hasDateFilter();
             @endphp
 
             <div class="col-md-4 col-lg-4" wire:key="op-{{ $operator->id }}">
@@ -74,15 +88,13 @@
                         <div>
                             <a href="{{ route('operator', $operator) }}"
                                 class="fw-semibold text-blue lh-sm">{{ $operator->fname }} {{ $operator->lname }}</a>
-
                         </div>
                         @if ($operator->phone)
                             <small class="text-muted">
                                 {{ $operator->phone }}
                             </small>
                         @endif
-                        <span
-                            class="badge {{ $operator->status === 'active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }} rounded-pill ms-2">
+                        <span class="badge {{ $operator->status === 'active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }} rounded-pill ms-2">
                             {{ ucfirst($operator->status) }}
                         </span>
                     </div>
@@ -100,23 +112,23 @@
                         <tbody>
                             <tr>
                                 <td class="op-row-label">Today</td>
-                                <td>{{ $todayVisits }}</td>
-                                <td>{{ $todayFundis }}</td>
+                                <td>{{ $stats['today_visits'] }}</td>
+                                <td>{{ $stats['today_fundis'] }}</td>
                             </tr>
                             <tr>
                                 <td class="op-row-label">Week</td>
-                                <td>{{ $weekVisits }}</td>
-                                <td>{{ $weekFundis }}</td>
+                                <td>{{ $stats['week_visits'] }}</td>
+                                <td>{{ $stats['week_fundis'] }}</td>
                             </tr>
                             <tr>
                                 <td class="op-row-label">Month</td>
-                                <td>{{ $monthVisits }}</td>
-                                <td>{{ $monthFundis }}</td>
+                                <td>{{ $stats['month_visits'] }}</td>
+                                <td>{{ $stats['month_fundis'] }}</td>
                             </tr>
                             <tr>
                                 <td class="op-row-label">Total</td>
-                                <td>{{ number_format($totalVisits) }}</td>
-                                <td>{{ number_format($totalFundis) }}</td>
+                                <td>{{ number_format($stats['total_visits']) }}</td>
+                                <td>{{ number_format($stats['total_fundis']) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -135,4 +147,10 @@
     <div class="d-flex justify-content-center mt-4">
         {{ $operators->links() }}
     </div>
+    <style>
+    .filtered-stats {
+        border-left: 3px solid #3b82f6;
+    }
+</style>
 </div>
+
