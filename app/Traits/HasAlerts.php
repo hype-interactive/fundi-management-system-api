@@ -119,7 +119,7 @@ trait HasAlerts
         session()->flash('alert', [
             'type' => $type,
             'title' => $title,
-            'message' => $message
+            'message' => $message,
         ]);
     }
 
@@ -207,15 +207,15 @@ trait HasAlerts
     /**
      * Show confirmation dialog using the new fluent API
      *
-     * @param string $title Dialog title
-     * @param string $message Dialog message/text
-     * @param string $confirmMethod Method to call on confirmation
-     * @param array $confirmParams Parameters to pass to confirm method
-     * @param string $denyMethod Optional method to call on deny
-     * @param array $denyParams Parameters to pass to deny method
-     * @param string $confirmButtonText Text for confirm button (default: 'Yes, proceed')
-     * @param string $cancelButtonText Text for cancel button (default: 'Cancel')
-     * @param string $denyButtonText Text for deny button (optional)
+     * @param  string  $title  Dialog title
+     * @param  string  $message  Dialog message/text
+     * @param  string  $confirmMethod  Method to call on confirmation
+     * @param  array  $confirmParams  Parameters to pass to confirm method
+     * @param  string  $denyMethod  Optional method to call on deny
+     * @param  array  $denyParams  Parameters to pass to deny method
+     * @param  string  $confirmButtonText  Text for confirm button (default: 'Yes, proceed')
+     * @param  string  $cancelButtonText  Text for cancel button (default: 'Cancel')
+     * @param  string  $denyButtonText  Text for deny button (optional)
      */
     public function showConfirmation(
         string $title,
@@ -239,7 +239,7 @@ trait HasAlerts
             ->onConfirm($confirmMethod, $confirmParams);
 
         // Add deny button if method is provided
-        if (!empty($denyMethod)) {
+        if (! empty($denyMethod)) {
             $alert->withDenyButton($denyButtonText ?: 'No')
                 ->denyButtonColor('#6c757d')
                 ->onDeny($denyMethod, $denyParams);
@@ -305,7 +305,7 @@ trait HasAlerts
             ->asConfirm()
             ->onConfirm($confirmMethod, $confirmParams);
 
-        if (!empty($denyMethod)) {
+        if (! empty($denyMethod)) {
             $alert->onDeny($denyMethod, $denyParams);
         }
 
@@ -358,6 +358,7 @@ trait HasAlerts
                 } else {
                     $this->showSuccessAlert($successTitle, $successMessage);
                 }
+
                 return true;
             } else {
                 if ($useToast) {
@@ -365,12 +366,13 @@ trait HasAlerts
                 } else {
                     $this->showErrorAlert($errorTitle, $errorMessage);
                 }
+
                 return false;
             }
         } catch (\Exception $e) {
-            Log::error('Operation failed: ' . $e->getMessage(), [
+            Log::error('Operation failed: '.$e->getMessage(), [
                 'exception' => $e,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             if ($useToast) {
@@ -378,6 +380,7 @@ trait HasAlerts
             } else {
                 $this->showErrorAlert($errorTitle, $errorMessage);
             }
+
             return false;
         }
     }
@@ -397,17 +400,20 @@ trait HasAlerts
 
             if ($result) {
                 $this->flashSuccess($successTitle, $successMessage);
+
                 return true;
             } else {
                 $this->flashError($errorTitle, $errorMessage);
+
                 return false;
             }
         } catch (\Exception $e) {
-            Log::error('Operation failed: ' . $e->getMessage(), [
+            Log::error('Operation failed: '.$e->getMessage(), [
                 'exception' => $e,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             $this->flashError($errorTitle, $errorMessage);
+
             return false;
         }
     }
@@ -440,11 +446,11 @@ trait HasAlerts
             ->cancelButtonColor('#6c757d')
             ->onConfirm($confirmMethod, $confirmParams);
 
-        if (!empty($denyMethod)) {
+        if (! empty($denyMethod)) {
             $alert->onDeny($denyMethod, $denyParams);
         }
 
-        if (!empty($dismissMethod)) {
+        if (! empty($dismissMethod)) {
             $alert->onDismiss($dismissMethod, $dismissParams);
         }
 

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('fundis', function (Blueprint $table) {
             // Only add column if it doesn't exist
-            if (!Schema::hasColumn('fundis', 'profile_photo')) {
+            if (! Schema::hasColumn('fundis', 'profile_photo')) {
                 $table->string('profile_photo')->nullable();
             }
         });

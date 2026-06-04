@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\SiteVisitProduct;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class SiteVisitProductSeeder extends Seeder

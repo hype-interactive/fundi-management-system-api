@@ -2,10 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Services\SmsService;
 use App\Services\BeemSmsService;
 use App\Services\NextSmsService;
+use App\Services\SmsService;
+use Illuminate\Console\Command;
 
 class TestSmsCommand extends Command
 {
@@ -49,10 +49,11 @@ class TestSmsCommand extends Command
 
         if (empty($validPhones)) {
             $this->error('❌ No valid phone numbers provided!');
+
             return 1;
         }
 
-        $this->info("📱 Valid phone numbers: " . implode(', ', $validPhones));
+        $this->info('📱 Valid phone numbers: '.implode(', ', $validPhones));
         $this->newLine();
 
         // Get message
@@ -73,17 +74,19 @@ class TestSmsCommand extends Command
         // Determine provider
         $provider = $this->option('provider') ?? config('sms.default_provider');
 
-        if (!in_array($provider, ['monex', 'beem', 'nextsms'])) {
+        if (! in_array($provider, ['monex', 'beem', 'nextsms'])) {
             $this->error("❌ Invalid provider. Use 'beem' or 'nextsms'");
+
             return 1;
         }
 
-        $this->info("🚀 Using provider: " . strtoupper($provider));
+        $this->info('🚀 Using provider: '.strtoupper($provider));
         $this->newLine();
 
         // Confirm before sending
-        if (!$this->confirmSending($validPhones, $message, $provider)) {
+        if (! $this->confirmSending($validPhones, $message, $provider)) {
             $this->info('📛 SMS sending cancelled.');
+
             return 0;
         }
 
@@ -115,6 +118,7 @@ class TestSmsCommand extends Command
                 if (empty($config)) {
                     $this->error("  ❌ No configuration found for {$providerName}");
                     $allValid = false;
+
                     continue;
                 }
 
@@ -131,7 +135,7 @@ class TestSmsCommand extends Command
                 }
 
             } catch (\Exception $e) {
-                $this->error("  ❌ Error testing {$providerName}: " . $e->getMessage());
+                $this->error("  ❌ Error testing {$providerName}: ".$e->getMessage());
                 $allValid = false;
             }
 
@@ -155,12 +159,13 @@ class TestSmsCommand extends Command
             ['Provider', strtoupper($provider)],
             ['Recipients', count($phoneNumbers)],
             ['Phone Numbers', implode(', ', $phoneNumbers)],
-            ['Message Length', strlen($message) . ' characters'],
+            ['Message Length', strlen($message).' characters'],
             ['Estimated Cost', $this->estimateCost(count($phoneNumbers))],
             ['Send Method', $this->option('bulk') ? 'Bulk' : 'Individual'],
         ]);
 
         $this->info('✅ Dry run completed successfully!');
+
         return 0;
     }
 
@@ -183,13 +188,13 @@ class TestSmsCommand extends Command
 
             foreach ($phoneNumbers as $index => $phone) {
                 try {
-                    $result = $smsService->sendSms($phone, $message, 'test_' . time() . '_' . $index);
+                    $result = $smsService->sendSms($phone, $message, 'test_'.time().'_'.$index);
 
                     $results[] = [
                         'phone' => $phone,
                         'status' => $result['success'] ? '✅ Sent' : '❌ Failed',
                         'message_id' => $result['message_id'] ?? 'N/A',
-                        'error' => $result['success'] ? '' : ($result['error'] ?? 'Unknown error')
+                        'error' => $result['success'] ? '' : ($result['error'] ?? 'Unknown error'),
                     ];
 
                     if ($result['success']) {
@@ -206,7 +211,7 @@ class TestSmsCommand extends Command
                         'phone' => $phone,
                         'status' => '❌ Error',
                         'message_id' => 'N/A',
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ];
                     $failureCount++;
                 }
@@ -221,15 +226,16 @@ class TestSmsCommand extends Command
             $this->table(['Phone Number', 'Status', 'Message ID', 'Error'], $results);
 
             // Summary
-            $this->info("📊 Summary:");
+            $this->info('📊 Summary:');
             $this->info("✅ Successful: {$successCount}");
             $this->info("❌ Failed: {$failureCount}");
-            $this->info("📱 Total: " . count($phoneNumbers));
+            $this->info('📱 Total: '.count($phoneNumbers));
 
             return $failureCount === 0 ? 0 : 1;
 
         } catch (\Exception $e) {
-            $this->error("❌ SMS Service Error: " . $e->getMessage());
+            $this->error('❌ SMS Service Error: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -251,14 +257,14 @@ class TestSmsCommand extends Command
             $this->newLine();
 
             // Display detailed results
-            if (!empty($results['results'])) {
+            if (! empty($results['results'])) {
                 $tableData = [];
                 foreach ($results['results'] as $result) {
                     $tableData[] = [
                         'phone' => $result['phone_number'],
                         'status' => $result['success'] ? '✅ Sent' : '❌ Failed',
                         'message_id' => $result['message_id'] ?? 'N/A',
-                        'error' => $result['error'] ?? ''
+                        'error' => $result['error'] ?? '',
                     ];
                 }
 
@@ -266,7 +272,7 @@ class TestSmsCommand extends Command
             }
 
             // Summary
-            $this->info("📊 Bulk Send Summary:");
+            $this->info('📊 Bulk Send Summary:');
             $this->info("✅ Successful: {$results['successful']}");
             $this->info("❌ Failed: {$results['failed']}");
             $this->info("📱 Total: {$results['total_sent']}");
@@ -274,7 +280,8 @@ class TestSmsCommand extends Command
             return $results['failed'] === 0 ? 0 : 1;
 
         } catch (\Exception $e) {
-            $this->error("❌ Bulk SMS Error: " . $e->getMessage());
+            $this->error('❌ Bulk SMS Error: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -294,7 +301,7 @@ class TestSmsCommand extends Command
 
     private function getDefaultTestMessage(): string
     {
-        return "Test SMS from Magic Builders system sent at " . now()->format('Y-m-d H:i:s') . ". Please ignore this message.";
+        return 'Test SMS from Magic Builders system sent at '.now()->format('Y-m-d H:i:s').'. Please ignore this message.';
     }
 
     private function confirmSending(array $phoneNumbers, string $message, string $provider): bool
@@ -303,7 +310,7 @@ class TestSmsCommand extends Command
         $this->table(['Parameter', 'Value'], [
             ['Provider', strtoupper($provider)],
             ['Recipients', count($phoneNumbers)],
-            ['Message Length', strlen($message) . ' characters'],
+            ['Message Length', strlen($message).' characters'],
             ['Estimated Cost', $this->estimateCost(count($phoneNumbers))],
         ]);
 
@@ -315,6 +322,7 @@ class TestSmsCommand extends Command
         // Rough estimate - adjust based on your actual rates
         $costPerSms = 50; // TSH
         $totalCost = $count * $costPerSms;
+
         return "~{$totalCost} TSH ({$count} SMS × {$costPerSms} TSH)";
     }
 
@@ -334,6 +342,7 @@ class TestSmsCommand extends Command
     {
         // Temporarily override the default provider for testing
         config(['sms.default_provider' => $provider]);
+
         return app(SmsService::class);
     }
 
@@ -341,33 +350,33 @@ class TestSmsCommand extends Command
     {
         switch ($provider) {
             case 'beem':
-                $this->line("    API Key: " . (empty($config['api_key']) ? '❌ Missing' : '✅ Set'));
-                $this->line("    API Secret: " . (empty($config['api_secret']) ? '❌ Missing' : '✅ Set'));
-                $this->line("    Sender ID: " . ($config['sender_id'] ?? '❌ Missing'));
-                $this->line("    Base URL: " . ($config['base_url'] ?? '❌ Missing'));
+                $this->line('    API Key: '.(empty($config['api_key']) ? '❌ Missing' : '✅ Set'));
+                $this->line('    API Secret: '.(empty($config['api_secret']) ? '❌ Missing' : '✅ Set'));
+                $this->line('    Sender ID: '.($config['sender_id'] ?? '❌ Missing'));
+                $this->line('    Base URL: '.($config['base_url'] ?? '❌ Missing'));
                 break;
             case 'nextsms':
-                $this->line("    Username: " . (empty($config['username']) ? '❌ Missing' : '✅ Set'));
-                $this->line("    Password: " . (empty($config['password']) ? '❌ Missing' : '✅ Set'));
-                $this->line("    Sender ID: " . ($config['sender_id'] ?? '❌ Missing'));
-                $this->line("    Base URL: " . ($config['base_url'] ?? '❌ Missing'));
+                $this->line('    Username: '.(empty($config['username']) ? '❌ Missing' : '✅ Set'));
+                $this->line('    Password: '.(empty($config['password']) ? '❌ Missing' : '✅ Set'));
+                $this->line('    Sender ID: '.($config['sender_id'] ?? '❌ Missing'));
+                $this->line('    Base URL: '.($config['base_url'] ?? '❌ Missing'));
                 break;
         }
     }
 
     private function displayMissingConfig(string $provider): void
     {
-        $this->line("    Please check your .env file for:");
+        $this->line('    Please check your .env file for:');
         switch ($provider) {
             case 'beem':
-                $this->line("    - BEEM_API_KEY");
-                $this->line("    - BEEM_API_SECRET");
-                $this->line("    - BEEM_SENDER_ID");
+                $this->line('    - BEEM_API_KEY');
+                $this->line('    - BEEM_API_SECRET');
+                $this->line('    - BEEM_SENDER_ID');
                 break;
             case 'nextsms':
-                $this->line("    - NEXTSMS_USERNAME");
-                $this->line("    - NEXTSMS_PASSWORD");
-                $this->line("    - NEXTSMS_SENDER_ID");
+                $this->line('    - NEXTSMS_USERNAME');
+                $this->line('    - NEXTSMS_PASSWORD');
+                $this->line('    - NEXTSMS_SENDER_ID');
                 break;
         }
     }

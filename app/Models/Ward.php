@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Ward extends Model
 {
@@ -11,7 +11,7 @@ class Ward extends Model
 
     protected $fillable = [
         'district_id',
-        'name'
+        'name',
     ];
 
     public function district()

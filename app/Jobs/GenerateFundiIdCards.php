@@ -3,14 +3,14 @@
 namespace App\Jobs;
 
 use App\Models\Fundi;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
 class GenerateFundiIdCards implements ShouldQueue
@@ -18,11 +18,15 @@ class GenerateFundiIdCards implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 3600;
+
     public $tries = 1;
+
     public $maxExceptions = 1;
 
     protected $fundiIds;
+
     protected $userId;
+
     protected $batchId;
 
     public function __construct(array $fundiIds, int $userId, string $batchId)
@@ -35,27 +39,27 @@ class GenerateFundiIdCards implements ShouldQueue
     public function handle(): void
     {
         try {
-            Log::info("Starting GenerateFundiIdCards job", [
+            Log::info('Starting GenerateFundiIdCards job', [
                 'batch_id' => $this->batchId,
-                'total_fundis' => count($this->fundiIds)
+                'total_fundis' => count($this->fundiIds),
             ]);
 
             $zipFileName = "fundi_ids_{$this->batchId}.zip";
             $tempDir = storage_path('app/temp');
             $zipPath = "{$tempDir}/{$zipFileName}";
 
-            if (!file_exists($tempDir)) {
+            if (! file_exists($tempDir)) {
                 mkdir($tempDir, 0755, true);
                 Log::info("Created temp directory: {$tempDir}");
             }
 
-            $zip = new ZipArchive();
+            $zip = new ZipArchive;
 
             if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
                 throw new \Exception("Cannot create zip file at: {$zipPath}");
             }
 
-            Log::info("Zip file created successfully");
+            Log::info('Zip file created successfully');
 
             $successCount = 0;
             $failCount = 0;
@@ -70,12 +74,12 @@ class GenerateFundiIdCards implements ShouldQueue
                 foreach ($fundis as $fundi) {
                     try {
                         // Ensure QR code exists
-                        if (!$fundi->qr_code_path) {
+                        if (! $fundi->qr_code_path) {
                             $fundi->generateQrCodeQuietly();
                         }
 
                         // Get absolute paths
-                        $qrCodePath = storage_path('app/public/' . $fundi->qr_code_path);
+                        $qrCodePath = storage_path('app/public/'.$fundi->qr_code_path);
                         $logoPath = public_path('images/logo.png');
 
                         // Convert images to base64
@@ -83,17 +87,17 @@ class GenerateFundiIdCards implements ShouldQueue
                         if (file_exists($qrCodePath)) {
                             $qrCodeData = file_get_contents($qrCodePath);
                             $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
-                            $qrCodeBase64 = 'data:image/' . $qrCodeType . ';base64,' . base64_encode($qrCodeData);
+                            $qrCodeBase64 = 'data:image/'.$qrCodeType.';base64,'.base64_encode($qrCodeData);
                         }
 
                         $logoBase64 = null;
                         if (file_exists($logoPath)) {
                             $logoData = file_get_contents($logoPath);
-                            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+                            $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
                         }
 
                         // Get absolute paths
-                        $qrCodePath = storage_path('app/public/' . $fundi->qr_code_path);
+                        $qrCodePath = storage_path('app/public/'.$fundi->qr_code_path);
                         $logoPath = public_path('images/logo.png');
 
                         // Convert images to base64
@@ -101,13 +105,13 @@ class GenerateFundiIdCards implements ShouldQueue
                         if (file_exists($qrCodePath)) {
                             $qrCodeData = file_get_contents($qrCodePath);
                             $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
-                            $qrCodeBase64 = 'data:image/' . $qrCodeType . ';base64,' . base64_encode($qrCodeData);
+                            $qrCodeBase64 = 'data:image/'.$qrCodeType.';base64,'.base64_encode($qrCodeData);
                         }
 
                         $logoBase64 = null;
                         if (file_exists($logoPath)) {
                             $logoData = file_get_contents($logoPath);
-                            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+                            $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
                         }
 
                         $data = [
@@ -151,16 +155,16 @@ class GenerateFundiIdCards implements ShouldQueue
 
                         // Log first PDF generation for debugging
                         if ($successCount === 1) {
-                            Log::info("First PDF generated successfully", [
+                            Log::info('First PDF generated successfully', [
                                 'fundi_id' => $fundi->id,
-                                'pdf_size' => strlen($pdfContent) . ' bytes'
+                                'pdf_size' => strlen($pdfContent).' bytes',
                             ]);
                         }
                     } catch (\Exception $e) {
                         $failCount++;
                         Log::error("Failed to generate ID for Fundi {$fundi->id}", [
                             'error' => $e->getMessage(),
-                            'trace' => $e->getTraceAsString()
+                            'trace' => $e->getTraceAsString(),
                         ]);
                     }
                 }
@@ -171,7 +175,7 @@ class GenerateFundiIdCards implements ShouldQueue
             Log::info("Zip file closed. Success: {$successCount}, Failed: {$failCount}");
 
             $downloadsDir = storage_path('app/public/downloads');
-            if (!file_exists($downloadsDir)) {
+            if (! file_exists($downloadsDir)) {
                 mkdir($downloadsDir, 0755, true);
                 Log::info("Created downloads directory: {$downloadsDir}");
             }
@@ -183,19 +187,19 @@ class GenerateFundiIdCards implements ShouldQueue
 
             if (file_exists($zipPath)) {
                 unlink($zipPath);
-                Log::info("Temp file deleted");
+                Log::info('Temp file deleted');
             }
 
-            Log::info("GenerateFundiIdCards job completed successfully", [
+            Log::info('GenerateFundiIdCards job completed successfully', [
                 'batch_id' => $this->batchId,
                 'success_count' => $successCount,
-                'fail_count' => $failCount
+                'fail_count' => $failCount,
             ]);
         } catch (\Exception $e) {
-            Log::error("GenerateFundiIdCards job failed", [
+            Log::error('GenerateFundiIdCards job failed', [
                 'batch_id' => $this->batchId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;
@@ -212,10 +216,10 @@ class GenerateFundiIdCards implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        Log::error("GenerateFundiIdCards job failed permanently", [
+        Log::error('GenerateFundiIdCards job failed permanently', [
             'batch_id' => $this->batchId,
             'error' => $exception->getMessage(),
-            'trace' => $exception->getTraceAsString()
+            'trace' => $exception->getTraceAsString(),
         ]);
     }
 }

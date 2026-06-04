@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\API;
 
+use App\Http\Controllers\Controller;
 use App\Models\Fundi;
 use App\Models\Transaction;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use App\Http\Controllers\Controller;
 use App\Services\Financial\FinancialManagementService;
 use App\Services\Payment\Selcom\FinancialSelcomService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class FinancialController extends Controller
 {
     private FinancialManagementService $financialService;
+
     private FinancialSelcomService $selcomService;
 
     public function __construct(
@@ -100,17 +101,17 @@ class FinancialController extends Controller
                 $fundi = Fundi::find($fundiId);
                 if ($fundi) {
                     $validation = $this->selcomService->validateFundiForDisbursement($fundi);
-                    if (!$validation['valid']) {
+                    if (! $validation['valid']) {
                         $ineligibleFundis[] = [
                             'fundi_id' => $fundiId,
                             'name' => $fundi->full_name,
-                            'issues' => array_keys(array_filter($validation['validation'], fn($v) => !$v))
+                            'issues' => array_keys(array_filter($validation['validation'], fn ($v) => ! $v)),
                         ];
                     }
                 }
             }
 
-            if (!empty($ineligibleFundis)) {
+            if (! empty($ineligibleFundis)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Some fundis are not eligible for disbursement',

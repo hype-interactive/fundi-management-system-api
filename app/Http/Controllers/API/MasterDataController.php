@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Models\Ward;
-use App\Models\Product;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Http\Resources\ProductResource;
 use App\Http\Resources\WardMinimalResource;
+use App\Models\Product;
+use App\Models\Ward;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class MasterDataController extends BaseAPIController
 {
@@ -38,7 +38,7 @@ class MasterDataController extends BaseAPIController
             $query->where('availability', 'available');
         }
 
-        $products = $query->orderBy('created_at','asc')->get();
+        $products = $query->orderBy('created_at', 'asc')->get();
 
         return $this->successResponse(
             ProductResource::collection($products),

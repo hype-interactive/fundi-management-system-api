@@ -2,9 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\LegacyFundi;
-use App\Models\User;
 use App\Imports\LegacyFundiImport;
+use App\Models\LegacyFundi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,13 +19,19 @@ class ProcessLegacyImportJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 3600; // 1 hour timeout
+
     public $tries = 3;
 
     protected $filePath;
+
     protected $userId;
+
     protected $autoMatch;
+
     protected $jobId;
+
     protected $confidence;
+
     protected $skipEmptyColumns;
 
     /**
@@ -36,7 +41,7 @@ class ProcessLegacyImportJob implements ShouldQueue
         string $filePath,
         int $userId,
         bool $autoMatch = false,
-        string $jobId = null,
+        ?string $jobId = null,
         int $confidence = 90,
         bool $skipEmptyColumns = true
     ) {
@@ -62,7 +67,7 @@ class ProcessLegacyImportJob implements ShouldQueue
             $this->updateProgress(5, 'Analyzing file structure...');
             $fileAnalysis = $this->analyzeFileStructure();
 
-            if (!$fileAnalysis['success']) {
+            if (! $fileAnalysis['success']) {
                 throw new \Exception($fileAnalysis['error']);
             }
 
@@ -71,7 +76,7 @@ class ProcessLegacyImportJob implements ShouldQueue
             $import = new LegacyFundiImport($fileAnalysis, $this->skipEmptyColumns, $this->jobId);
 
             // Set progress callback
-            $import->setProgressCallback(function($percentage, $message) {
+            $import->setProgressCallback(function ($percentage, $message) {
                 $adjustedPercentage = 10 + ($percentage * 0.5); // 10-60% range
                 $this->updateProgress($adjustedPercentage, $message);
             });
@@ -95,7 +100,7 @@ class ProcessLegacyImportJob implements ShouldQueue
             $finalStats = array_merge($stats, [
                 'matched' => $matchedCount,
                 'file_analysis' => $fileAnalysis,
-                'confidence_threshold' => $this->confidence
+                'confidence_threshold' => $this->confidence,
             ]);
 
             $this->updateProgress(100, $message, 'completed', $finalStats);
@@ -111,10 +116,10 @@ class ProcessLegacyImportJob implements ShouldQueue
                 'user_id' => $this->userId,
                 'error' => $e->getMessage(),
                 'file' => $this->filePath,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
-            $this->updateProgress(0, 'Import failed: ' . $e->getMessage(), 'failed');
+            $this->updateProgress(0, 'Import failed: '.$e->getMessage(), 'failed');
 
             // Clean up the uploaded file
             Storage::delete($this->filePath);
@@ -140,7 +145,7 @@ class ProcessLegacyImportJob implements ShouldQueue
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'error' => 'Failed to analyze file structure: ' . $e->getMessage()
+                'error' => 'Failed to analyze file structure: '.$e->getMessage(),
             ];
         }
     }
@@ -180,7 +185,7 @@ class ProcessLegacyImportJob implements ShouldQueue
             'data_start_row' => $hasHeaders ? 1 : 0,
             'total_columns' => count($firstRow),
             'total_rows' => $dataRows,
-            'useful_columns' => count(array_filter($headers, fn($h) => !str_starts_with($h, 'empty_column_')))
+            'useful_columns' => count(array_filter($headers, fn ($h) => ! str_starts_with($h, 'empty_column_'))),
         ];
     }
 
@@ -190,13 +195,14 @@ class ProcessLegacyImportJob implements ShouldQueue
     private function analyzeCsvStructure(string $filePath): array
     {
         $handle = fopen($filePath, 'r');
-        if (!$handle) {
+        if (! $handle) {
             return ['success' => false, 'error' => 'Could not open CSV file'];
         }
 
         $firstRow = fgetcsv($handle);
         if ($firstRow === false) {
             fclose($handle);
+
             return ['success' => false, 'error' => 'CSV file is empty'];
         }
 
@@ -222,7 +228,7 @@ class ProcessLegacyImportJob implements ShouldQueue
             'data_start_row' => $hasHeaders ? 1 : 0,
             'total_columns' => count($firstRow),
             'total_rows' => $dataRows,
-            'useful_columns' => count(array_filter($headers, fn($h) => !str_starts_with($h, 'empty_column_')))
+            'useful_columns' => count(array_filter($headers, fn ($h) => ! str_starts_with($h, 'empty_column_'))),
         ];
     }
 
@@ -249,7 +255,7 @@ class ProcessLegacyImportJob implements ShouldQueue
                 $counter = 1;
                 while (in_array($newHeader, $seen)) {
                     $counter++;
-                    $newHeader = $originalHeader . '_' . $counter;
+                    $newHeader = $originalHeader.'_'.$counter;
                 }
             }
 
@@ -293,7 +299,7 @@ class ProcessLegacyImportJob implements ShouldQueue
 
         foreach ($row as $cell) {
             $cell = trim($cell);
-            if (!empty($cell)) {
+            if (! empty($cell)) {
                 if (is_numeric($cell) || preg_match('/^[\d\+\-\(\)\s]+$/', $cell)) {
                     $numericCount++;
                 } else {
@@ -313,13 +319,13 @@ class ProcessLegacyImportJob implements ShouldQueue
         $mapping = [
             'identifier' => null,
             'full_name' => null,
-            'location' => null
+            'location' => null,
         ];
 
         $columnMapping = [
             'identifier' => ['identifier', 'phone', 'primary_phone', 'contact', 'mobile', 'number'],
             'full_name' => ['full_name', 'name', 'fundi_name', 'full name', 'fname', 'first_name'],
-            'location' => ['location', 'region', 'area', 'place', 'district', 'ward', 'address']
+            'location' => ['location', 'region', 'area', 'place', 'district', 'ward', 'address'],
         ];
 
         // Exact matches first
@@ -346,12 +352,12 @@ class ProcessLegacyImportJob implements ShouldQueue
         if ($mapping['identifier'] === null || $mapping['full_name'] === null) {
             $usefulColumns = [];
             foreach ($headers as $index => $header) {
-                if (!str_starts_with($header, 'empty_column_')) {
+                if (! str_starts_with($header, 'empty_column_')) {
                     $usefulColumns[] = $index;
                 }
             }
 
-            if ($mapping['identifier'] === null && !empty($usefulColumns)) {
+            if ($mapping['identifier'] === null && ! empty($usefulColumns)) {
                 $mapping['identifier'] = $usefulColumns[0];
             }
             if ($mapping['full_name'] === null && count($usefulColumns) > 1) {
@@ -384,8 +390,8 @@ class ProcessLegacyImportJob implements ShouldQueue
             $message .= " Auto-matched {$matchedCount} records.";
         }
 
-        if (!empty($stats['errors'])) {
-            $message .= " " . count($stats['errors']) . " errors occurred.";
+        if (! empty($stats['errors'])) {
+            $message .= ' '.count($stats['errors']).' errors occurred.';
         }
 
         return $message;
@@ -396,7 +402,7 @@ class ProcessLegacyImportJob implements ShouldQueue
      */
     public function failed(\Throwable $exception): void
     {
-        $this->updateProgress(0, 'Import failed: ' . $exception->getMessage(), 'failed');
+        $this->updateProgress(0, 'Import failed: '.$exception->getMessage(), 'failed');
         Storage::delete($this->filePath);
     }
 
@@ -439,7 +445,7 @@ class ProcessLegacyImportJob implements ShouldQueue
 
             if ($highConfidenceMatch) {
                 $fundi = $highConfidenceMatch['fundi'];
-                if (!$fundi->legacy_match && $legacy->autoLink($fundi)) {
+                if (! $fundi->legacy_match && $legacy->autoLink($fundi)) {
                     $matchedCount++;
                 }
             }

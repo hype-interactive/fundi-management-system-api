@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Models\Transaction;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Http\Resources\TransactionResource;
+use App\Models\Transaction;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class TransactionController extends BaseAPIController
 {
@@ -55,7 +55,7 @@ class TransactionController extends BaseAPIController
     public function show(Transaction $transaction): JsonResponse
     {
         // Check if operator has access to this transaction
-        if (!$this->getOperatorDistricts()->contains($transaction->fundi->ward->district_id)) {
+        if (! $this->getOperatorDistricts()->contains($transaction->fundi->ward->district_id)) {
             return $this->errorResponse('Unauthorized access', null, 403);
         }
 

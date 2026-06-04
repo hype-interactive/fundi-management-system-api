@@ -3,17 +3,21 @@
 namespace App\Livewire;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Component;
-use Livewire\Attributes\On;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 class OperatorProfile extends Component
 {
     public $operator;
+
     public $siteVisits;
+
     public $incentives;
+
     public $districts;
+
     public $recentActivity = [];
 
     public function mount(User $operator)
@@ -74,7 +78,7 @@ class OperatorProfile extends Component
                 'Status' => $this->operator->status ?? 'Not specified',
             ],
             'confirmMethod' => 'activateOperator',
-            'confirmParams' => []
+            'confirmParams' => [],
         ]);
     }
 
@@ -92,7 +96,7 @@ class OperatorProfile extends Component
                 'Status' => $this->operator->status ?? 'Not specified',
             ],
             'confirmMethod' => 'deactivateOperator',
-            'confirmParams' => []
+            'confirmParams' => [],
         ]);
     }
 
@@ -101,6 +105,7 @@ class OperatorProfile extends Component
     {
         if ($this->operator->status === 'active') {
             session()->flash('message', 'Operator is already active.');
+
             return;
         }
 
@@ -123,7 +128,7 @@ class OperatorProfile extends Component
         if ($reason) {
             $this->operator->activityLogs()->create([
                 'action' => 'deactivated',
-                'description' => 'Operator deactivated. Reason: ' . $reason,
+                'description' => 'Operator deactivated. Reason: '.$reason,
                 'performed_by' => Auth::id(),
             ]);
         }
@@ -142,7 +147,7 @@ class OperatorProfile extends Component
         return $this->operator->siteVisits()->count();
     }
 
-    function getFundiRegistrationSummary(String $type)
+    public function getFundiRegistrationSummary(string $type)
     {
         $mafundi = $this->operator->createdFundis();
 
@@ -157,7 +162,7 @@ class OperatorProfile extends Component
                 return $mafundi
                     ->whereBetween('created_at', [
                         Carbon::now()->startOfWeek(),
-                        Carbon::now()->endOfWeek()
+                        Carbon::now()->endOfWeek(),
                     ])
                     ->count();
 
@@ -165,7 +170,7 @@ class OperatorProfile extends Component
                 return $mafundi
                     ->whereBetween('created_at', [
                         Carbon::now()->startOfMonth(),
-                        Carbon::now()->endOfMonth()
+                        Carbon::now()->endOfMonth(),
                     ])
                     ->count();
 

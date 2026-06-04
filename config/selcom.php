@@ -50,7 +50,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'callback_url' => env('SELCOM_CALLBACK_URL', env('APP_URL') . '/api/selcom/callback'),
+    'callback_url' => env('SELCOM_CALLBACK_URL', env('APP_URL').'/api/selcom/callback'),
     'cancel_url' => env('SELCOM_CANCEL_URL', env('APP_URL')),
     'webhook_secret' => env('SELCOM_WEBHOOK_SECRET'),
 

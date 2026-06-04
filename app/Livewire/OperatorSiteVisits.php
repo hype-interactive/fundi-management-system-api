@@ -4,14 +4,14 @@ namespace App\Livewire;
 
 use App\Models\SiteVisit;
 use App\Models\User;
-use Livewire\Component;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use App\Traits\LocationTrait;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class OperatorSiteVisits extends Component
 {
-    use WithPagination, LocationTrait;
+    use LocationTrait, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -33,13 +33,18 @@ class OperatorSiteVisits extends Component
     public $approved_by = null;
 
     public $regions = [];
+
     public $districts = [];
+
     public $wards = [];
+
     public $status_options = [];
+
     public $approvers = [];
 
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     // Operator model - this will be passed when component is invoked
@@ -51,7 +56,7 @@ class OperatorSiteVisits extends Component
         $this->ward = null;
 
         // Load districts based on region selection
-        $this->districts = $this->getDistricts((int)$value);
+        $this->districts = $this->getDistricts((int) $value);
         $this->wards = collect();
 
         $this->resetPage();
@@ -108,7 +113,7 @@ class OperatorSiteVisits extends Component
         $this->loadData();
 
         // Ensure we have an operator
-        if (!$this->operator) {
+        if (! $this->operator) {
             return SiteVisit::whereRaw('1 = 0'); // Return empty query
         }
 
@@ -141,7 +146,7 @@ class OperatorSiteVisits extends Component
         $this->regions = $this->getAccessibleRegions();
 
         // Load districts based on current region selection and user permissions
-        $this->districts = $this->getDistricts((int)$this->region);
+        $this->districts = $this->getDistricts((int) $this->region);
 
         // Load wards based on current district selection
         $this->wards = $this->getWards($this->district);
@@ -150,7 +155,7 @@ class OperatorSiteVisits extends Component
         $this->status_options = [
             'approved' => 'Approved',
             'pending' => 'Pending Approval',
-            'rejected' => 'Rejected'
+            'rejected' => 'Rejected',
         ];
 
         // Only load approvers who have approved this operator's site visits
@@ -162,7 +167,7 @@ class OperatorSiteVisits extends Component
      */
     private function getApproversForOperator()
     {
-        if (!$this->operator) {
+        if (! $this->operator) {
             return collect();
         }
 
@@ -180,7 +185,7 @@ class OperatorSiteVisits extends Component
      */
     public function toggleCompactView()
     {
-        $this->compactView = !$this->compactView;
+        $this->compactView = ! $this->compactView;
     }
 
     /**
@@ -188,7 +193,7 @@ class OperatorSiteVisits extends Component
      */
     public function toggleMobileFilters()
     {
-        $this->showMobileFilters = !$this->showMobileFilters;
+        $this->showMobileFilters = ! $this->showMobileFilters;
     }
 
     /**
@@ -196,13 +201,14 @@ class OperatorSiteVisits extends Component
      */
     public function downloadSiteVisitPDF()
     {
-        if (!$this->operator) {
+        if (! $this->operator) {
             session()->flash('error', 'No operator specified for PDF download.');
+
             return;
         }
 
         set_time_limit(300); // execution time to 5min
-        ini_set("memory_limit", "1000M");
+        ini_set('memory_limit', '1000M');
 
         return response()->streamDownload(function () {
             // Get the site visits query for current operator
@@ -224,7 +230,7 @@ class OperatorSiteVisits extends Component
                     'visit_date' => $visit->visit_date->format('Y-m-d'),
                     'status' => $this->getVisitStatus($visit),
                     'gps_coordinates' => $visit->gps_latitude && $visit->gps_longitude
-                        ? $visit->gps_latitude . ', ' . $visit->gps_longitude
+                        ? $visit->gps_latitude.', '.$visit->gps_longitude
                         : 'N/A',
                 ];
             }
@@ -239,7 +245,7 @@ class OperatorSiteVisits extends Component
             $pdf->setPaper('A4', 'landscape');
 
             echo $pdf->stream();
-        }, 'site_visits_' . str_replace(' ', '_', strtolower($this->getOperatorName())) . '_' . date('Y-m-d_H-i-s') . '.pdf');
+        }, 'site_visits_'.str_replace(' ', '_', strtolower($this->getOperatorName())).'_'.date('Y-m-d_H-i-s').'.pdf');
     }
 
     /**
@@ -247,8 +253,9 @@ class OperatorSiteVisits extends Component
      */
     public function exportToExcel()
     {
-        if (!$this->operator) {
+        if (! $this->operator) {
             session()->flash('error', 'No operator specified for export.');
+
             return;
         }
 
@@ -271,7 +278,7 @@ class OperatorSiteVisits extends Component
                 'Photos Count',
                 'Mafundi Count',
                 'Products Count',
-                'Created At'
+                'Created At',
             ];
 
             $handle = fopen('php://output', 'w');
@@ -294,12 +301,12 @@ class OperatorSiteVisits extends Component
                     $visit->photos->count(),
                     $visit->fundis->count(),
                     $visit->products->count(),
-                    $visit->created_at->format('Y-m-d H:i:s')
+                    $visit->created_at->format('Y-m-d H:i:s'),
                 ]);
             }
 
             fclose($handle);
-        }, 'site_visits_' . str_replace(' ', '_', strtolower($this->getOperatorName())) . '_export_' . date('Y-m-d_H-i-s') . '.csv', [
+        }, 'site_visits_'.str_replace(' ', '_', strtolower($this->getOperatorName())).'_export_'.date('Y-m-d_H-i-s').'.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }
@@ -331,7 +338,7 @@ class OperatorSiteVisits extends Component
     /**
      * Mount the component with an operator
      *
-     * @param User|null $operator The operator model to display site visits for
+     * @param  User|null  $operator  The operator model to display site visits for
      */
     public function mount($operator = null)
     {
@@ -339,7 +346,7 @@ class OperatorSiteVisits extends Component
         $this->operator = $operator;
 
         // If no operator is provided, you might want to handle this case
-        if (!$this->operator) {
+        if (! $this->operator) {
             // Option 1: Use current user as operator (fallback)
             // $this->operator = currentUser();
 
@@ -351,7 +358,7 @@ class OperatorSiteVisits extends Component
         }
 
         // Set location filters based on user permissions and operator's primary location
-        if (!$this->isAdminOrRoot()) {
+        if (! $this->isAdminOrRoot()) {
             $primaryDistrict = $this->getUserPrimaryDistrict();
             $primaryRegion = $this->getUserPrimaryRegion();
 
@@ -391,7 +398,7 @@ class OperatorSiteVisits extends Component
      */
     public function getTotalSiteVisitsProperty()
     {
-        if (!$this->operator) {
+        if (! $this->operator) {
             return 0;
         }
 
@@ -403,7 +410,7 @@ class OperatorSiteVisits extends Component
      */
     public function getApprovedSiteVisitsProperty()
     {
-        if (!$this->operator) {
+        if (! $this->operator) {
             return 0;
         }
 
@@ -417,7 +424,7 @@ class OperatorSiteVisits extends Component
      */
     public function getPendingSiteVisitsProperty()
     {
-        if (!$this->operator) {
+        if (! $this->operator) {
             return 0;
         }
 
@@ -432,7 +439,7 @@ class OperatorSiteVisits extends Component
      */
     public function getRejectedSiteVisitsProperty()
     {
-        if (!$this->operator) {
+        if (! $this->operator) {
             return 0;
         }
 

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\SmsMessage;
 use App\Models\SmsCampaign;
+use App\Models\SmsMessage;
 use Illuminate\Support\Facades\Log;
 
 class SmsService
@@ -34,12 +34,12 @@ class SmsService
                 throw new \Exception("Unsupported SMS provider: {$providerName}");
         }
 
-        if (!$this->provider->validateConfig()) {
+        if (! $this->provider->validateConfig()) {
             throw new \Exception("Invalid SMS provider configuration for: {$providerName}");
         }
     }
 
-    public function sendSms(string $phoneNumber, string $message, string|null $campaignId = null): array
+    public function sendSms(string $phoneNumber, string $message, ?string $campaignId = null): array
     {
         return $this->provider->sendSms($phoneNumber, $message, $campaignId);
     }
@@ -69,7 +69,7 @@ class SmsService
                     'phone_number' => $phoneNumber,
                     'success' => $result['success'],
                     'message_id' => $result['message_id'] ?? null,
-                    'error' => $result['success'] ? null : ($result['error'] ?? 'Unknown error')
+                    'error' => $result['success'] ? null : ($result['error'] ?? 'Unknown error'),
                 ];
 
                 if ($result['success']) {
@@ -82,13 +82,13 @@ class SmsService
                 usleep(200000); // 200ms delay
 
             } catch (\Throwable $e) {
-                Log::error("Failed to send SMS to {$phoneNumber}: " . $e->getMessage());
+                Log::error("Failed to send SMS to {$phoneNumber}: ".$e->getMessage());
 
                 $results[] = [
                     'phone_number' => $phoneNumber,
                     'success' => false,
                     'message_id' => null,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ];
 
                 $failureCount++;
@@ -99,7 +99,7 @@ class SmsService
             'total_sent' => count($phoneNumbers),
             'successful' => $successCount,
             'failed' => $failureCount,
-            'results' => $results
+            'results' => $results,
         ];
     }
 
@@ -109,15 +109,16 @@ class SmsService
             // Get phone number based on recipient type
             $phoneNumber = $this->getRecipientPhoneNumber($recipient, $recipientType);
 
-            if (!$phoneNumber) {
+            if (! $phoneNumber) {
                 Log::warning("No phone number found for {$recipientType} ID: {$recipient->id}");
+
                 return false;
             }
 
             // Send SMS
             $result = $this->sendSms($phoneNumber, $campaign->message, $campaign->id);
 
-            Log::info("SMS sent to {$recipientType} {$recipient->id}: " . json_encode($result));
+            Log::info("SMS sent to {$recipientType} {$recipient->id}: ".json_encode($result));
 
             // Create SMS message record
             SmsMessage::create([
@@ -134,7 +135,7 @@ class SmsService
 
             return $result['success'];
         } catch (\Exception $e) {
-            Log::error("Failed to send SMS to {$recipientType} {$recipient->id}: " . $e->getMessage());
+            Log::error("Failed to send SMS to {$recipientType} {$recipient->id}: ".$e->getMessage());
 
             // Create failed message record
             SmsMessage::create([
@@ -156,8 +157,8 @@ class SmsService
      */
     public function sendCampaignToContactLists(array $contactListIds, string $message): array
     {
-        if (!method_exists($this->provider, 'sendCampaign')) {
-            throw new \Exception("Current provider does not support contact list campaigns");
+        if (! method_exists($this->provider, 'sendCampaign')) {
+            throw new \Exception('Current provider does not support contact list campaigns');
         }
 
         return $this->provider->sendCampaign($contactListIds, $message);
@@ -168,8 +169,8 @@ class SmsService
      */
     public function getAllMessages(): array
     {
-        if (!method_exists($this->provider, 'getAllMessages')) {
-            throw new \Exception("Current provider does not support retrieving all messages");
+        if (! method_exists($this->provider, 'getAllMessages')) {
+            throw new \Exception('Current provider does not support retrieving all messages');
         }
 
         return $this->provider->getAllMessages();
@@ -216,7 +217,7 @@ class SmsService
 
     public function updateMessageDeliveryStatus(SmsMessage $message): void
     {
-        if (!$message->provider_message_id) {
+        if (! $message->provider_message_id) {
             return;
         }
 
@@ -231,7 +232,7 @@ class SmsService
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error("Failed to update delivery status for message {$message->id}: " . $e->getMessage());
+            Log::error("Failed to update delivery status for message {$message->id}: ".$e->getMessage());
         }
     }
 }

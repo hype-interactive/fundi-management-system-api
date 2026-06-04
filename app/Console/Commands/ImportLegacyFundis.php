@@ -2,15 +2,14 @@
 
 namespace App\Console\Commands;
 
-use Exception;
 use App\Models\Fundi;
-use League\Csv\Reader;
-use League\Csv\Statement;
 use App\Models\LegacyFundi;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
+use League\Csv\Reader;
+use League\Csv\Statement;
 
 class ImportLegacyFundis extends Command
 {
@@ -68,7 +67,7 @@ class ImportLegacyFundis extends Command
     private $columnMapping = [
         'identifier' => ['identifier', 'phone', 'primary_phone', 'contact', 'mobile', 'number'],
         'full_name' => ['full_name', 'name', 'fundi_name', 'full name', 'fname', 'first_name'],
-        'location' => ['location', 'region', 'area', 'place', 'district', 'ward', 'address']
+        'location' => ['location', 'region', 'area', 'place', 'district', 'ward', 'address'],
     ];
 
     public function handle()
@@ -77,7 +76,7 @@ class ImportLegacyFundis extends Command
 
         $filePath = $this->argument('file');
 
-        if (!$this->validateFile($filePath)) {
+        if (! $this->validateFile($filePath)) {
             return 1;
         }
 
@@ -85,8 +84,9 @@ class ImportLegacyFundis extends Command
             // Analyze the CSV structure first
             $csvAnalysis = $this->analyzeCsvStructure($filePath);
 
-            if (!$csvAnalysis['success']) {
+            if (! $csvAnalysis['success']) {
                 $this->error($csvAnalysis['error']);
+
                 return 1;
             }
 
@@ -96,8 +96,9 @@ class ImportLegacyFundis extends Command
             }
 
             // Show preview and confirm unless forced
-            if (!$this->option('force') && !$this->previewAndConfirm($filePath, $csvAnalysis)) {
+            if (! $this->option('force') && ! $this->previewAndConfirm($filePath, $csvAnalysis)) {
                 $this->info('Import cancelled.');
+
                 return 0;
             }
 
@@ -120,14 +121,16 @@ class ImportLegacyFundis extends Command
             }
 
             $this->displayResults();
+
             return 0;
         } catch (Exception $e) {
-            $this->error("\n❌ Import failed: " . $e->getMessage());
+            $this->error("\n❌ Import failed: ".$e->getMessage());
             Log::error('Legacy import failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'file' => $filePath
+                'file' => $filePath,
             ]);
+
             return 1;
         }
     }
@@ -142,7 +145,7 @@ class ImportLegacyFundis extends Command
 
             // Read first few rows to understand structure
             $rows = [];
-            $stmt = (new Statement())->limit(10);
+            $stmt = (new Statement)->limit(10);
             foreach ($stmt->process($csv) as $row) {
                 $rows[] = $row;
             }
@@ -169,18 +172,23 @@ class ImportLegacyFundis extends Command
                     'mapping' => $mapping,
                     'data_start_row' => 1,
                     'total_columns' => count($firstRow),
-                    'useful_columns' => count(array_filter($headers, fn($h) => !str_starts_with($h, 'empty_column_')))
+                    'useful_columns' => count(array_filter($headers, fn ($h) => ! str_starts_with($h, 'empty_column_'))),
                 ];
             } else {
                 // No headers detected, use positional mapping
-                $this->info("📋 No headers detected. Using positional mapping (column 1=phone, 2=name, 3=location)");
+                $this->info('📋 No headers detected. Using positional mapping (column 1=phone, 2=name, 3=location)');
 
                 $syntheticHeaders = [];
                 for ($i = 0; $i < count($firstRow); $i++) {
-                    if ($i == 0) $syntheticHeaders[] = 'identifier';
-                    elseif ($i == 1) $syntheticHeaders[] = 'full_name';
-                    elseif ($i == 2) $syntheticHeaders[] = 'location';
-                    else $syntheticHeaders[] = "column_" . ($i + 1);
+                    if ($i == 0) {
+                        $syntheticHeaders[] = 'identifier';
+                    } elseif ($i == 1) {
+                        $syntheticHeaders[] = 'full_name';
+                    } elseif ($i == 2) {
+                        $syntheticHeaders[] = 'location';
+                    } else {
+                        $syntheticHeaders[] = 'column_'.($i + 1);
+                    }
                 }
 
                 return [
@@ -191,15 +199,15 @@ class ImportLegacyFundis extends Command
                     'mapping' => [
                         'identifier' => 0,
                         'full_name' => 1,
-                        'location' => 2
+                        'location' => 2,
                     ],
                     'data_start_row' => 0,
                     'total_columns' => count($firstRow),
-                    'useful_columns' => min(3, count($firstRow))
+                    'useful_columns' => min(3, count($firstRow)),
                 ];
             }
         } catch (Exception $e) {
-            return ['success' => false, 'error' => 'Failed to analyze CSV: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'Failed to analyze CSV: '.$e->getMessage()];
         }
     }
 
@@ -219,7 +227,7 @@ class ImportLegacyFundis extends Command
             if (empty($cleanHeader)) {
                 $newHeader = "empty_column_{$emptyCount}";
                 $emptyCount++;
-                $this->warn("⚠️  Found empty header at column " . ($index + 1) . ", renamed to '{$newHeader}'");
+                $this->warn('⚠️  Found empty header at column '.($index + 1).", renamed to '{$newHeader}'");
             } else {
                 // Clean the header
                 $newHeader = preg_replace('/[^a-zA-Z0-9_]/', '_', strtolower($cleanHeader));
@@ -230,7 +238,7 @@ class ImportLegacyFundis extends Command
                 $counter = 1;
                 while (in_array($newHeader, $seen)) {
                     $counter++;
-                    $newHeader = $originalHeader . '_' . $counter;
+                    $newHeader = $originalHeader.'_'.$counter;
                 }
 
                 if ($counter > 1) {
@@ -251,29 +259,29 @@ class ImportLegacyFundis extends Command
     private function showDetailedHeaders(array $csvAnalysis): void
     {
         $this->info("\n🔍 Detailed Header Analysis");
-        $this->info("============================");
+        $this->info('============================');
 
         $headers = [];
         foreach ($csvAnalysis['raw_headers'] as $index => $rawHeader) {
             $processedHeader = $csvAnalysis['processed_headers'][$index];
             $isEmpty = empty(trim($rawHeader));
-            $isUseful = !str_starts_with($processedHeader, 'empty_column_');
+            $isUseful = ! str_starts_with($processedHeader, 'empty_column_');
 
             $headers[] = [
                 'Index' => $index + 1,
                 'Raw Header' => $rawHeader ?: '(empty)',
                 'Processed' => $processedHeader,
                 'Status' => $isEmpty ? 'Empty' : ($isUseful ? 'Useful' : 'Processed'),
-                'Will Use' => $isUseful && !$this->option('skip-empty-columns') ? 'Yes' : 'No'
+                'Will Use' => $isUseful && ! $this->option('skip-empty-columns') ? 'Yes' : 'No',
             ];
         }
 
         $this->table(['Index', 'Raw Header', 'Processed', 'Status', 'Will Use'], $headers);
 
         $this->info("\nSummary:");
-        $this->info("Total columns: " . $csvAnalysis['total_columns']);
-        $this->info("Useful columns: " . $csvAnalysis['useful_columns']);
-        $this->info("Empty columns: " . ($csvAnalysis['total_columns'] - $csvAnalysis['useful_columns']));
+        $this->info('Total columns: '.$csvAnalysis['total_columns']);
+        $this->info('Useful columns: '.$csvAnalysis['useful_columns']);
+        $this->info('Empty columns: '.($csvAnalysis['total_columns'] - $csvAnalysis['useful_columns']));
         $this->newLine();
     }
 
@@ -289,7 +297,7 @@ class ImportLegacyFundis extends Command
         // Check if first row looks like headers
         $headerIndicators = ['identifier', 'name', 'phone', 'location', 'full_name', 'contact'];
 
-        $nonEmptyHeaders = array_filter($firstRow, fn($cell) => !empty(trim($cell)));
+        $nonEmptyHeaders = array_filter($firstRow, fn ($cell) => ! empty(trim($cell)));
 
         foreach ($nonEmptyHeaders as $cell) {
             $cell = strtolower(trim($cell));
@@ -326,6 +334,7 @@ class ImportLegacyFundis extends Command
 
         // Consider it headers if we have more text than numbers (ignoring empty cells)
         $nonEmptyCount = $textCount + $numericCount;
+
         return $nonEmptyCount > 0 && $textCount >= $numericCount;
     }
 
@@ -337,7 +346,7 @@ class ImportLegacyFundis extends Command
         $mapping = [
             'identifier' => null,
             'full_name' => null,
-            'location' => null
+            'location' => null,
         ];
 
         foreach ($headers as $index => $header) {
@@ -351,14 +360,17 @@ class ImportLegacyFundis extends Command
             // EXACT MATCHES FIRST (highest priority)
             if ($header === 'primary_phone' && $mapping['identifier'] === null) {
                 $mapping['identifier'] = $index;
+
                 continue;
             }
             if ($header === 'name' && $mapping['full_name'] === null) {
                 $mapping['full_name'] = $index;
+
                 continue;
             }
             if ($header === 'region' && $mapping['location'] === null) {
                 $mapping['location'] = $index;
+
                 continue;
             }
 
@@ -391,14 +403,20 @@ class ImportLegacyFundis extends Command
         if ($mapping['identifier'] === null) {
             $usefulColumns = [];
             foreach ($headers as $index => $header) {
-                if (!str_starts_with($header, 'empty_column_')) {
+                if (! str_starts_with($header, 'empty_column_')) {
                     $usefulColumns[] = $index;
                 }
             }
 
-            if (count($usefulColumns) >= 1) $mapping['identifier'] = $usefulColumns[0];
-            if (count($usefulColumns) >= 2) $mapping['full_name'] = $usefulColumns[1];
-            if (count($usefulColumns) >= 3) $mapping['location'] = $usefulColumns[2];
+            if (count($usefulColumns) >= 1) {
+                $mapping['identifier'] = $usefulColumns[0];
+            }
+            if (count($usefulColumns) >= 2) {
+                $mapping['full_name'] = $usefulColumns[1];
+            }
+            if (count($usefulColumns) >= 3) {
+                $mapping['location'] = $usefulColumns[2];
+            }
         }
 
         return $mapping;
@@ -419,14 +437,16 @@ class ImportLegacyFundis extends Command
      */
     private function validateFile(string $filePath): bool
     {
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             $this->error("❌ File not found: {$filePath}");
-            $this->info("💡 Make sure to provide the full path to your CSV file");
+            $this->info('💡 Make sure to provide the full path to your CSV file');
+
             return false;
         }
 
-        if (!is_readable($filePath)) {
+        if (! is_readable($filePath)) {
             $this->error("❌ File is not readable: {$filePath}");
+
             return false;
         }
 
@@ -456,11 +476,11 @@ class ImportLegacyFundis extends Command
                 $records[] = $row;
             }
 
-            $this->info("📊 File Analysis:");
-            $this->info("Has headers: " . ($csvAnalysis['has_headers'] ? 'Yes' : 'No'));
-            $this->info("Total columns: " . $csvAnalysis['total_columns']);
-            $this->info("Useful columns: " . $csvAnalysis['useful_columns']);
-            $this->info("Empty columns: " . ($csvAnalysis['total_columns'] - $csvAnalysis['useful_columns']));
+            $this->info('📊 File Analysis:');
+            $this->info('Has headers: '.($csvAnalysis['has_headers'] ? 'Yes' : 'No'));
+            $this->info('Total columns: '.$csvAnalysis['total_columns']);
+            $this->info('Useful columns: '.$csvAnalysis['useful_columns']);
+            $this->info('Empty columns: '.($csvAnalysis['total_columns'] - $csvAnalysis['useful_columns']));
 
             // Show column mapping
             $this->info("\n🗂️  Column Mapping:");
@@ -468,7 +488,7 @@ class ImportLegacyFundis extends Command
                 if ($index !== null) {
                     $headerName = $csvAnalysis['processed_headers'][$index] ?? "Column {$index}";
                     $rawHeader = $csvAnalysis['raw_headers'][$index] ?? '';
-                    $displayHeader = !empty($rawHeader) ? $rawHeader : "(empty column {$index})";
+                    $displayHeader = ! empty($rawHeader) ? $rawHeader : "(empty column {$index})";
                     $this->info("  {$field} -> {$displayHeader} (processed as: {$headerName})");
                 } else {
                     $this->warn("  {$field} -> NOT FOUND");
@@ -480,10 +500,10 @@ class ImportLegacyFundis extends Command
             $stmt = Statement::create()->offset($csvAnalysis['data_start_row']);
             $totalRecords = iterator_count($stmt->process($csv));
 
-            $this->info("\nTotal data rows: " . number_format($totalRecords));
+            $this->info("\nTotal data rows: ".number_format($totalRecords));
 
             // Show sample data
-            if (!empty($records)) {
+            if (! empty($records)) {
                 $this->info("\n🔍 Sample Data (showing only mapped columns):");
                 $sampleData = [];
 
@@ -505,22 +525,23 @@ class ImportLegacyFundis extends Command
             $currentFundis = Fundi::count();
 
             $this->info("\n📈 Current Database Status:");
-            $this->info("Existing legacy fundis: " . number_format($existingCount));
-            $this->info("Current fundis: " . number_format($currentFundis));
+            $this->info('Existing legacy fundis: '.number_format($existingCount));
+            $this->info('Current fundis: '.number_format($currentFundis));
 
             // Show import configuration
             $this->info("\n⚙️  Import Configuration:");
-            $this->info("Chunk size: " . $this->option('chunk'));
-            $this->info("Skip empty columns: " . ($this->option('skip-empty-columns') ? 'Yes' : 'No'));
-            $this->info("Auto-match: " . ($this->option('auto-match') ? 'Yes' : 'No'));
+            $this->info('Chunk size: '.$this->option('chunk'));
+            $this->info('Skip empty columns: '.($this->option('skip-empty-columns') ? 'Yes' : 'No'));
+            $this->info('Auto-match: '.($this->option('auto-match') ? 'Yes' : 'No'));
             if ($this->option('auto-match')) {
-                $this->info("Match confidence: " . $this->option('confidence') . '%');
+                $this->info('Match confidence: '.$this->option('confidence').'%');
             }
-            $this->info("Dry run: " . ($this->option('dry-run') ? 'Yes' : 'No'));
+            $this->info('Dry run: '.($this->option('dry-run') ? 'Yes' : 'No'));
 
             return $this->confirm('Do you want to proceed with the import?', true);
         } catch (Exception $e) {
-            $this->error("❌ Error previewing CSV file: " . $e->getMessage());
+            $this->error('❌ Error previewing CSV file: '.$e->getMessage());
+
             return false;
         }
     }
@@ -562,28 +583,29 @@ class ImportLegacyFundis extends Command
             if (empty($validationErrors)) {
                 $this->info("✅ All {$this->stats['total_rows']} records are valid!");
             } else {
-                $this->error("❌ Found " . count($validationErrors) . " validation errors:");
+                $this->error('❌ Found '.count($validationErrors).' validation errors:');
                 foreach (array_slice($validationErrors, 0, 10) as $error) {
                     $this->error("  • {$error}");
                 }
                 if (count($validationErrors) > 10) {
-                    $this->info("  ... and " . (count($validationErrors) - 10) . " more errors");
+                    $this->info('  ... and '.(count($validationErrors) - 10).' more errors');
                 }
             }
 
-            if (!empty($warnings)) {
-                $this->warn("\n⚠️  Found " . count($warnings) . " warnings:");
+            if (! empty($warnings)) {
+                $this->warn("\n⚠️  Found ".count($warnings).' warnings:');
                 foreach (array_slice($warnings, 0, 5) as $warning) {
                     $this->warn("  • {$warning}");
                 }
                 if (count($warnings) > 5) {
-                    $this->info("  ... and " . (count($warnings) - 5) . " more warnings");
+                    $this->info('  ... and '.(count($warnings) - 5).' more warnings');
                 }
             }
 
             return empty($validationErrors) ? 0 : 1;
         } catch (Exception $e) {
-            $this->error("❌ Validation failed: " . $e->getMessage());
+            $this->error('❌ Validation failed: '.$e->getMessage());
+
             return 1;
         }
     }
@@ -609,7 +631,7 @@ class ImportLegacyFundis extends Command
         $progressBar = $this->output->createProgressBar($totalRecords);
         $progressBar->start();
 
-        if (!$isDryRun) {
+        if (! $isDryRun) {
             DB::beginTransaction();
         }
 
@@ -649,11 +671,11 @@ class ImportLegacyFundis extends Command
             }
 
             // Insert remaining records
-            if (!empty($records)) {
+            if (! empty($records)) {
                 $this->insertChunk($records, $isDryRun);
             }
 
-            if (!$isDryRun) {
+            if (! $isDryRun) {
                 DB::commit();
             }
 
@@ -664,7 +686,7 @@ class ImportLegacyFundis extends Command
                 $this->displaySkipAnalysis();
             }
         } catch (Exception $e) {
-            if (!$isDryRun) {
+            if (! $isDryRun) {
                 DB::rollBack();
             }
             throw $e;
@@ -719,12 +741,13 @@ class ImportLegacyFundis extends Command
                         "Both name and phone are empty after cleaning. Raw data: identifier='{$identifier}', name='{$fullName}'"
                     );
                 }
+
                 return null;
             }
 
             // Generate name if missing but has phone
-            if (empty($name) && !empty($phone)) {
-                $name = 'User ' . substr($phone, -4);
+            if (empty($name) && ! empty($phone)) {
+                $name = 'User '.substr($phone, -4);
             }
 
             // Skip if no valid phone
@@ -750,6 +773,7 @@ class ImportLegacyFundis extends Command
                         );
                     }
                 }
+
                 return null;
             }
 
@@ -777,14 +801,15 @@ class ImportLegacyFundis extends Command
                     $record,
                     $rowNumber,
                     'processing_error',
-                    "Exception during processing: " . $e->getMessage()
+                    'Exception during processing: '.$e->getMessage()
                 );
             }
 
-            Log::warning("Error processing row {$rowNumber}: " . $e->getMessage(), [
+            Log::warning("Error processing row {$rowNumber}: ".$e->getMessage(), [
                 'record' => $record,
-                'row_number' => $rowNumber
+                'row_number' => $rowNumber,
             ]);
+
             return null;
         }
     }
@@ -816,22 +841,22 @@ class ImportLegacyFundis extends Command
         foreach ($this->skipReasons as $reason => $count) {
             if ($count > 0) {
                 $percentage = ($count / $this->stats['total_rows']) * 100;
-                $this->info("  • " . str_replace('_', ' ', ucfirst($reason)) . ": {$count} (" . number_format($percentage, 1) . "%)");
+                $this->info('  • '.str_replace('_', ' ', ucfirst($reason)).": {$count} (".number_format($percentage, 1).'%)');
             }
         }
 
         // Show sample skipped records
-        if (!empty($this->skippedSamples)) {
+        if (! empty($this->skippedSamples)) {
             $this->info("\n📋 Sample Skipped Records:");
 
             foreach ($this->skippedSamples as $sample) {
                 $this->warn("\nRow {$sample['row']} - {$sample['reason']}:");
                 $this->line("  Reason: {$sample['details']}");
-                $this->line("  Raw data: " . json_encode($sample['raw_data']));
+                $this->line('  Raw data: '.json_encode($sample['raw_data']));
             }
 
             if (count($this->skippedSamples) >= $this->option('sample-skips')) {
-                $this->info("\n💡 Showing first " . $this->option('sample-skips') . " samples. Increase --sample-skips for more.");
+                $this->info("\n💡 Showing first ".$this->option('sample-skips').' samples. Increase --sample-skips for more.');
             }
         }
 
@@ -840,19 +865,19 @@ class ImportLegacyFundis extends Command
 
         if ($this->skipReasons['empty_name_and_phone'] > 0) {
             $this->warn("  • {$this->skipReasons['empty_name_and_phone']} records have both empty name and phone");
-            $this->line("    - Check if data is in different columns");
-            $this->line("    - Verify column mapping is correct");
+            $this->line('    - Check if data is in different columns');
+            $this->line('    - Verify column mapping is correct');
         }
 
         if ($this->skipReasons['invalid_phone_format'] > 0) {
             $this->warn("  • {$this->skipReasons['invalid_phone_format']} records have invalid phone formats");
-            $this->line("    - Check phone number formats in source data");
-            $this->line("    - Consider updating phone cleaning logic");
+            $this->line('    - Check phone number formats in source data');
+            $this->line('    - Consider updating phone cleaning logic');
         }
 
         if ($this->skipReasons['duplicate_phone'] > 0) {
             $this->warn("  • {$this->skipReasons['duplicate_phone']} records are duplicates");
-            $this->line("    - Use --clean-duplicates to remove existing duplicates first");
+            $this->line('    - Use --clean-duplicates to remove existing duplicates first');
         }
     }
 
@@ -874,17 +899,17 @@ class ImportLegacyFundis extends Command
         }
 
         if (str_starts_with($cleaned, '0') && strlen($cleaned) == 10) {
-            return '255' . substr($cleaned, 1);
+            return '255'.substr($cleaned, 1);
         }
 
         if (strlen($cleaned) == 9) {
-            return '255' . $cleaned;
+            return '255'.$cleaned;
         }
 
         // For longer numbers, try to extract valid phone
         if (strlen($cleaned) > 12) {
             if (preg_match('/255(\d{9})/', $cleaned, $matches)) {
-                return '255' . $matches[1];
+                return '255'.$matches[1];
             }
         }
 
@@ -898,6 +923,7 @@ class ImportLegacyFundis extends Command
     {
         $name = trim($name);
         $name = preg_replace('/\s+/', ' ', $name);
+
         return ucwords(strtolower($name));
     }
 
@@ -921,7 +947,7 @@ class ImportLegacyFundis extends Command
         return $regionMap[$location] ?? [
             'region' => $location ?: null,
             'district' => null,
-            'ward' => null
+            'ward' => null,
         ];
     }
 
@@ -967,7 +993,7 @@ class ImportLegacyFundis extends Command
         }
 
         // Validate phone format
-        if (!empty($identifier)) {
+        if (! empty($identifier)) {
             $cleanedPhone = $this->cleanPhone($identifier);
             if (empty($cleanedPhone)) {
                 $warnings[] = "Row {$rowNumber}: Invalid phone format: {$identifier}";
@@ -992,6 +1018,7 @@ class ImportLegacyFundis extends Command
     {
         if ($isDryRun) {
             $this->stats['imported'] += count($records);
+
             return;
         }
 
@@ -1022,7 +1049,8 @@ class ImportLegacyFundis extends Command
         })->get();
 
         if ($unmatched->isEmpty()) {
-            $this->info("No unmatched legacy records found.");
+            $this->info('No unmatched legacy records found.');
+
             return;
         }
 
@@ -1036,8 +1064,8 @@ class ImportLegacyFundis extends Command
             if ($highConfidenceMatch) {
                 $fundi = $highConfidenceMatch['fundi'];
 
-                if (!$fundi->legacy_match) {
-                    if (!$isDryRun) {
+                if (! $fundi->legacy_match) {
+                    if (! $isDryRun) {
                         $fundi->update([
                             'legacy_match' => true,
                             'legacy_id' => $legacy->id,
@@ -1085,7 +1113,7 @@ class ImportLegacyFundis extends Command
 
             $toRemove = $duplicates->skip(1);
             foreach ($toRemove as $duplicate) {
-                if (!$isDryRun) {
+                if (! $isDryRun) {
                     $duplicate->delete();
                 }
                 $duplicatesRemoved++;
@@ -1117,13 +1145,13 @@ class ImportLegacyFundis extends Command
             $data[] = ['Potential matches found', number_format($this->stats['potential_matches'])];
         }
 
-        $data[] = ['Success rate', $this->calculateSuccessRate() . '%'];
+        $data[] = ['Success rate', $this->calculateSuccessRate().'%'];
 
         $this->table(['Metric', 'Count'], $data);
 
         // Additional information
         if ($this->stats['errors'] > 0) {
-            $this->warn("⚠️  Check the logs for detailed error information.");
+            $this->warn('⚠️  Check the logs for detailed error information.');
         }
 
         if ($this->stats['potential_matches'] > 0) {
@@ -1131,7 +1159,7 @@ class ImportLegacyFundis extends Command
         }
 
         if ($this->option('dry-run')) {
-            $this->warn("🔍 This was a dry run - no actual changes were made to the database.");
+            $this->warn('🔍 This was a dry run - no actual changes were made to the database.');
         }
 
         // Show skip breakdown
@@ -1139,7 +1167,7 @@ class ImportLegacyFundis extends Command
             $this->warn("\n⚠️  Skip Breakdown:");
             foreach ($this->skipReasons as $reason => $count) {
                 if ($count > 0) {
-                    $this->line("  • " . str_replace('_', ' ', ucfirst($reason)) . ": " . number_format($count));
+                    $this->line('  • '.str_replace('_', ' ', ucfirst($reason)).': '.number_format($count));
                 }
             }
 
@@ -1157,6 +1185,7 @@ class ImportLegacyFundis extends Command
         }
 
         $rate = ($this->stats['imported'] / $this->stats['total_rows']) * 100;
+
         return number_format($rate, 1);
     }
 }

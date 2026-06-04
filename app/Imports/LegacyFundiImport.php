@@ -13,14 +13,23 @@ use Maatwebsite\Excel\Concerns\WithStartRow;
 class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkReading, WithStartRow
 {
     private $importedCount = 0;
+
     private $skippedCount = 0;
+
     private $duplicatesCount = 0;
+
     private $errors = [];
+
     private $fileAnalysis;
+
     private $skipEmptyColumns;
+
     private $jobId;
+
     private $progressCallback;
+
     private $processedRows = 0;
+
     private $totalRows = 0;
 
     // Skip reasons tracking (same as command)
@@ -34,7 +43,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
 
     private $skippedSamples = [];
 
-    public function __construct(array $fileAnalysis, bool $skipEmptyColumns = true, string $jobId = null)
+    public function __construct(array $fileAnalysis, bool $skipEmptyColumns = true, ?string $jobId = null)
     {
         $this->fileAnalysis = $fileAnalysis;
         $this->skipEmptyColumns = $skipEmptyColumns;
@@ -75,7 +84,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
                 $cleanedData = $this->processRow($rowArray, $this->processedRows);
 
                 if ($cleanedData) {
-                    if (!$this->isDuplicate($cleanedData)) {
+                    if (! $this->isDuplicate($cleanedData)) {
                         $validRows[] = $cleanedData;
                         $this->importedCount++;
                     } else {
@@ -103,14 +112,14 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
                 }
 
             } catch (\Exception $e) {
-                $this->errors[] = "Row " . ($this->processedRows) . ": " . $e->getMessage();
+                $this->errors[] = 'Row '.($this->processedRows).': '.$e->getMessage();
                 $this->skippedCount++;
                 $this->skipReasons['processing_error']++;
 
-                Log::warning("Import error on row " . $this->processedRows, [
+                Log::warning('Import error on row '.$this->processedRows, [
                     'error' => $e->getMessage(),
                     'row' => $row->toArray(),
-                    'job_id' => $this->jobId
+                    'job_id' => $this->jobId,
                 ]);
 
                 if (count($this->skippedSamples) < 10) {
@@ -125,7 +134,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
         }
 
         // Batch insert valid rows
-        if (!empty($validRows)) {
+        if (! empty($validRows)) {
             LegacyFundi::insert($validRows);
         }
     }
@@ -138,7 +147,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
         $mappedRow = [
             'identifier' => '',
             'full_name' => '',
-            'location' => ''
+            'location' => '',
         ];
 
         foreach ($mapping as $field => $columnIndex) {
@@ -172,14 +181,15 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
                     $row,
                     $rowNumber,
                     'empty_name_and_phone',
-                    "Both name and phone are empty after cleaning"
+                    'Both name and phone are empty after cleaning'
                 );
+
                 return null;
             }
 
             // Generate name if missing but has phone
-            if (empty($name) && !empty($phone)) {
-                $name = 'User ' . substr($phone, -4);
+            if (empty($name) && ! empty($phone)) {
+                $name = 'User '.substr($phone, -4);
             }
 
             // Skip if no valid phone
@@ -190,7 +200,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
                         $row,
                         $rowNumber,
                         'empty_name_no_phone',
-                        "Name is empty and no valid phone found"
+                        'Name is empty and no valid phone found'
                     );
                 } else {
                     $this->skipReasons['invalid_phone_format']++;
@@ -201,6 +211,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
                         "Invalid phone format: '{$identifier}'"
                     );
                 }
+
                 return null;
             }
 
@@ -259,17 +270,17 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
         }
 
         if (str_starts_with($cleaned, '0') && strlen($cleaned) == 10) {
-            return '255' . substr($cleaned, 1);
+            return '255'.substr($cleaned, 1);
         }
 
         if (strlen($cleaned) == 9) {
-            return '255' . $cleaned;
+            return '255'.$cleaned;
         }
 
         // For longer numbers, try to extract valid phone
         if (strlen($cleaned) > 12) {
             if (preg_match('/255(\d{9})/', $cleaned, $matches)) {
-                return '255' . $matches[1];
+                return '255'.$matches[1];
             }
         }
 
@@ -283,6 +294,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
     {
         $name = trim($name);
         $name = preg_replace('/\s+/', ' ', $name);
+
         return ucwords(strtolower($name));
     }
 
@@ -309,7 +321,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
         return $regionMap[$location] ?? [
             'region' => $location ?: null,
             'district' => null,
-            'ward' => null
+            'ward' => null,
         ];
     }
 
@@ -324,14 +336,14 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
         $maleNames = [
             'james', 'john', 'joseph', 'david', 'william', 'robert', 'kenneth', 'steven',
             'ally', 'hassan', 'ibrahim', 'abdallah', 'salim', 'mohammed', 'hamisi',
-            'frank', 'charles', 'peter', 'michael', 'daniel', 'emmanuel'
+            'frank', 'charles', 'peter', 'michael', 'daniel', 'emmanuel',
         ];
 
         // Common Tanzanian female names
         $femaleNames = [
             'lucy', 'mary', 'elizabeth', 'grace', 'joyce', 'anna', 'fatuma', 'amina',
             'aisha', 'zainab', 'rehema', 'happy', 'gloria', 'agnes', 'christina',
-            'rose', 'jane', 'esther', 'sarah', 'ruth'
+            'rose', 'jane', 'esther', 'sarah', 'ruth',
         ];
 
         foreach ($maleNames as $maleName) {
@@ -389,7 +401,7 @@ class LegacyFundiImport implements ToCollection, WithBatchInserts, WithChunkRead
             'skipped_samples' => $this->skippedSamples,
             'processed_rows' => $this->processedRows,
             'success_rate' => $this->processedRows > 0 ?
-                round(($this->importedCount / $this->processedRows) * 100, 2) : 0
+                round(($this->importedCount / $this->processedRows) * 100, 2) : 0,
         ];
     }
 }

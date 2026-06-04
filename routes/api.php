@@ -1,15 +1,14 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\API\AuthController;
-use App\Http\Controllers\API\FundiController;
 use App\Http\Controllers\API\AddressController;
+use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\DashboardController;
-use App\Http\Controllers\API\SiteVisitController;
+use App\Http\Controllers\API\FundiController;
 use App\Http\Controllers\API\MasterDataController;
-use App\Http\Controllers\API\TransactionController;
 use App\Http\Controllers\API\SelcomCallbackController;
+use App\Http\Controllers\API\SiteVisitController;
+use App\Http\Controllers\API\TransactionController;
+use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::prefix('v1')->group(function () {
@@ -88,7 +87,7 @@ Route::prefix('v1')->middleware(['auth:api'])->group(function () {
             ->name('wards');
     });
 
-    //Transaction History
+    // Transaction History
     Route::prefix('transactions')->group(function () {
         Route::get('/', [TransactionController::class, 'index']);
         Route::get('/{transaction}', [TransactionController::class, 'show']);
@@ -116,7 +115,7 @@ Route::get('health', function () {
     return response()->json([
         'success' => true,
         'message' => 'Fundi Management API is running smoothly',
-        'status' => 200
+        'status' => 200,
     ]);
 });
 
@@ -127,7 +126,7 @@ Route::fallback(function () {
         'success' => false,
         'message' => 'Unauthorized access, please contact support',
         'errors' => [
-            'Unauthorized' => 'You do not have permission to access this resource.'
-        ]
+            'Unauthorized' => 'You do not have permission to access this resource.',
+        ],
     ], 401);
 });

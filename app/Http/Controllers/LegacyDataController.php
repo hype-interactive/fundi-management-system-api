@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessLegacyImportJob;
 use App\Models\Fundi;
 use App\Models\LegacyFundi;
 use Illuminate\Http\Request;
-use App\Imports\LegacyFundiImport;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use App\Jobs\ProcessLegacyImportJob;
 use Illuminate\Support\Facades\Auth;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Log;
 
 class LegacyDataController extends Controller
 {
@@ -29,7 +26,7 @@ class LegacyDataController extends Controller
     {
         $request->validate([
             'legacy_file' => 'required|file|mimes:csv,xlsx,xls|max:20480', // 20MB max
-            'auto_match' => 'boolean'
+            'auto_match' => 'boolean',
         ]);
 
         try {
@@ -40,7 +37,7 @@ class LegacyDataController extends Controller
             $filePath = $file->store('imports', 'local');
 
             // Generate unique job ID
-            $jobId = 'import_' . uniqid() . '_' . Auth::id();
+            $jobId = 'import_'.uniqid().'_'.Auth::id();
 
             // Dispatch the job
             ProcessLegacyImportJob::dispatch(
@@ -53,14 +50,14 @@ class LegacyDataController extends Controller
             return response()->json([
                 'success' => true,
                 'job_id' => $jobId,
-                'message' => 'Import started successfully. You can monitor the progress below.'
+                'message' => 'Import started successfully. You can monitor the progress below.',
             ]);
         } catch (\Exception $e) {
-            Log::error('Legacy import dispatch failed: ' . $e->getMessage());
+            Log::error('Legacy import dispatch failed: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to start import: ' . $e->getMessage()
+                'message' => 'Failed to start import: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -72,16 +69,16 @@ class LegacyDataController extends Controller
     {
         $progress = cache()->get("import_progress_{$jobId}");
 
-        if (!$progress) {
+        if (! $progress) {
             return response()->json([
                 'success' => false,
-                'message' => 'Import progress not found.'
+                'message' => 'Import progress not found.',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'progress' => $progress
+            'progress' => $progress,
         ]);
     }
 
@@ -114,23 +111,23 @@ class LegacyDataController extends Controller
             $legacyFundi = LegacyFundi::findOrFail($request->legacy_id);
             $fundi = Fundi::findOrFail($request->fundi_id);
 
-            if (!$legacyFundi->linkWith($fundi)) {
+            if (! $legacyFundi->linkWith($fundi)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This fundi is already linked to another legacy record.'
+                    'message' => 'This fundi is already linked to another legacy record.',
                 ], 400);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Legacy fundi linked successfully!'
+                'message' => 'Legacy fundi linked successfully!',
             ]);
         } catch (\Exception $e) {
-            Log::error('Legacy link failed: ' . $e->getMessage());
+            Log::error('Legacy link failed: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Link operation failed: ' . $e->getMessage()
+                'message' => 'Link operation failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -147,23 +144,23 @@ class LegacyDataController extends Controller
         try {
             $legacyFundi = LegacyFundi::findOrFail($request->legacy_id);
 
-            if (!$legacyFundi->unlink()) {
+            if (! $legacyFundi->unlink()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No linked fundi found for this legacy record.'
+                    'message' => 'No linked fundi found for this legacy record.',
                 ], 404);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Legacy fundi unlinked successfully!'
+                'message' => 'Legacy fundi unlinked successfully!',
             ]);
         } catch (\Exception $e) {
-            Log::error('Legacy unlink failed: ' . $e->getMessage());
+            Log::error('Legacy unlink failed: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Unlink operation failed: ' . $e->getMessage()
+                'message' => 'Unlink operation failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -187,12 +184,12 @@ class LegacyDataController extends Controller
                         'confidence' => $match['confidence'],
                         'details' => $match['details'],
                     ];
-                })
+                }),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to get potential matches: ' . $e->getMessage()
+                'message' => 'Failed to get potential matches: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -212,14 +209,14 @@ class LegacyDataController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Successfully auto-matched {$matchedCount} legacy records."
+                'message' => "Successfully auto-matched {$matchedCount} legacy records.",
             ]);
         } catch (\Exception $e) {
-            Log::error('Bulk auto-match failed: ' . $e->getMessage());
+            Log::error('Bulk auto-match failed: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Bulk auto-match failed: ' . $e->getMessage()
+                'message' => 'Bulk auto-match failed: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -230,7 +227,7 @@ class LegacyDataController extends Controller
     public function cancelImport(Request $request)
     {
         $request->validate([
-            'job_id' => 'required|string'
+            'job_id' => 'required|string',
         ]);
 
         $jobId = $request->job_id;
@@ -248,7 +245,7 @@ class LegacyDataController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Import cancelled successfully.'
+            'message' => 'Import cancelled successfully.',
         ]);
     }
 
@@ -279,7 +276,7 @@ class LegacyDataController extends Controller
      */
     public function exportAnalysis()
     {
-        $filename = 'legacy_fundis_analysis_' . date('Y-m-d_H-i-s') . '.csv';
+        $filename = 'legacy_fundis_analysis_'.date('Y-m-d_H-i-s').'.csv';
 
         return response()->streamDownload(function () {
             $handle = fopen('php://output', 'w');
@@ -296,7 +293,7 @@ class LegacyDataController extends Controller
                 'Match Status',
                 'Matched Fundi ID',
                 'Potential Matches Count',
-                'Created At'
+                'Created At',
             ]);
 
             // Data
@@ -313,7 +310,7 @@ class LegacyDataController extends Controller
                         ucfirst($legacy->match_status),
                         $legacy->matchedFundi?->id ?? 'N/A',
                         $legacy->getPotentialMatchesCount(),
-                        $legacy->created_at->format('Y-m-d H:i:s')
+                        $legacy->created_at->format('Y-m-d H:i:s'),
                     ]);
                 }
             });

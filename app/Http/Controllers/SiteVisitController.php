@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\SiteVisit;
-use Illuminate\Http\Request;
 
 class SiteVisitController extends Controller
 {
@@ -16,7 +15,7 @@ class SiteVisitController extends Controller
             'photos',
             'products',
             'fundis',
-            'approver'
+            'approver',
         ]);
 
         return view('pages.site-visit', compact('siteVisit'));

@@ -2,56 +2,78 @@
 
 namespace App\Livewire;
 
-use Exception;
 use App\Models\Fundi;
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use App\Services\CloudinaryImageService;
 use App\Traits\HasAlerts;
+use Exception;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class FundiForm extends Component
 {
-    use WithFileUploads, HasAlerts;
+    use HasAlerts, WithFileUploads;
 
     protected $cloudinaryService;
 
     // Fundi form properties
     public $fundi_id = null;
+
     public $fname = '';
+
     public $mname = '';
+
     public $lname = '';
+
     public $gender = '';
+
     public $nida_number = '';
+
     public $primary_phone = '';
+
     public $transaction_phone = '';
+
     public $district = null;
+
     public $ward_id = null;
+
     public $ranking = '';
+
     public $profile_photo = null;
+
     public $status = 'active';
+
     public $legacy_match = false;
+
     public $legacy_id = '';
 
     // Cloudinary properties
     public $profile_photo_url = null;
+
     public $profile_photo_public_id = null;
 
     // Component compatibility
     public $ward = null;
+
     public $district_id = null;
 
     // UI state properties
     public $action_text = 'Create';
+
     public $editing = false;
+
     public $existing_photo = null;
+
     public $remove_photo = false;
+
     public $mode = 'create';
+
     public $saving = false;
 
     // Districts and wards for dropdowns
     public $districts = [];
+
     public $wards = [];
 
     // Accept fundi model for editing
@@ -134,7 +156,7 @@ class FundiForm extends Component
         } else {
             $this->districts = $currentUser->districts;
 
-            if ($currentUser->primary_district && !$this->district) {
+            if ($currentUser->primary_district && ! $this->district) {
                 $this->district = $currentUser->primary_district->id;
                 $this->loadWards();
             }
@@ -200,7 +222,7 @@ class FundiForm extends Component
             'editing',
             'existing_photo',
             'remove_photo',
-            'saving'
+            'saving',
         ]);
 
         $this->action_text = 'Create';
@@ -227,7 +249,7 @@ class FundiForm extends Component
             $this->showSuccessAlert('Fundi Loaded', 'Fundi data loaded successfully for editing.');
         } catch (Exception $e) {
             $this->showErrorAlert('Error', 'Failed to load fundi data. Please try again.');
-            Log::error('Failed to load fundi: ' . $e->getMessage());
+            Log::error('Failed to load fundi: '.$e->getMessage());
         }
     }
 
@@ -315,9 +337,9 @@ class FundiForm extends Component
                 return $this->saveFundi($isCreating);
             },
             'Success',
-            'Fundi ' . ($isCreating ? 'created' : 'updated') . ' successfully!',
+            'Fundi '.($isCreating ? 'created' : 'updated').' successfully!',
             'Error',
-            'Failed to ' . ($isCreating ? 'create' : 'update') . ' fundi. Please try again.'
+            'Failed to '.($isCreating ? 'create' : 'update').' fundi. Please try again.'
         );
 
         $this->saving = false;
@@ -326,6 +348,7 @@ class FundiForm extends Component
             if ($this->mode === 'create') {
                 $this->resetForm();
                 $this->loadDistricts();
+
                 return redirect('/fundis');
             } else {
                 $fundi = Fundi::find($this->fundi_id);
@@ -343,7 +366,7 @@ class FundiForm extends Component
     private function saveFundi($isCreating)
     {
         // Check for duplicates before proceeding
-        if (!$this->validateNoDuplicates($isCreating)) {
+        if (! $this->validateNoDuplicates($isCreating)) {
             return false;
         }
 
@@ -353,7 +376,7 @@ class FundiForm extends Component
 
         if ($this->profile_photo) {
             $photoResult = $this->handlePhotoUpload();
-            if (!$photoResult) {
+            if (! $photoResult) {
                 return false;
             }
             $photo_url = $photoResult['url'];
@@ -382,7 +405,7 @@ class FundiForm extends Component
         ];
 
         if ($isCreating) {
-            $fundiData['unique_id'] = 'F' . date('Ymd') . rand(1000, 9999);
+            $fundiData['unique_id'] = 'F'.date('Ymd').rand(1000, 9999);
             $fundiData['created_by'] = Auth::id();
         }
 
@@ -400,9 +423,6 @@ class FundiForm extends Component
      * 2. Transaction phone must be entirely unique
      * 3. NIDA must be unique (if provided)
      * 4. Combination of fname + lname + ward_id must be unique
-     *
-     * @param bool $isCreating
-     * @return bool
      */
     private function validateNoDuplicates(bool $isCreating): bool
     {
@@ -411,7 +431,7 @@ class FundiForm extends Component
 
         // Rule 1: Check primary phone uniqueness
         $primaryPhoneExists = Fundi::where('primary_phone', $this->primary_phone)
-            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
             ->exists();
 
         if ($primaryPhoneExists) {
@@ -421,7 +441,7 @@ class FundiForm extends Component
 
         // Rule 2: Check transaction phone uniqueness
         $transactionPhoneExists = Fundi::where('transaction_phone', $this->transaction_phone)
-            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
             ->exists();
 
         if ($transactionPhoneExists) {
@@ -432,7 +452,7 @@ class FundiForm extends Component
         // Rule 3: Check NIDA uniqueness if provided
         if ($this->nida_number) {
             $nidaExists = Fundi::where('nida_number', $this->nida_number)
-                ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+                ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
                 ->exists();
 
             if ($nidaExists) {
@@ -445,7 +465,7 @@ class FundiForm extends Component
         $nameCombinationExists = Fundi::where('fname', $this->fname)
             ->where('lname', $this->lname)
             ->where('ward_id', $this->ward_id)
-            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
             ->exists();
 
         if ($nameCombinationExists) {
@@ -453,7 +473,7 @@ class FundiForm extends Component
             $hasErrors = true;
         }
 
-        return !$hasErrors;
+        return ! $hasErrors;
     }
 
     /**
@@ -462,7 +482,7 @@ class FundiForm extends Component
     private function handlePhotoUpload()
     {
         try {
-            if (!$this->cloudinaryService->testConnection()) {
+            if (! $this->cloudinaryService->testConnection()) {
                 throw new Exception('Unable to connect to image storage service.');
             }
 
@@ -482,22 +502,22 @@ class FundiForm extends Component
             if ($uploadResult && isset($uploadResult['url']) && isset($uploadResult['public_id'])) {
                 Log::info('Photo uploaded successfully', [
                     'url' => $uploadResult['url'],
-                    'public_id' => $uploadResult['public_id']
+                    'public_id' => $uploadResult['public_id'],
                 ]);
 
                 return [
                     'url' => $uploadResult['url'],
-                    'public_id' => $uploadResult['public_id']
+                    'public_id' => $uploadResult['public_id'],
                 ];
             } else {
                 Log::error('Photo upload failed - invalid result', [
-                    'result' => $uploadResult
+                    'result' => $uploadResult,
                 ]);
                 throw new Exception('Invalid upload result from Cloudinary service.');
             }
         } catch (Exception $e) {
-            Log::error('Photo upload exception: ' . $e->getMessage());
-            throw new Exception('Photo upload failed: ' . $e->getMessage());
+            Log::error('Photo upload exception: '.$e->getMessage());
+            throw new Exception('Photo upload failed: '.$e->getMessage());
         }
     }
 
@@ -509,14 +529,14 @@ class FundiForm extends Component
         try {
             if ($this->profile_photo_public_id) {
                 $deleteResult = $this->cloudinaryService->delete($this->profile_photo_public_id);
-                if (!$deleteResult) {
+                if (! $deleteResult) {
                     Log::warning('Failed to delete old photo', [
-                        'public_id' => $this->profile_photo_public_id
+                        'public_id' => $this->profile_photo_public_id,
                     ]);
                 }
             }
         } catch (Exception $e) {
-            Log::error('Photo deletion exception: ' . $e->getMessage());
+            Log::error('Photo deletion exception: '.$e->getMessage());
         }
     }
 
@@ -538,8 +558,9 @@ class FundiForm extends Component
      */
     public function duplicateFundi()
     {
-        if (!$this->editing) {
+        if (! $this->editing) {
             $this->showWarningAlert('Cannot Duplicate', 'You can only duplicate an existing fundi.');
+
             return;
         }
 
@@ -576,8 +597,9 @@ class FundiForm extends Component
      */
     public function deleteFundi()
     {
-        if (!$this->editing || !$this->fundi_id) {
+        if (! $this->editing || ! $this->fundi_id) {
             $this->showWarningAlert('Cannot Delete', 'No fundi selected for deletion.');
+
             return;
         }
 
@@ -601,8 +623,10 @@ class FundiForm extends Component
                     if ($fundi->profile_photo_public_id) {
                         $this->cloudinaryService->delete($fundi->profile_photo_public_id);
                     }
+
                     return $fundi->delete();
                 }
+
                 return false;
             },
             'Success',

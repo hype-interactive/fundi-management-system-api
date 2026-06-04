@@ -2,14 +2,16 @@
 
 namespace App\Livewire\Dashboard;
 
-use App\Models\User;
 use App\Models\Fundi;
+use App\Models\User;
 use Livewire\Component;
 
 class CompanySummary extends Component
 {
     public $admin_count;
+
     public $operator_count;
+
     public $fundi_count;
 
     public function render()
@@ -28,6 +30,7 @@ class CompanySummary extends Component
 
             $this->fundi_count = Fundi::get()->count();
         }
+
         return view('livewire.dashboard.company-summary');
     }
 }

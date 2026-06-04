@@ -16,9 +16,11 @@ class CheckDisbursementStatusJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 5;
+
     public $timeout = 60;
 
     protected Transaction $transaction;
+
     protected int $checkCount;
 
     /**
@@ -42,18 +44,19 @@ class CheckDisbursementStatusJob implements ShouldQueue
         ]);
 
         // Only check if still pending
-        if (!in_array($this->transaction->status, ['pending', 'processing'])) {
+        if (! in_array($this->transaction->status, ['pending', 'processing'])) {
             Log::info('Transaction not in checkable status, skipping', [
                 'transaction_id' => $this->transaction->id,
                 'status' => $this->transaction->status,
             ]);
+
             return;
         }
 
         // Query SELCOM for status
         $result = $selcomService->queryDisbursement($this->transaction->transaction_reference);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             Log::warning('Status check failed', [
                 'transaction_id' => $this->transaction->id,
                 'check_count' => $this->checkCount,
@@ -65,6 +68,7 @@ class CheckDisbursementStatusJob implements ShouldQueue
                 self::dispatch($this->transaction, $this->checkCount + 1)
                     ->delay($delay);
             }
+
             return;
         }
 
@@ -98,7 +102,7 @@ class CheckDisbursementStatusJob implements ShouldQueue
     protected function calculateDelay(int $checkCount): \DateTimeInterface
     {
         // Progressive delays: 2min, 5min, 10min, 30min
-        $minutes = match($checkCount) {
+        $minutes = match ($checkCount) {
             1 => 2,
             2 => 5,
             3 => 10,
@@ -115,7 +119,7 @@ class CheckDisbursementStatusJob implements ShouldQueue
     {
         $batch = $this->transaction->disbursementBatch;
 
-        if (!$batch) {
+        if (! $batch) {
             return;
         }
 

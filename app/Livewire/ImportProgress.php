@@ -2,26 +2,30 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use Livewire\WithFileUploads;
 use App\Jobs\ProcessLegacyImportJob;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class ImportProgress extends Component
 {
     use WithFileUploads;
 
     public $file;
+
     public $autoMatch = false;
+
     public $isUploading = false;
+
     public $isProcessing = false;
+
     public $currentJobId = null;
+
     public $progress = [
         'percentage' => 0,
         'message' => '',
         'status' => 'idle', // idle, uploading, processing, completed, failed
-        'stats' => []
+        'stats' => [],
     ];
 
     protected $rules = [
@@ -35,7 +39,7 @@ class ImportProgress extends Component
     ];
 
     protected $listeners = [
-        'checkProgress' => 'checkImportProgress'
+        'checkProgress' => 'checkImportProgress',
     ];
 
     public function mount()
@@ -64,7 +68,7 @@ class ImportProgress extends Component
             $filePath = $this->file->store('imports', 'local');
 
             // Generate unique job ID
-            $jobId = 'import_' . uniqid() . '_' . Auth::id();
+            $jobId = 'import_'.uniqid().'_'.Auth::id();
             $this->currentJobId = $jobId;
 
             // Dispatch the job
@@ -87,7 +91,7 @@ class ImportProgress extends Component
 
         } catch (\Exception $e) {
             $this->isUploading = false;
-            $this->updateProgress(0, 'Upload failed: ' . $e->getMessage(), 'failed');
+            $this->updateProgress(0, 'Upload failed: '.$e->getMessage(), 'failed');
         }
     }
 
@@ -96,7 +100,7 @@ class ImportProgress extends Component
      */
     public function checkImportProgress()
     {
-        if (!$this->currentJobId) {
+        if (! $this->currentJobId) {
             return;
         }
 
@@ -173,14 +177,14 @@ class ImportProgress extends Component
             'autoMatch',
             'isUploading',
             'isProcessing',
-            'currentJobId'
+            'currentJobId',
         ]);
 
         $this->progress = [
             'percentage' => 0,
             'message' => '',
             'status' => 'idle',
-            'stats' => []
+            'stats' => [],
         ];
 
         session()->forget('current_import_job');
@@ -204,7 +208,7 @@ class ImportProgress extends Component
      */
     public function getProgressBarClass()
     {
-        return match($this->progress['status']) {
+        return match ($this->progress['status']) {
             'completed' => 'bg-success',
             'failed' => 'bg-danger',
             'processing', 'uploading' => 'bg-primary',
@@ -217,7 +221,7 @@ class ImportProgress extends Component
      */
     public function getStatusIcon()
     {
-        return match($this->progress['status']) {
+        return match ($this->progress['status']) {
             'completed' => 'fa-check-circle text-success',
             'failed' => 'fa-times-circle text-danger',
             'processing' => 'fa-spinner fa-spin text-primary',

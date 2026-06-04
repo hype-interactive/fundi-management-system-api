@@ -23,8 +23,8 @@ return new class extends Migration
     {
         Schema::table('fundis', function (Blueprint $table) {
             Schema::table('fundis', function (Blueprint $table) {
-            $table->dropColumn('qr_code_path');
-        });
+                $table->dropColumn('qr_code_path');
+            });
         });
     }
 };

@@ -2,10 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\BudgetAllocation;
-use Database\Factories\BudgetAllocationFactory;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
 
 class BudgetAllocationSeeder extends Seeder
 {

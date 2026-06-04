@@ -2,48 +2,62 @@
 
 namespace App\Livewire;
 
-use App\Models\User;
 use App\Models\Fundi;
-use Livewire\Component;
 use App\Models\SmsCampaign;
-use App\Models\SmsTemplate;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
-use App\Traits\LocationTrait;
 use App\Models\SmsCampaignFilter;
+use App\Models\SmsTemplate;
+use App\Models\User;
+use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class SmsCampaignList extends Component
 {
-    use WithPagination, LocationTrait;
+    use LocationTrait, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
     // Campaign Management
     public $editingCampaign = null;
+
     public $campaignTitle = '';
+
     public $campaignMessage = '';
+
     public $recipientType = 'both'; // all, operators, workers
+
     public $scheduledAt = null;
+
     public $sendNow = true;
 
     // Filters
     public $selectedRegion = null;
+
     public $selectedDistrict = null;
+
     public $selectedWard = null;
+
     public $selectedUsers = [];
+
     public $selectedFundis = [];
 
     // Filter options
     public $regions = [];
+
     public $districts = [];
+
     public $wards = [];
+
     public $operators = [];
+
     public $workers = [];
 
     // Templates
     public $templates = [];
+
     public $selectedTemplate = null;
 
     // Campaign listing
@@ -57,6 +71,7 @@ class SmsCampaignList extends Component
 
     // Recipients preview
     public $recipientCount = 0;
+
     public $showRecipientsPreview = false;
 
     protected $rules = [
@@ -105,7 +120,7 @@ class SmsCampaignList extends Component
             'selectedWard',
             'selectedUsers',
             'selectedFundis',
-            'sendNow'
+            'sendNow',
         ]);
 
         $this->sendNow = true;
@@ -145,8 +160,8 @@ class SmsCampaignList extends Component
 
             $this->dispatch('campaignCreated');
         } catch (\Exception $e) {
-            Log::error('Failed to create SMS campaign: ' . $e->getMessage());
-            session()->flash('error', 'Failed to create campaign: ' . $e->getMessage());
+            Log::error('Failed to create SMS campaign: '.$e->getMessage());
+            session()->flash('error', 'Failed to create campaign: '.$e->getMessage());
         }
     }
 
@@ -246,7 +261,7 @@ class SmsCampaignList extends Component
                 $query->where('name', 'operator');
             });
 
-            if (!empty($this->selectedUsers)) {
+            if (! empty($this->selectedUsers)) {
                 $operatorQuery->whereIn('id', $this->selectedUsers);
             }
 
@@ -263,7 +278,7 @@ class SmsCampaignList extends Component
         if ($this->recipientType === 'both' || $this->recipientType === 'fundis') {
             $fundiQuery = Fundi::query();
 
-            if (!empty($this->selectedFundis)) {
+            if (! empty($this->selectedFundis)) {
                 $fundiQuery->whereIn('id', $this->selectedFundis);
             }
 
@@ -285,8 +300,8 @@ class SmsCampaignList extends Component
     {
         return SmsCampaign::with(['creator', 'messages'])
             ->when($this->search, function ($query) {
-                $query->where('title', 'like', '%' . $this->search . '%')
-                    ->orWhere('message', 'like', '%' . $this->search . '%');
+                $query->where('title', 'like', '%'.$this->search.'%')
+                    ->orWhere('message', 'like', '%'.$this->search.'%');
             })
             ->when($this->status, function ($query) {
                 $query->where('status', $this->status);

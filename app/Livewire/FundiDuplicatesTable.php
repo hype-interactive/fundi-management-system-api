@@ -4,21 +4,25 @@ namespace App\Livewire;
 
 use App\Models\Fundi;
 use App\Traits\HasAlerts;
-use Livewire\Component;
-use Livewire\WithPagination;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class FundiDuplicatesTable extends Component
 {
-    use WithPagination, LocationTrait, HasAlerts;
+    use HasAlerts, LocationTrait, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
     public $duplicateType = 'primary_phone';
+
     public $perPage = 20;
+
     public $selectedDuplicates = [];
+
     public $selectAll = false;
+
     public $showDetails = [];
 
     // Statistics
@@ -80,9 +84,9 @@ class FundiDuplicatesTable extends Component
             ->havingRaw('COUNT(*) > 1')
             ->count();
 
-        $this->stats['total_duplicates'] = $this->stats['primary_phone'] 
-            + $this->stats['transaction_phone'] 
-            + $this->stats['name_ward'] 
+        $this->stats['total_duplicates'] = $this->stats['primary_phone']
+            + $this->stats['transaction_phone']
+            + $this->stats['name_ward']
             + $this->stats['nida_number'];
     }
 
@@ -143,7 +147,7 @@ class FundiDuplicatesTable extends Component
 
         // Load full details for each duplicate group
         $phones = $duplicatePhones->pluck('primary_phone')->toArray();
-        
+
         $fundisGrouped = Fundi::whereIn('primary_phone', $phones)
             ->with(['ward.district.region', 'creator'])
             ->orderBy('created_at', 'asc')
@@ -155,6 +159,7 @@ class FundiDuplicatesTable extends Component
             $item->fundis = $fundisGrouped[$item->primary_phone] ?? collect();
             $item->duplicate_key = $item->primary_phone;
             $item->duplicate_field = 'primary_phone';
+
             return $item;
         });
 
@@ -175,7 +180,7 @@ class FundiDuplicatesTable extends Component
             ->paginate($this->perPage);
 
         $phones = $duplicatePhones->pluck('transaction_phone')->toArray();
-        
+
         $fundisGrouped = Fundi::whereIn('transaction_phone', $phones)
             ->with(['ward.district.region', 'creator'])
             ->orderBy('created_at', 'asc')
@@ -186,6 +191,7 @@ class FundiDuplicatesTable extends Component
             $item->fundis = $fundisGrouped[$item->transaction_phone] ?? collect();
             $item->duplicate_key = $item->transaction_phone;
             $item->duplicate_field = 'transaction_phone';
+
             return $item;
         });
 
@@ -198,13 +204,13 @@ class FundiDuplicatesTable extends Component
     private function getNameWardDuplicates()
     {
         $duplicates = Fundi::select(
-                'fname', 
-                'lname', 
-                'ward_id', 
-                DB::raw('COUNT(*) as count'), 
-                DB::raw('MIN(id) as oldest_id'),
-                DB::raw("CONCAT(fname, '|', lname, '|', ward_id) as composite_key")
-            )
+            'fname',
+            'lname',
+            'ward_id',
+            DB::raw('COUNT(*) as count'),
+            DB::raw('MIN(id) as oldest_id'),
+            DB::raw("CONCAT(fname, '|', lname, '|', ward_id) as composite_key")
+        )
             ->whereNotNull('fname')
             ->whereNotNull('lname')
             ->whereNotNull('ward_id')
@@ -222,9 +228,9 @@ class FundiDuplicatesTable extends Component
             ];
         })->toArray();
 
-        if (!empty($keys)) {
+        if (! empty($keys)) {
             $query = Fundi::with(['ward.district.region', 'creator']);
-            
+
             $query->where(function ($q) use ($keys) {
                 foreach ($keys as $key) {
                     $q->orWhere(function ($subQ) use ($key) {
@@ -238,14 +244,15 @@ class FundiDuplicatesTable extends Component
             $allFundis = $query->orderBy('created_at', 'asc')->get();
 
             $fundisGrouped = $allFundis->groupBy(function ($fundi) {
-                return $fundi->fname . '|' . $fundi->lname . '|' . $fundi->ward_id;
+                return $fundi->fname.'|'.$fundi->lname.'|'.$fundi->ward_id;
             });
 
             $duplicates->getCollection()->transform(function ($item) use ($fundisGrouped) {
-                $key = $item->fname . '|' . $item->lname . '|' . $item->ward_id;
+                $key = $item->fname.'|'.$item->lname.'|'.$item->ward_id;
                 $item->fundis = $fundisGrouped[$key] ?? collect();
                 $item->duplicate_key = $key;
                 $item->duplicate_field = 'name_ward';
+
                 return $item;
             });
         }
@@ -267,7 +274,7 @@ class FundiDuplicatesTable extends Component
             ->paginate($this->perPage);
 
         $nidas = $duplicates->pluck('nida_number')->toArray();
-        
+
         $fundisGrouped = Fundi::whereIn('nida_number', $nidas)
             ->with(['ward.district.region', 'creator'])
             ->orderBy('created_at', 'asc')
@@ -278,6 +285,7 @@ class FundiDuplicatesTable extends Component
             $item->fundis = $fundisGrouped[$item->nida_number] ?? collect();
             $item->duplicate_key = $item->nida_number;
             $item->duplicate_field = 'nida_number';
+
             return $item;
         });
 
@@ -384,9 +392,10 @@ class FundiDuplicatesTable extends Component
     public function bulkDeleteAllDuplicates()
     {
         $count = $this->stats[$this->duplicateType] ?? 0;
-        
+
         if ($count === 0) {
             $this->showWarningAlert('No Duplicates', 'No duplicates found to delete.');
+
             return;
         }
 

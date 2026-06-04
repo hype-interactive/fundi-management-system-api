@@ -2,15 +2,15 @@
 
 namespace App\Services\Financial;
 
+use App\Jobs\ProcessDisbursementJob;
 use App\Models\BudgetAllocation;
 use App\Models\DisbursementBatch;
 use App\Models\Transaction;
 use App\Services\Payment\SelcomService;
-use App\Jobs\ProcessDisbursementJob;
+use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-use Exception;
 
 class FinancialManagementService
 {
@@ -48,8 +48,8 @@ class FinancialManagementService
             // 2. Check SELCOM balance
             $balanceCheck = $this->selcomService->checkBalance();
 
-            if (!$balanceCheck['success']) {
-                throw new Exception('Unable to verify payment provider balance: ' . ($balanceCheck['error'] ?? 'Unknown error'));
+            if (! $balanceCheck['success']) {
+                throw new Exception('Unable to verify payment provider balance: '.($balanceCheck['error'] ?? 'Unknown error'));
             }
 
             $providerBalance = $balanceCheck['balance'];
@@ -182,7 +182,7 @@ class FinancialManagementService
         // Check SELCOM balance before retrying
         $balanceCheck = $this->selcomService->checkBalance();
 
-        if (!$balanceCheck['success']) {
+        if (! $balanceCheck['success']) {
             throw new Exception('Unable to verify provider balance before retry');
         }
 
@@ -213,7 +213,7 @@ class FinancialManagementService
      */
     public function cancelBatch(DisbursementBatch $batch): bool
     {
-        if (!in_array($batch->status, ['pending', 'processing'])) {
+        if (! in_array($batch->status, ['pending', 'processing'])) {
             throw new Exception('Only pending or processing batches can be cancelled');
         }
 

@@ -4,20 +4,22 @@ namespace App\Jobs;
 
 use App\Models\Transaction;
 use App\Services\Payment\SelcomService;
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Exception;
 
 class ProcessDisbursementJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
+
     public $timeout = 120;
+
     public $backoff = [60, 300, 900]; // 1min, 5min, 15min
 
     protected Transaction $transaction;
@@ -49,7 +51,7 @@ class ProcessDisbursementJob implements ShouldQueue
             // Initiate disbursement with SELCOM
             $result = $selcomService->initiateDisbursement($this->transaction);
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 throw new Exception($result['error'] ?? 'Disbursement failed');
             }
 
@@ -110,7 +112,7 @@ class ProcessDisbursementJob implements ShouldQueue
 
         $this->transaction->update([
             'status' => 'failed',
-            'failure_reason' => 'Max retries exceeded: ' . $exception->getMessage(),
+            'failure_reason' => 'Max retries exceeded: '.$exception->getMessage(),
         ]);
     }
 }

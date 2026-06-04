@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Models\Ward;
+use App\Http\Resources\FundiMinimalResource;
+use App\Http\Resources\FundiResource;
 use App\Models\Fundi;
+use App\Models\Ward;
+use App\Services\CloudinaryImageService;
 use App\Traits\CacheManagement;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Resources\FundiResource;
-use App\Services\CloudinaryImageService;
-use App\Http\Resources\FundiMinimalResource;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class FundiController extends BaseAPIController
 {
@@ -27,9 +28,6 @@ class FundiController extends BaseAPIController
 
     /**
      * List all fundis with caching
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -52,7 +50,7 @@ class FundiController extends BaseAPIController
         $cachedData = $this->rememberWithTags(
             $cacheKey,
             $this->getCacheTTL('short'),
-            fn() => $this->buildFundisListData($validated),
+            fn () => $this->buildFundisListData($validated),
             [self::CACHE_TAGS['fundis']]
         );
 
@@ -61,16 +59,16 @@ class FundiController extends BaseAPIController
 
     /**
      * Build fundis list data array for caching
-     *
-     * @param array $filters
-     * @return array
      */
     private function buildFundisListData(array $filters): array
     {
-        $query = Fundi::with(['ward.district.region', 'creator'])
-            ->whereHas('ward.district', function ($q) {
+        $query = Fundi::with(['ward.district.region', 'creator']);
+
+        if (! isRoot()) {
+            $query->whereHas('ward.district', function ($q) {
                 $q->whereIn('id', $this->getOperatorDistricts());
             });
+        }
 
         $this->applyFilters($query, $filters);
 
@@ -97,9 +95,7 @@ class FundiController extends BaseAPIController
     /**
      * Apply filters to query
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param array $filters
-     * @return void
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      */
     private function applyFilters($query, array $filters): void
     {
@@ -125,7 +121,7 @@ class FundiController extends BaseAPIController
             $query->where('ward_id', $filters['ward_id']);
         }
 
-        if (isset($filters['search']) && !empty($filters['search'])) {
+        if (isset($filters['search']) && ! empty($filters['search'])) {
             $this->applySearchFilter($query, $filters['search']);
         }
     }
@@ -133,13 +129,11 @@ class FundiController extends BaseAPIController
     /**
      * Apply search filter including phone number handling
      *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $searchTerm
-     * @return void
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      */
     private function applySearchFilter($query, string $searchTerm): void
     {
-        $search = '%' . $searchTerm . '%';
+        $search = '%'.$searchTerm.'%';
 
         $query->where(function ($q) use ($search, $searchTerm) {
             $q->where('fname', 'like', $search)
@@ -163,13 +157,10 @@ class FundiController extends BaseAPIController
 
     /**
      * Show single fundi with caching
-     *
-     * @param string $unique_id
-     * @return JsonResponse
      */
     public function show(string $unique_id): JsonResponse
     {
-        if (!preg_match('/^FND\d{6}$/', $unique_id)) {
+        if (! preg_match('/^FND\d{6}$/', $unique_id)) {
             return $this->errorResponse('Invalid fundi ID format', null, 400);
         }
 
@@ -181,7 +172,7 @@ class FundiController extends BaseAPIController
         $cachedData = $this->rememberWithTags(
             $cacheKey,
             $this->getCacheTTL('medium'),
-            fn() => $this->buildFundiDetailData($unique_id),
+            fn () => $this->buildFundiDetailData($unique_id),
             [self::CACHE_TAGS['fundis']]
         );
 
@@ -201,27 +192,24 @@ class FundiController extends BaseAPIController
 
     /**
      * Build fundi detail data for caching
-     *
-     * @param string $unique_id
-     * @return array
      */
     private function buildFundiDetailData(string $unique_id): array
     {
         $fundi = Fundi::where('unique_id', $unique_id)->first();
 
-        if (!$fundi) {
+        if (! $fundi) {
             return [
                 'error' => true,
                 'message' => 'Fundi not found',
-                'status' => 404
+                'status' => 404,
             ];
         }
 
-        if (!$this->getOperatorDistricts()->contains($fundi->ward->district_id)) {
+        if (! isRoot() && ! $this->getOperatorDistricts()->contains($fundi->ward->district_id)) {
             return [
                 'error' => true,
                 'message' => 'Unauthorized access',
-                'status' => 403
+                'status' => 403,
             ];
         }
 
@@ -232,7 +220,7 @@ class FundiController extends BaseAPIController
             'rejector',
             'transactions' => function ($query) {
                 $query->latest()->limit(10);
-            }
+            },
         ])
             ->loadCount('transactions')
             ->loadSum('transactions', 'amount');
@@ -242,9 +230,6 @@ class FundiController extends BaseAPIController
 
     /**
      * Create new fundi
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
@@ -271,7 +256,7 @@ class FundiController extends BaseAPIController
                 'integer',
                 'exists:wards,id',
                 function ($attribute, $value, $fail) {
-                    if (!$this->isWardInOperatorDistricts($value)) {
+                    if (! $this->isWardInOperatorDistricts($value)) {
                         $fail('The selected ward is not available in your operating districts.');
                     }
                 },
@@ -284,7 +269,7 @@ class FundiController extends BaseAPIController
 
         // Check for duplicates
         $duplicateErrors = $this->checkForDuplicateFundi($request);
-        if (!empty($duplicateErrors)) {
+        if (! empty($duplicateErrors)) {
             return $this->errorResponse(json_encode($duplicateErrors), null, 422);
         }
 
@@ -328,45 +313,62 @@ class FundiController extends BaseAPIController
             DB::rollBack();
             Log::error('Failed to register fundi', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->errorResponse('Failed to register fundi: ' . $e->getMessage());
+            return $this->errorResponse('Failed to register fundi: '.$e->getMessage());
         }
     }
 
     /**
      * Update fundi
-     *
-     * @param Request $request
-     * @param Fundi $fundi
-     * @return JsonResponse
      */
     public function update(Request $request, Fundi $fundi): JsonResponse
     {
-        if (!$this->authorizeOperatorAccess($fundi)) {
+        if (! $this->authorizeOperatorAccess($fundi)) {
             return $this->errorResponse('Unauthorized access', null, 403);
+        }
+
+        $isApproved = $fundi->approved_at &&
+            (! $fundi->rejected_at || $fundi->approved_at > $fundi->rejected_at);
+
+        if ($isApproved) {
+            $allowedFields = ['fname', 'mname', 'lname', 'profile_photo_url', 'profile_photo_public_id'];
+            $data = $request->only($allowedFields);
+
+            $validator = Validator::make($data, [
+                'fname' => 'sometimes|string|max:255',
+                'mname' => 'sometimes|nullable|string|max:255',
+                'lname' => 'sometimes|string|max:255',
+                'profile_photo_url' => 'sometimes|nullable|url',
+                'profile_photo_public_id' => 'sometimes|nullable|string|max:255',
+            ]);
+
+            if ($validator->fails()) {
+                return $this->errorResponse($validator->errors()->first(), 422);
+            }
+
+            $fundi->update($data);
+            activity('fundi_update', 'Updated approved fundi (restricted fields)', $fundi);
+
+            $this->clearFundiCaches($fundi->unique_id);
+
+            return $this->successResponse(
+                new FundiResource($fundi),
+                'Fundi updated successfully'
+            );
         }
 
         $validated = $this->validateFundiUpdateData($request, $fundi);
 
         // Check for duplicates (excluding current fundi)
         $duplicateErrors = $this->checkForDuplicateFundi($request, $fundi->id);
-        if (!empty($duplicateErrors)) {
+        if (! empty($duplicateErrors)) {
             return $this->errorResponse(json_encode($duplicateErrors), null, 422);
         }
 
         DB::beginTransaction();
         try {
-            if ($fundi->approved_at && $fundi->approval_status === 'Approved') {
-                DB::rollBack();
-                return $this->errorResponse(
-                    'Cannot update approved fundi',
-                    null,
-                    422
-                );
-            }
-
             $this->updateFundiData($validated, $request, $fundi);
 
             DB::commit();
@@ -382,7 +384,7 @@ class FundiController extends BaseAPIController
             Log::error('Failed to update fundi', [
                 'fundi_id' => $fundi->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return $this->errorResponse(
@@ -395,11 +397,6 @@ class FundiController extends BaseAPIController
 
     /**
      * Update fundi data
-     *
-     * @param array $validated
-     * @param Request $request
-     * @param Fundi $fundi
-     * @return void
      */
     private function updateFundiData(array $validated, Request $request, Fundi $fundi): void
     {
@@ -434,14 +431,10 @@ class FundiController extends BaseAPIController
 
     /**
      * Approve fundi
-     *
-     * @param Request $request
-     * @param Fundi $fundi
-     * @return JsonResponse
      */
     public function approve(Request $request, Fundi $fundi): JsonResponse
     {
-        if (!$this->authorizeOperatorAccess($fundi)) {
+        if (! $this->authorizeOperatorAccess($fundi)) {
             return $this->errorResponse('Unauthorized access', null, 403);
         }
 
@@ -449,6 +442,7 @@ class FundiController extends BaseAPIController
         try {
             if ($fundi->approval_status === 'Approved') {
                 DB::rollBack();
+
                 return $this->errorResponse('Fundi is already approved', null, 422);
             }
 
@@ -474,7 +468,7 @@ class FundiController extends BaseAPIController
             DB::rollBack();
             Log::error('Failed to approve fundi', [
                 'fundi_id' => $fundi->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->errorResponse(
@@ -487,14 +481,10 @@ class FundiController extends BaseAPIController
 
     /**
      * Reject fundi
-     *
-     * @param Request $request
-     * @param Fundi $fundi
-     * @return JsonResponse
      */
     public function reject(Request $request, Fundi $fundi): JsonResponse
     {
-        if (!$this->authorizeOperatorAccess($fundi)) {
+        if (! $this->authorizeOperatorAccess($fundi)) {
             return $this->errorResponse('Unauthorized access', null, 403);
         }
 
@@ -506,6 +496,7 @@ class FundiController extends BaseAPIController
         try {
             if ($fundi->approval_status === 'Rejected') {
                 DB::rollBack();
+
                 return $this->errorResponse('Fundi is already rejected', null, 422);
             }
 
@@ -531,7 +522,7 @@ class FundiController extends BaseAPIController
             DB::rollBack();
             Log::error('Failed to reject fundi', [
                 'fundi_id' => $fundi->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->errorResponse(
@@ -544,9 +535,6 @@ class FundiController extends BaseAPIController
 
     /**
      * Search fundis for site visit assignment
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function searchForSiteVisit(Request $request): JsonResponse
     {
@@ -556,7 +544,7 @@ class FundiController extends BaseAPIController
         ]);
 
         if (isset($validated['ward_id'])) {
-            if (!$this->isWardInOperatorDistricts($validated['ward_id'])) {
+            if (! $this->isWardInOperatorDistricts($validated['ward_id'])) {
                 return $this->errorResponse(
                     'Unauthorized access to this ward',
                     null,
@@ -574,7 +562,7 @@ class FundiController extends BaseAPIController
         $cachedData = $this->rememberWithTags(
             $cacheKey,
             $this->getCacheTTL('short'),
-            fn() => $this->buildSearchResultsData($validated),
+            fn () => $this->buildSearchResultsData($validated),
             [self::CACHE_TAGS['fundis']]
         );
 
@@ -586,14 +574,16 @@ class FundiController extends BaseAPIController
 
     /**
      * Build search results data for caching
-     *
-     * @param array $validated
-     * @return array
      */
     private function buildSearchResultsData(array $validated): array
     {
         $query = Fundi::where('status', 'active')
             ->with(['ward.district.region']);
+
+        if (! isRoot()) {
+            $districtIds = $this->getOperatorDistricts();
+            $query->whereHas('ward.district', fn ($q) => $q->whereIn('id', $districtIds));
+        }
 
         if (isset($validated['ward_id'])) {
             $query->where('ward_id', $validated['ward_id']);
@@ -608,13 +598,10 @@ class FundiController extends BaseAPIController
 
     /**
      * Soft delete fundi
-     *
-     * @param Fundi $fundi
-     * @return JsonResponse
      */
     public function destroy(Fundi $fundi): JsonResponse
     {
-        if (!$this->authorizeOperatorAccess($fundi)) {
+        if (! $this->authorizeOperatorAccess($fundi)) {
             return $this->errorResponse('Unauthorized access', null, 403);
         }
 
@@ -634,7 +621,7 @@ class FundiController extends BaseAPIController
             DB::rollBack();
             Log::error('Failed to delete fundi', [
                 'fundi_id' => $fundi->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->errorResponse(
@@ -647,15 +634,12 @@ class FundiController extends BaseAPIController
 
     /**
      * Restore soft deleted fundi
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function restore(int $id): JsonResponse
     {
         $fundi = Fundi::onlyTrashed()->findOrFail($id);
 
-        if (!$this->authorizeOperatorAccess($fundi)) {
+        if (! $this->authorizeOperatorAccess($fundi)) {
             return $this->errorResponse('Unauthorized access', null, 403);
         }
 
@@ -675,7 +659,7 @@ class FundiController extends BaseAPIController
             DB::rollBack();
             Log::error('Failed to restore fundi', [
                 'fundi_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return $this->errorResponse(
@@ -690,9 +674,6 @@ class FundiController extends BaseAPIController
 
     /**
      * Validate fundi creation data
-     *
-     * @param Request $request
-     * @return array
      */
     private function validateFundiData(Request $request): array
     {
@@ -719,7 +700,7 @@ class FundiController extends BaseAPIController
                 'integer',
                 'exists:wards,id',
                 function ($attribute, $value, $fail) {
-                    if (!$this->isWardInOperatorDistricts($value)) {
+                    if (! $this->isWardInOperatorDistricts($value)) {
                         $fail('The selected ward is not available in your operating districts.');
                     }
                 },
@@ -733,10 +714,6 @@ class FundiController extends BaseAPIController
 
     /**
      * Validate fundi update data
-     *
-     * @param Request $request
-     * @param Fundi $fundi
-     * @return array
      */
     private function validateFundiUpdateData(Request $request, Fundi $fundi): array
     {
@@ -763,7 +740,7 @@ class FundiController extends BaseAPIController
                 'integer',
                 'exists:wards,id',
                 function ($attribute, $value, $fail) {
-                    if (!$this->isWardInOperatorDistricts($value)) {
+                    if (! $this->isWardInOperatorDistricts($value)) {
                         $fail('The selected ward is not available in your operating districts.');
                     }
                 },
@@ -780,26 +757,21 @@ class FundiController extends BaseAPIController
 
     /**
      * Format search string for phone search
-     *
-     * @param string $searchTerm
-     * @return string
      */
     private function formatSearchStringForPhoneSearch(string $searchTerm): string
     {
         $digitsOnly = preg_replace('/\D/', '', $searchTerm);
         $digitsOnly = ltrim($digitsOnly, '0');
-        return '%+255' . $digitsOnly . '%';
+
+        return '%+255'.$digitsOnly.'%';
     }
 
     /**
      * Check if operator has access to fundi
-     *
-     * @param Fundi $fundi
-     * @return bool
      */
     private function authorizeOperatorAccess(Fundi $fundi): bool
     {
-        return $this->getOperatorDistricts()->contains($fundi->ward->district_id);
+        return isRoot() || $this->getOperatorDistricts()->contains($fundi->ward->district_id);
     }
 
     /**
@@ -812,9 +784,7 @@ class FundiController extends BaseAPIController
      * 3. NIDA must be unique (if provided)
      * 4. Combination of fname + lname + ward_id must be unique
      *
-     * @param Request $request
-     * @param int|null $excludeId - ID to exclude for updates
-     * @return array
+     * @param  int|null  $excludeId  - ID to exclude for updates
      */
     private function checkForDuplicateFundi(Request $request, ?int $excludeId = null): array
     {
@@ -822,7 +792,7 @@ class FundiController extends BaseAPIController
 
         // Rule 1: Primary phone must be entirely unique
         $primaryPhoneExists = Fundi::where('primary_phone', $request->primary_phone)
-            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
             ->exists();
 
         if ($primaryPhoneExists) {
@@ -831,7 +801,7 @@ class FundiController extends BaseAPIController
 
         // Rule 2: Transaction phone must be entirely unique
         $transactionPhoneExists = Fundi::where('transaction_phone', $request->transaction_phone)
-            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
             ->exists();
 
         if ($transactionPhoneExists) {
@@ -841,7 +811,7 @@ class FundiController extends BaseAPIController
         // Rule 3: NIDA must be unique (if provided)
         if ($request->filled('nida_number')) {
             $nidaExists = Fundi::where('nida_number', $request->nida_number)
-                ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+                ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
                 ->exists();
 
             if ($nidaExists) {
@@ -853,7 +823,7 @@ class FundiController extends BaseAPIController
         $nameCombinationExists = Fundi::where('fname', $request->fname)
             ->where('lname', $request->lname)
             ->where('ward_id', $request->ward_id)
-            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
             ->exists();
 
         if ($nameCombinationExists) {
@@ -865,12 +835,13 @@ class FundiController extends BaseAPIController
 
     /**
      * Check if ward is in operator districts
-     *
-     * @param int $wardId
-     * @return bool
      */
     private function isWardInOperatorDistricts(int $wardId): bool
     {
+        if (isRoot()) {
+            return true;
+        }
+
         return Ward::where('id', $wardId)
             ->whereHas('district', function ($query) {
                 $query->whereIn('id', $this->getOperatorDistricts());
@@ -880,10 +851,6 @@ class FundiController extends BaseAPIController
 
     /**
      * Create fundi with all data
-     *
-     * @param array $validated
-     * @param Request $request
-     * @return Fundi
      */
     private function createFundi(array $validated, Request $request): Fundi
     {
@@ -907,11 +874,6 @@ class FundiController extends BaseAPIController
 
     /**
      * Handle profile photo upload/assignment
-     *
-     * @param Request $request
-     * @param array $data
-     * @param Fundi|null $fundi
-     * @return void
      */
     private function handleProfilePhoto(Request $request, array &$data, ?Fundi $fundi = null): void
     {
@@ -926,7 +888,7 @@ class FundiController extends BaseAPIController
                 } catch (\Exception $e) {
                     Log::warning('Failed to delete old profile photo', [
                         'public_id' => $fundi->profile_photo_public_id,
-                        'error' => $e->getMessage()
+                        'error' => $e->getMessage(),
                     ]);
                 }
             }
@@ -950,7 +912,7 @@ class FundiController extends BaseAPIController
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to upload profile photo', [
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 throw $e;
             }
@@ -959,13 +921,11 @@ class FundiController extends BaseAPIController
 
     /**
      * Generate unique ID for fundi
-     *
-     * @return string
      */
     private function generateUniqueId(): string
     {
         do {
-            $id = 'FND' . str_pad(mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
+            $id = 'FND'.str_pad(mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
         } while (Fundi::where('unique_id', $id)->exists());
 
         return $id;

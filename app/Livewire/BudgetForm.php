@@ -2,11 +2,11 @@
 
 namespace App\Livewire;
 
-use Exception;
-use Livewire\Component;
-use App\Traits\HasAlerts;
 use App\Models\BudgetAllocation;
+use App\Traits\HasAlerts;
+use Exception;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class BudgetForm extends Component
 {
@@ -14,14 +14,20 @@ class BudgetForm extends Component
 
     // Form properties
     public $budget_id = null;
+
     public $title = '';
+
     public $description = '';
+
     public $total_amount = '';
+
     public $status = 'active';
 
     // UI state
     public $action_text = 'Create';
+
     public $editing = false;
+
     public $saving = false;
 
     protected $listeners = [
@@ -84,7 +90,7 @@ class BudgetForm extends Component
             'description',
             'total_amount',
             'editing',
-            'saving'
+            'saving',
         ]);
         $this->status = 'active';
         $this->action_text = 'Create';
@@ -147,19 +153,21 @@ class BudgetForm extends Component
                     } else {
                         $this->dispatch('budgetUpdated', $budget->id);
                     }
+
                     return true;
                 }
 
                 return false;
             },
             $isCreating ? 'Created!' : 'Updated!',
-            'Budget allocation ' . ($isCreating ? 'created' : 'updated') . ' successfully',
+            'Budget allocation '.($isCreating ? 'created' : 'updated').' successfully',
             'Error',
-            'Failed to ' . ($isCreating ? 'create' : 'update') . ' budget allocation',
+            'Failed to '.($isCreating ? 'create' : 'update').' budget allocation',
             false // Use alert for important actions
         );
 
         $this->saving = false;
+
         return $result;
     }
 

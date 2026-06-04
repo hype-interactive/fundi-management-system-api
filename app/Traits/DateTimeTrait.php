@@ -4,41 +4,45 @@ namespace App\Traits;
 
 trait DateTimeTrait
 {
+    private static $time_start = ' 00:00:00';
 
-    private static  $time_start = " 00:00:00";
-    private static   $time_end = " 23:59:59";
+    private static $time_end = ' 23:59:59';
 
-    static function todayFrom()
+    public static function todayFrom()
     {
-        $date = date("Y-m-d");
-        return $date . self::$time_start;
+        $date = date('Y-m-d');
+
+        return $date.self::$time_start;
     }
 
-    static function todayTo()
+    public static function todayTo()
     {
-        $date = date("Y-m-d");
-        return $date . self::$time_end;
+        $date = date('Y-m-d');
+
+        return $date.self::$time_end;
     }
 
-    static function minusTimeFrom($duration)
+    public static function minusTimeFrom($duration)
     {
-        $date = date("Y-m-d", strtotime($duration));
-        return $date . self::$time_start;
+        $date = date('Y-m-d', strtotime($duration));
+
+        return $date.self::$time_start;
     }
 
-    static function minusTimeTo($duration)
+    public static function minusTimeTo($duration)
     {
-        $date = date("Y-m-d", strtotime($duration));
-        return $date . self::$time_end;
+        $date = date('Y-m-d', strtotime($duration));
+
+        return $date.self::$time_end;
     }
 
-    static function getDateFrom($duration)
+    public static function getDateFrom($duration)
     {
-        return date("Y-m-d", strtotime($duration)) . self::$time_start;
+        return date('Y-m-d', strtotime($duration)).self::$time_start;
     }
 
-    static function getDateTo($duration)
+    public static function getDateTo($duration)
     {
-        return date("Y-m-d", strtotime($duration)) . self::$time_end;
+        return date('Y-m-d', strtotime($duration)).self::$time_end;
     }
 }

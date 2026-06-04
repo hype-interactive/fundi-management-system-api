@@ -21,15 +21,11 @@ trait HasImageUpload
     /**
      * Handle single image upload
      *
-     * @param UploadedFile|TemporaryUploadedFile $file
-     * @param string $folder
-     * @param string|null $oldPublicId
-     * @param array $options
-     * @return array|null
+     * @param  UploadedFile|TemporaryUploadedFile  $file
      */
     protected function handleImageUpload($file, string $folder = 'uploads', ?string $oldPublicId = null, array $options = []): ?array
     {
-        if (!$file) {
+        if (! $file) {
             return null;
         }
 
@@ -53,9 +49,6 @@ trait HasImageUpload
 
     /**
      * Handle image deletion
-     *
-     * @param string $publicId
-     * @return bool
      */
     protected function handleImageDeletion(string $publicId): bool
     {
@@ -64,10 +57,6 @@ trait HasImageUpload
 
     /**
      * Get optimized image URL
-     *
-     * @param string $publicId
-     * @param array $transformations
-     * @return string
      */
     protected function getOptimizedImageUrl(string $publicId, array $transformations = []): string
     {
@@ -76,11 +65,6 @@ trait HasImageUpload
 
     /**
      * Get thumbnail URL
-     *
-     * @param string $publicId
-     * @param int $width
-     * @param int $height
-     * @return string
      */
     protected function getThumbnailUrl(string $publicId, int $width = 150, int $height = 150): string
     {
@@ -90,16 +74,14 @@ trait HasImageUpload
     /**
      * Validate image file
      *
-     * @param mixed $file
-     * @param array $rules
-     * @return array
+     * @param  mixed  $file
      */
     protected function validateImageFile($file, array $rules = []): array
     {
         $defaultRules = [
             'image',
             'max:2048', // 2MB max
-            'mimes:jpeg,png,jpg,gif,webp'
+            'mimes:jpeg,png,jpg,gif,webp',
         ];
 
         return array_merge($defaultRules, $rules);
@@ -107,10 +89,6 @@ trait HasImageUpload
 
     /**
      * Get validation rules for image upload
-     *
-     * @param bool $required
-     * @param array $additionalRules
-     * @return array
      */
     protected function getImageValidationRules(bool $required = false, array $additionalRules = []): array
     {

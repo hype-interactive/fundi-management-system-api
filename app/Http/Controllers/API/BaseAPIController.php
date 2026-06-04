@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class BaseAPIController extends Controller
@@ -35,7 +34,7 @@ class BaseAPIController extends Controller
     protected function getOperator()
     {
         $userId = Auth::id();
-        if (!$userId) {
+        if (! $userId) {
             return null;
         }
 
@@ -49,7 +48,7 @@ class BaseAPIController extends Controller
     protected function getOperatorDistricts()
     {
         $operator = $this->getOperator();
-        if (!$operator) {
+        if (! $operator) {
             return collect(); // Return empty collection if no operator
         }
 
@@ -62,11 +61,11 @@ class BaseAPIController extends Controller
     protected function isOperatorActive(): bool
     {
         $operator = $this->getOperator();
-        if (!$operator) {
+        if (! $operator) {
             return false;
         }
 
-        return !isset($operator->status) || $operator->status === 'active';
+        return ! isset($operator->status) || $operator->status === 'active';
     }
 
     /**
@@ -75,11 +74,11 @@ class BaseAPIController extends Controller
     protected function getOperatorWithRelations(array $relations = []): ?User
     {
         $operator = $this->getOperator();
-        if (!$operator) {
+        if (! $operator) {
             return null;
         }
 
-        if (!empty($relations)) {
+        if (! empty($relations)) {
             $operator->load($relations);
         }
 

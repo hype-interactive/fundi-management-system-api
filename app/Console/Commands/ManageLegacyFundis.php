@@ -5,8 +5,8 @@ namespace App\Console\Commands;
 use App\Models\Fundi;
 use App\Models\LegacyFundi;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ManageLegacyFundis extends Command
 {
@@ -33,8 +33,8 @@ class ManageLegacyFundis extends Command
     {
         $action = $this->argument('action');
 
-        $this->info("🛠️  Legacy Fundis Management Tool");
-        $this->info("================================");
+        $this->info('🛠️  Legacy Fundis Management Tool');
+        $this->info('================================');
         $this->newLine();
 
         switch ($action) {
@@ -50,7 +50,8 @@ class ManageLegacyFundis extends Command
                 return $this->exportAnalysis();
             default:
                 $this->error("Unknown action: {$action}");
-                $this->info("Available actions: stats, match, unlink, clean, export");
+                $this->info('Available actions: stats, match, unlink, clean, export');
+
                 return 1;
         }
     }
@@ -159,7 +160,7 @@ class ManageLegacyFundis extends Command
 
         if ($analysis['high_confidence'] > 0) {
             $this->info("\n💡 You have {$analysis['high_confidence']} high-confidence matches ready for auto-linking!");
-            $this->info("   Run: php artisan legacy:manage match --confidence=90");
+            $this->info('   Run: php artisan legacy:manage match --confidence=90');
         }
     }
 
@@ -169,7 +170,7 @@ class ManageLegacyFundis extends Command
     private function showDataQuality(): void
     {
         $this->info("\n📈 Data Quality Metrics");
-        $this->info("=======================");
+        $this->info('=======================');
 
         $withNames = LegacyFundi::whereNotNull('name')->where('name', '!=', '')->count();
         $withPhones = LegacyFundi::whereNotNull('primary_phone')->where('primary_phone', '!=', '')->count();
@@ -194,7 +195,7 @@ class ManageLegacyFundis extends Command
     private function showRegionDistribution(): void
     {
         $this->info("\n🗺️  Region Distribution");
-        $this->info("======================");
+        $this->info('======================');
 
         $regions = LegacyFundi::select('region', DB::raw('COUNT(*) as count'))
             ->whereNotNull('region')
@@ -211,7 +212,7 @@ class ManageLegacyFundis extends Command
 
             $this->table(['Region', 'Count'], $data);
         } else {
-            $this->info("No region data available");
+            $this->info('No region data available');
         }
     }
 
@@ -225,17 +226,18 @@ class ManageLegacyFundis extends Command
         $limit = (int) $this->option('limit');
         $isDryRun = $this->option('dry-run');
 
-        $this->info("🔗 Running Legacy Matching");
-        $this->info("==========================");
+        $this->info('🔗 Running Legacy Matching');
+        $this->info('==========================');
         $this->info("Confidence threshold: {$confidence}%");
         $this->info("Match type: {$matchType}");
         $this->info("Limit: {$limit} records");
-        $this->info("Mode: " . ($isDryRun ? 'DRY RUN' : 'LIVE'));
+        $this->info('Mode: '.($isDryRun ? 'DRY RUN' : 'LIVE'));
         $this->newLine();
 
-        if (!$this->option('force') && !$isDryRun) {
-            if (!$this->confirm('This will create permanent links between legacy and current fundis. Continue?')) {
+        if (! $this->option('force') && ! $isDryRun) {
+            if (! $this->confirm('This will create permanent links between legacy and current fundis. Continue?')) {
                 $this->info('Operation cancelled.');
+
                 return 0;
             }
         }
@@ -247,7 +249,8 @@ class ManageLegacyFundis extends Command
         })->limit($limit)->get();
 
         if ($unmatched->isEmpty()) {
-            $this->info("No unmatched legacy records found.");
+            $this->info('No unmatched legacy records found.');
+
             return 0;
         }
 
@@ -271,8 +274,8 @@ class ManageLegacyFundis extends Command
             if ($bestMatch) {
                 $fundi = $bestMatch['fundi'];
 
-                if (!$fundi->legacy_match) {
-                    if (!$isDryRun) {
+                if (! $fundi->legacy_match) {
+                    if (! $isDryRun) {
                         $fundi->update([
                             'legacy_match' => true,
                             'legacy_id' => $legacy->id,
@@ -289,7 +292,7 @@ class ManageLegacyFundis extends Command
                         'fundi_id' => $fundi->id,
                         'fundi_name' => $fundi->full_name,
                         'confidence' => $bestMatch['confidence'],
-                        'type' => $bestMatch['match_type']
+                        'type' => $bestMatch['match_type'],
                     ];
                 }
             }
@@ -305,18 +308,18 @@ class ManageLegacyFundis extends Command
 
             if ($this->option('verbose') && count($matchDetails) > 0) {
                 $this->newLine();
-                $this->info("Match Details (showing first 10):");
+                $this->info('Match Details (showing first 10):');
                 $this->table(
                     ['Legacy ID', 'Legacy Name', 'Fundi ID', 'Fundi Name', 'Confidence', 'Type'],
                     array_slice($matchDetails, 0, 10)
                 );
 
                 if (count($matchDetails) > 10) {
-                    $this->info("... and " . (count($matchDetails) - 10) . " more matches");
+                    $this->info('... and '.(count($matchDetails) - 10).' more matches');
                 }
             }
         } else {
-            $this->warn("No matches found with current criteria.");
+            $this->warn('No matches found with current criteria.');
             $this->info("💡 Try lowering the confidence threshold or using 'all' match types.");
         }
 
@@ -331,15 +334,16 @@ class ManageLegacyFundis extends Command
         $limit = (int) $this->option('limit');
         $isDryRun = $this->option('dry-run');
 
-        $this->info("🔓 Unlinking Legacy Matches");
-        $this->info("===========================");
+        $this->info('🔓 Unlinking Legacy Matches');
+        $this->info('===========================');
 
-        if (!$this->option('force')) {
+        if (! $this->option('force')) {
             $matchedCount = Fundi::where('legacy_match', true)->count();
             $this->warn("This will unlink ALL {$matchedCount} legacy matches!");
 
-            if (!$this->confirm('Are you sure you want to continue?')) {
+            if (! $this->confirm('Are you sure you want to continue?')) {
                 $this->info('Operation cancelled.');
+
                 return 0;
             }
         }
@@ -347,7 +351,8 @@ class ManageLegacyFundis extends Command
         $matchedFundis = Fundi::where('legacy_match', true)->limit($limit)->get();
 
         if ($matchedFundis->isEmpty()) {
-            $this->info("No linked legacy records found.");
+            $this->info('No linked legacy records found.');
+
             return 0;
         }
 
@@ -358,7 +363,7 @@ class ManageLegacyFundis extends Command
         $unlinked = 0;
 
         foreach ($matchedFundis as $fundi) {
-            if (!$isDryRun) {
+            if (! $isDryRun) {
                 $fundi->update([
                     'legacy_match' => false,
                     'legacy_id' => null,
@@ -389,12 +394,13 @@ class ManageLegacyFundis extends Command
     {
         $isDryRun = $this->option('dry-run');
 
-        $this->info("🧹 Cleaning Legacy Data");
-        $this->info("=======================");
+        $this->info('🧹 Cleaning Legacy Data');
+        $this->info('=======================');
 
-        if (!$this->option('force') && !$isDryRun) {
-            if (!$this->confirm('This will permanently remove duplicate and invalid records. Continue?')) {
+        if (! $this->option('force') && ! $isDryRun) {
+            if (! $this->confirm('This will permanently remove duplicate and invalid records. Continue?')) {
                 $this->info('Operation cancelled.');
+
                 return 0;
             }
         }
@@ -402,7 +408,7 @@ class ManageLegacyFundis extends Command
         $cleaned = 0;
 
         // Clean phone number duplicates
-        $this->info("Cleaning phone number duplicates...");
+        $this->info('Cleaning phone number duplicates...');
         $phoneGroups = LegacyFundi::select('primary_phone', DB::raw('COUNT(*) as count'))
             ->whereNotNull('primary_phone')
             ->where('primary_phone', '!=', '')
@@ -418,7 +424,7 @@ class ManageLegacyFundis extends Command
             $toRemove = $duplicates->skip(1); // Keep the first one
 
             foreach ($toRemove as $duplicate) {
-                if (!$isDryRun) {
+                if (! $isDryRun) {
                     $duplicate->delete();
                 }
                 $cleaned++;
@@ -426,7 +432,7 @@ class ManageLegacyFundis extends Command
         }
 
         // Clean NIDA duplicates
-        $this->info("Cleaning NIDA number duplicates...");
+        $this->info('Cleaning NIDA number duplicates...');
         $nidaGroups = LegacyFundi::whereNotNull('nida_number')
             ->where('nida_number', '!=', '')
             ->select('nida_number', DB::raw('COUNT(*) as count'))
@@ -442,7 +448,7 @@ class ManageLegacyFundis extends Command
             $toRemove = $duplicates->skip(1);
 
             foreach ($toRemove as $duplicate) {
-                if (!$isDryRun) {
+                if (! $isDryRun) {
                     $duplicate->delete();
                 }
                 $cleaned++;
@@ -450,7 +456,7 @@ class ManageLegacyFundis extends Command
         }
 
         // Clean invalid phone numbers
-        $this->info("Cleaning invalid phone numbers...");
+        $this->info('Cleaning invalid phone numbers...');
         $invalidPhones = LegacyFundi::where(function ($query) {
             $query->whereNull('primary_phone')
                 ->orWhere('primary_phone', '')
@@ -459,7 +465,7 @@ class ManageLegacyFundis extends Command
         })->get();
 
         foreach ($invalidPhones as $invalid) {
-            if (!$isDryRun) {
+            if (! $isDryRun) {
                 $invalid->delete();
             }
             $cleaned++;
@@ -468,7 +474,7 @@ class ManageLegacyFundis extends Command
         $this->info("✅ Cleaned {$cleaned} records!");
 
         if ($isDryRun) {
-            $this->warn("🔍 This was a dry run - no actual changes were made.");
+            $this->warn('🔍 This was a dry run - no actual changes were made.');
         }
 
         return 0;
@@ -479,12 +485,12 @@ class ManageLegacyFundis extends Command
      */
     private function exportAnalysis(): int
     {
-        $this->info("📊 Exporting Analysis Data");
-        $this->info("===========================");
+        $this->info('📊 Exporting Analysis Data');
+        $this->info('===========================');
 
-        $filename = storage_path('app/legacy_analysis_' . date('Y-m-d_H-i-s') . '.csv');
+        $filename = storage_path('app/legacy_analysis_'.date('Y-m-d_H-i-s').'.csv');
 
-        $this->info("Generating analysis report...");
+        $this->info('Generating analysis report...');
 
         $handle = fopen($filename, 'w');
 
@@ -504,7 +510,7 @@ class ManageLegacyFundis extends Command
             'Potential Matches Count',
             'Best Match Confidence',
             'Best Match Type',
-            'Created At'
+            'Created At',
         ]);
 
         // Get all legacy fundis with their match status
@@ -528,7 +534,7 @@ class ManageLegacyFundis extends Command
                     $potentialMatches->count(),
                     $bestMatch ? $bestMatch['confidence'] : 'N/A',
                     $bestMatch ? $bestMatch['match_type'] : 'N/A',
-                    $legacy->created_at->format('Y-m-d H:i:s')
+                    $legacy->created_at->format('Y-m-d H:i:s'),
                 ]);
             }
         });
@@ -536,7 +542,7 @@ class ManageLegacyFundis extends Command
         fclose($handle);
 
         $this->info("✅ Analysis exported to: {$filename}");
-        $this->info("📁 File size: " . $this->formatBytes(filesize($filename)));
+        $this->info('📁 File size: '.$this->formatBytes(filesize($filename)));
 
         return 0;
     }
@@ -555,14 +561,18 @@ class ManageLegacyFundis extends Command
 
     private function percentage(int $value, int $total): string
     {
-        if ($total === 0) return '0%';
-        return number_format(($value / $total) * 100, 1) . '%';
+        if ($total === 0) {
+            return '0%';
+        }
+
+        return number_format(($value / $total) * 100, 1).'%';
     }
 
     private function formatBytes(int $bytes): string
     {
         $units = ['B', 'KB', 'MB', 'GB'];
         $factor = floor((strlen($bytes) - 1) / 3);
-        return sprintf("%.2f %s", $bytes / pow(1024, $factor), $units[$factor]);
+
+        return sprintf('%.2f %s', $bytes / pow(1024, $factor), $units[$factor]);
     }
 }

@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Models\Ward;
+use App\Http\Resources\SiteVisitListResource;
+use App\Http\Resources\SiteVisitResource;
 use App\Models\SiteVisit;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use App\Models\Ward;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Resources\SiteVisitResource;
-use App\Http\Resources\SiteVisitListResource;
+use Illuminate\Validation\Rule;
 
 class SiteVisitController extends BaseAPIController
 {
@@ -20,9 +20,6 @@ class SiteVisitController extends BaseAPIController
      *
      * This method retrieves a paginated list of site visits for the authenticated operator,
      * with optional filters for status, ward, and date range.
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -66,9 +63,6 @@ class SiteVisitController extends BaseAPIController
      *
      * This method retrieves detailed information about a specific site visit,
      * including the ward, operator, approver, photos, products, and fundis involved.
-     *
-     * @param SiteVisit $siteVisit
-     * @return JsonResponse
      */
     public function show(SiteVisit $siteVisit): JsonResponse
     {
@@ -83,7 +77,7 @@ class SiteVisitController extends BaseAPIController
             'approver',
             'photos',
             'products',
-            'fundis'
+            'fundis',
         ]);
 
         return $this->successResponse(
@@ -99,8 +93,6 @@ class SiteVisitController extends BaseAPIController
      * including details about the ward, site name, description, visit date,
      * GPS coordinates, photos, products, and fundis involved.
      *
-     * @param Request $request
-     * @return JsonResponse
      * @throws \Illuminate\Validation\ValidationException
      * @throws \Exception
      * @throws \Throwable
@@ -120,7 +112,7 @@ class SiteVisitController extends BaseAPIController
                         })
                         ->exists();
 
-                    if (!$wardExists) {
+                    if (! $wardExists) {
                         $fail('The selected ward is not available in your operating districts.');
                     }
                 },
@@ -215,7 +207,8 @@ class SiteVisitController extends BaseAPIController
             );
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->errorResponse('Failed to create site visit: ' . $e->getMessage());
+
+            return $this->errorResponse('Failed to create site visit: '.$e->getMessage());
         }
     }
 
@@ -224,9 +217,6 @@ class SiteVisitController extends BaseAPIController
      *
      * This method allows operators to update details of a site visit,
      *
-     * @param Request $request
-     * @param SiteVisit $siteVisit
-     * @return JsonResponse
      * @throws \Illuminate\Validation\ValidationException
      * @throws \Exception
      * @throws \Throwable
@@ -257,7 +247,7 @@ class SiteVisitController extends BaseAPIController
                         })
                         ->exists();
 
-                    if (!$wardExists) {
+                    if (! $wardExists) {
                         $fail('The selected ward is not available in your operating districts.');
                     }
                 },
@@ -289,7 +279,7 @@ class SiteVisitController extends BaseAPIController
                 'site_description',
                 'visit_date',
                 'gps_latitude',
-                'gps_longitude'
+                'gps_longitude',
             ]);
 
             // Remove null values to avoid overwriting with nulls
@@ -356,7 +346,7 @@ class SiteVisitController extends BaseAPIController
                 'approver',
                 'photos',
                 'products',
-                'fundis'
+                'fundis',
             ]);
 
             DB::commit();
@@ -367,7 +357,8 @@ class SiteVisitController extends BaseAPIController
             );
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->errorResponse('Failed to update site visit: ' . $e->getMessage());
+
+            return $this->errorResponse('Failed to update site visit: '.$e->getMessage());
         }
     }
 }

@@ -3,15 +3,14 @@
 namespace App\Livewire;
 
 use App\Models\BudgetAllocation;
-use App\Models\DisbursementBatch;
 use App\Models\Fundi;
 use App\Services\Financial\FinancialManagementService;
 use App\Services\Payment\SelcomService;
 use App\Traits\HasAlerts;
-use Livewire\Component;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Livewire\Component;
 
 class DisbursementForm extends Component
 {
@@ -19,22 +18,33 @@ class DisbursementForm extends Component
 
     // Form properties
     public $budget_allocation_id = '';
+
     public $title = '';
+
     public $description = '';
+
     public $disbursement_date = '';
+
     public $selected_fundis = [];
 
     // UI state
     public $saving = false;
+
     public $checking_balance = false;
+
     public $step = 1;
+
     public $total_amount = 0;
+
     public $provider_balance = null;
+
     public $balance_check_error = null;
 
     // Data
     public $budget_allocations = [];
+
     public $available_fundis = [];
+
     public $search_fundi = '';
 
     protected $listeners = [
@@ -63,8 +73,8 @@ class DisbursementForm extends Component
 
         if ($this->search_fundi) {
             $query->where(function ($q) {
-                $q->whereRaw("concat(fname, ' ', lname) like ?", ['%' . $this->search_fundi . '%'])
-                    ->orWhere('primary_phone', 'like', '%' . $this->search_fundi . '%');
+                $q->whereRaw("concat(fname, ' ', lname) like ?", ['%'.$this->search_fundi.'%'])
+                    ->orWhere('primary_phone', 'like', '%'.$this->search_fundi.'%');
             });
         }
 
@@ -84,6 +94,7 @@ class DisbursementForm extends Component
         } elseif ($this->step == 2) {
             if (empty($this->selected_fundis)) {
                 $this->showErrorAlert('Error', 'Please select at least one fundi.');
+
                 return;
             }
             $this->calculateTotalAmount();
@@ -120,7 +131,7 @@ class DisbursementForm extends Component
             if ($fundi) {
                 $this->selected_fundis[$fundiId] = [
                     'fundi_id' => $fundiId,
-                'name' => $fundi->full_name,
+                    'name' => $fundi->full_name,
                     'phone' => $fundi->primary_phone,
                     'amount' => 50000,
                 ];
@@ -183,7 +194,7 @@ class DisbursementForm extends Component
             }
 
         } catch (Exception $e) {
-            $this->balance_check_error = 'Balance check error: ' . $e->getMessage();
+            $this->balance_check_error = 'Balance check error: '.$e->getMessage();
             Log::error('Balance check exception', ['error' => $e->getMessage()]);
         } finally {
             $this->checking_balance = false;
@@ -210,6 +221,7 @@ class DisbursementForm extends Component
         if (empty($this->selected_fundis)) {
             $this->saving = false;
             $this->showErrorAlert('Error', 'Please select at least one fundi.');
+
             return;
         }
 
@@ -217,6 +229,7 @@ class DisbursementForm extends Component
         if ($this->balance_check_error) {
             $this->saving = false;
             $this->showErrorAlert('Balance Error', $this->balance_check_error);
+
             return;
         }
 

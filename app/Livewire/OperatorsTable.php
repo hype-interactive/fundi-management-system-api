@@ -4,15 +4,15 @@ namespace App\Livewire;
 
 use App\Models\Role;
 use App\Models\User;
-use Livewire\Component;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use App\Traits\LocationTrait;
 use Carbon\Carbon;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class OperatorsTable extends Component
 {
-    use WithPagination, LocationTrait;
+    use LocationTrait, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -41,18 +41,22 @@ class OperatorsTable extends Component
     public $date_to = null;
 
     public $regions = [];
+
     public $districts = [];
+
     public $roles = [];
+
     public $status_options = [];
 
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     public function updatedRegion($value)
     {
         $this->district = null;
-        $this->districts = $this->getDistricts((int)$value);
+        $this->districts = $this->getDistricts((int) $value);
         $this->resetPage();
     }
 
@@ -150,8 +154,8 @@ class OperatorsTable extends Component
         $this->loadData();
 
         $query = User::with(['role', 'districts.region'])
-            ->where("role_id", '!=', 1)
-            ->where("role_id", '!=', 2);
+            ->where('role_id', '!=', 1)
+            ->where('role_id', '!=', 2);
 
         if ($this->region) {
             $query->whereHas('districts.region', function ($q) {
@@ -168,9 +172,9 @@ class OperatorsTable extends Component
         return $query
             ->when($this->search_key, function ($query, $search_key) {
                 $query->where(function ($q) use ($search_key) {
-                    $q->whereRaw("concat(fname, ' ', mname, ' ', lname) like ?", ['%' . $search_key . '%'])
-                        ->orWhere('email', 'like', '%' . $search_key . '%')
-                        ->orWhere('phone', 'like', '%' . $search_key . '%');
+                    $q->whereRaw("concat(fname, ' ', mname, ' ', lname) like ?", ['%'.$search_key.'%'])
+                        ->orWhere('email', 'like', '%'.$search_key.'%')
+                        ->orWhere('phone', 'like', '%'.$search_key.'%');
                 });
             })
             ->when($this->status, function ($query, $status) {
@@ -182,23 +186,23 @@ class OperatorsTable extends Component
     public function loadData()
     {
         $this->regions = $this->getAccessibleRegions();
-        $this->districts = $this->getDistricts((int)$this->region);
+        $this->districts = $this->getDistricts((int) $this->region);
         $this->roles = Role::orderBy('name')->get();
         $this->status_options = [
             'active' => 'Active',
-            'inactive' => 'Inactive'
+            'inactive' => 'Inactive',
         ];
     }
 
     public function toggleCompactView()
     {
-        $this->compactView = !$this->compactView;
+        $this->compactView = ! $this->compactView;
     }
 
     public function downloadOperatorPDF()
     {
         set_time_limit(300);
-        ini_set("memory_limit", "1000M");
+        ini_set('memory_limit', '1000M');
 
         return response()->streamDownload(function () {
             $operators = $this->getOperatorQuery()->get();
@@ -283,14 +287,14 @@ class OperatorsTable extends Component
             }
 
             fclose($handle);
-        }, 'operators_export_' . date('Y-m-d_H-i-s') . '.csv', [
+        }, 'operators_export_'.date('Y-m-d_H-i-s').'.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }
 
     public function mount()
     {
-        if (!$this->isAdminOrRoot()) {
+        if (! $this->isAdminOrRoot()) {
             $primaryDistrict = $this->getUserPrimaryDistrict();
             $primaryRegion = $this->getUserPrimaryRegion();
 
@@ -314,7 +318,7 @@ class OperatorsTable extends Component
             'role_id',
             'status',
             'date_from',
-            'date_to'
+            'date_to',
         ]);
 
         if ($this->isAdminOrRoot()) {

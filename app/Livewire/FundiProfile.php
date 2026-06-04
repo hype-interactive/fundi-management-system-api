@@ -3,23 +3,27 @@
 namespace App\Livewire;
 
 use App\Models\Fundi;
-use Livewire\Component;
-use Livewire\Attributes\On;
-use App\Traits\HasAlerts;
 use App\Services\SmsService;
-use Illuminate\Support\Facades\Log;
+use App\Traits\HasAlerts;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 class FundiProfile extends Component
 {
     use HasAlerts;
 
     public $fundi;
+
     public $transactions;
+
     public $siteVisits;
+
     public $legacyMatch = false;
+
     public $legacyData = null;
 
     protected $smsService;
@@ -93,51 +97,54 @@ class FundiProfile extends Component
         $this->showSuccessToast('Refreshed', 'Profile data has been updated.');
     }
 
-public function downloadQrCode()
-{
-    if (!$this->fundi->qr_code_path || !Storage::disk('public')->exists($this->fundi->qr_code_path)) {
-        session()->flash('error', 'QR Code not found');
-        return;
-    }
+    public function downloadQrCode()
+    {
+        $this->fundi->loadMissing('ward.district.region');
 
-    // Get absolute paths
-        $qrCodePath = storage_path('app/public/' . $this->fundi->qr_code_path);
+        if (! $this->fundi->qr_code_path || ! Storage::disk('public')->exists($this->fundi->qr_code_path)) {
+            session()->flash('error', 'QR Code not found');
+
+            return;
+        }
+
+        // Get absolute paths
+        $qrCodePath = storage_path('app/public/'.$this->fundi->qr_code_path);
         $logoPath = public_path('images/logo.png');
-        
+
         // Convert images to base64
         $qrCodeBase64 = null;
         if (file_exists($qrCodePath)) {
             $qrCodeData = file_get_contents($qrCodePath);
             $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
-            $qrCodeBase64 = 'data:image/' . $qrCodeType . ';base64,' . base64_encode($qrCodeData);
+            $qrCodeBase64 = 'data:image/'.$qrCodeType.';base64,'.base64_encode($qrCodeData);
         }
-        
+
         $logoBase64 = null;
         if (file_exists($logoPath)) {
             $logoData = file_get_contents($logoPath);
-            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+            $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
         }
 
-    // Prepare data for ID card generation
-    $data = [
-        'company_name' => 'MAGIC BUILDERS AFRICA',
-        'id_number' => $this->fundi->unique_id ?? 'FNS-01X251',
-        'name' => $this->fundi->full_name,
-        'gender' => $this->fundi->gender ?? 'N/A',
-        'address' => $this->fundi->address ?? 'Sinza, Kinondoni, Dar Es Salaam',
-        'registered' => $this->fundi->created_at ? $this->fundi->created_at->format('d/m/Y') : date('d/m/Y'),
-        'expire' => $this->fundi->expire_date ? $this->fundi->expire_date->format('d/m/Y') : date('d/m/Y', strtotime('+5 years')),
-        'photo' => $this->fundi->photo_path ? Storage::disk('public')->path($this->fundi->photo_path) : public_path('images/profile.jpg'),
-        'logo' => $logoBase64, // Base64 encoded
-        'qrcode' => $qrCodeBase64, 
-    ];
+        // Prepare data for ID card generation
+        $data = [
+            'company_name' => 'MAGIC BUILDERS AFRICA',
+            'id_number' => $this->fundi->unique_id ?? 'FNS-01X251',
+            'name' => $this->fundi->full_name,
+            'gender' => $this->fundi->gender ?? 'N/A',
+            'address' => $this->fundi->address ?? 'Sinza, Kinondoni, Dar Es Salaam',
+            'registered' => $this->fundi->created_at ? $this->fundi->created_at->format('d/m/Y') : date('d/m/Y'),
+            'expire' => $this->fundi->expire_date ? $this->fundi->expire_date->format('d/m/Y') : date('d/m/Y', strtotime('+5 years')),
+            'photo' => $this->fundi->photo_path ? Storage::disk('public')->path($this->fundi->photo_path) : public_path('images/profile.jpg'),
+            'logo' => $logoBase64, // Base64 encoded
+            'qrcode' => $qrCodeBase64,
+        ];
 
-    // Store data in session temporarily
-    session()->put('id_card_data', $data);
+        // Store data in session temporarily
+        session()->put('id_card_data', $data);
 
-    // Redirect to the ID card generation route
-    return redirect()->route('fundi_id_download');
-}
+        // Redirect to the ID card generation route
+        return redirect()->route('fundi_id_download');
+    }
 
     /**
      * Handle fundi update event
@@ -163,6 +170,7 @@ public function downloadQrCode()
         if ($this->fundi->approved_at) {
             // Using trait method for simple validation warning
             $this->showWarningAlert('Already Approved', 'This fundi has already been approved.');
+
             return;
         }
 
@@ -179,7 +187,7 @@ public function downloadQrCode()
                 'Ranking' => $this->fundi->ranking ?? 'Not specified',
             ],
             'confirmMethod' => 'approveFundi',
-            'confirmParams' => []
+            'confirmParams' => [],
         ]);
     }
 
@@ -192,6 +200,7 @@ public function downloadQrCode()
         if ($this->fundi->approved_at) {
             // Using trait method for simple validation warning
             $this->showWarningAlert('Cannot Reject', 'This fundi has already been approved and cannot be rejected.');
+
             return;
         }
 
@@ -208,7 +217,7 @@ public function downloadQrCode()
                 'Ranking' => $this->fundi->ranking ?? 'Not specified',
             ],
             'confirmMethod' => 'rejectFundi',
-            'confirmParams' => []
+            'confirmParams' => [],
         ]);
     }
 
@@ -235,7 +244,7 @@ public function downloadQrCode()
                 $relatedData[] = "{$visitCount} site visit(s)";
             }
 
-            $warningMessage = 'WARNING: This fundi has ' . implode(' and ', $relatedData) . '. ' . $warningMessage;
+            $warningMessage = 'WARNING: This fundi has '.implode(' and ', $relatedData).'. '.$warningMessage;
         }
 
         // Use custom ConfirmationModal for delete with detailed item information
@@ -253,7 +262,7 @@ public function downloadQrCode()
                 'Site Visits' => $hasSiteVisits ? $this->fundi->siteVisits()->count() : '0',
             ],
             'confirmMethod' => 'deleteFundi',
-            'confirmParams' => []
+            'confirmParams' => [],
         ]);
     }
 
@@ -267,6 +276,7 @@ public function downloadQrCode()
         if ($this->fundi->approved_at) {
             // Using trait method for simple flash message
             $this->flashWarning('Already Approved', 'Fundi has already been approved.');
+
             return;
         }
 
@@ -315,6 +325,7 @@ public function downloadQrCode()
         if ($this->fundi->approved_at) {
             // Using trait method for simple flash message
             $this->flashWarning('Cannot Reject', 'Fundi cannot be rejected after approval.');
+
             return;
         }
 
@@ -412,6 +423,7 @@ public function downloadQrCode()
         if ($this->fundi->status === 'active') {
             // Using trait method for simple validation warning
             $this->showWarningAlert('Already Active', 'This fundi is already active.');
+
             return;
         }
 
@@ -469,6 +481,7 @@ public function downloadQrCode()
         if ($this->fundi->status === 'inactive') {
             // Using trait method for simple validation warning
             $this->showWarningAlert('Already Inactive', 'This fundi is already inactive.');
+
             return;
         }
 
@@ -523,9 +536,10 @@ public function downloadQrCode()
      */
     public function resendWelcomeSms()
     {
-        if (!$this->fundi->approved_at) {
+        if (! $this->fundi->approved_at) {
             // Using trait method for simple validation warning
             $this->showWarningAlert('Not Approved', 'Welcome SMS can only be sent to approved fundis.');
+
             return;
         }
 
@@ -553,20 +567,23 @@ public function downloadQrCode()
             function () {
                 $phoneNumber = $this->getValidPhoneNumber();
 
-                if (!$phoneNumber) {
+                if (! $phoneNumber) {
                     $this->showErrorAlert('Invalid Phone', 'No valid phone number found for this fundi.');
+
                     return false;
                 }
 
                 $message = $this->generateWelcomeMessage();
                 $result = $this->smsService->sendSms($phoneNumber, $message);
 
-                if (!$result['success']) {
-                    Log::error("Failed to resend welcome SMS to fundi {$this->fundi->full_name}: " . ($result['error'] ?? 'Unknown error'));
+                if (! $result['success']) {
+                    Log::error("Failed to resend welcome SMS to fundi {$this->fundi->full_name}: ".($result['error'] ?? 'Unknown error'));
+
                     return false;
                 }
 
                 Log::info("Welcome SMS resent to fundi {$this->fundi->full_name} ({$phoneNumber})");
+
                 return true;
             },
             'SMS Sent',
@@ -586,8 +603,9 @@ public function downloadQrCode()
             // Get the primary phone number
             $phoneNumber = $this->getValidPhoneNumber();
 
-            if (!$phoneNumber) {
+            if (! $phoneNumber) {
                 Log::warning("No valid phone number found for fundi ID: {$this->fundi->id}");
+
                 return;
             }
 
@@ -601,13 +619,13 @@ public function downloadQrCode()
             if ($result['success']) {
                 Log::info("Welcome SMS sent successfully to fundi {$this->fundi->full_name} ({$phoneNumber})");
             } else {
-                Log::error("Failed to send welcome SMS to fundi {$this->fundi->full_name}: " . ($result['error'] ?? 'Unknown error'));
+                Log::error("Failed to send welcome SMS to fundi {$this->fundi->full_name}: ".($result['error'] ?? 'Unknown error'));
 
                 // Note: Don't fail the approval, just log the SMS failure
                 // The approval already succeeded at this point
             }
         } catch (\Exception $e) {
-            Log::error("Exception sending welcome SMS to fundi {$this->fundi->id}: " . $e->getMessage());
+            Log::error("Exception sending welcome SMS to fundi {$this->fundi->id}: ".$e->getMessage());
 
             // Note: Don't fail the approval, just log the SMS failure
         }
@@ -621,8 +639,9 @@ public function downloadQrCode()
         try {
             $phoneNumber = $this->getValidPhoneNumber();
 
-            if (!$phoneNumber) {
+            if (! $phoneNumber) {
                 Log::warning("No valid phone number found for fundi ID: {$this->fundi->id}");
+
                 return;
             }
 
@@ -632,10 +651,10 @@ public function downloadQrCode()
             if ($result['success']) {
                 Log::info("Rejection SMS sent to fundi {$this->fundi->full_name} ({$phoneNumber})");
             } else {
-                Log::error("Failed to send rejection SMS to fundi {$this->fundi->full_name}: " . ($result['error'] ?? 'Unknown error'));
+                Log::error("Failed to send rejection SMS to fundi {$this->fundi->full_name}: ".($result['error'] ?? 'Unknown error'));
             }
         } catch (\Exception $e) {
-            Log::error("Exception sending rejection SMS to fundi {$this->fundi->id}: " . $e->getMessage());
+            Log::error("Exception sending rejection SMS to fundi {$this->fundi->id}: ".$e->getMessage());
         }
     }
 
@@ -647,7 +666,7 @@ public function downloadQrCode()
         // Try primary phone first, then transaction phone
         $phoneNumber = $this->fundi->primary_phone ?? $this->fundi->transaction_phone;
 
-        if (!$phoneNumber) {
+        if (! $phoneNumber) {
             return null;
         }
 
@@ -655,13 +674,13 @@ public function downloadQrCode()
         $phoneNumber = preg_replace('/[^\d+]/', '', $phoneNumber);
 
         // Ensure it starts with +255 for Tanzania
-        if (!str_starts_with($phoneNumber, '+')) {
+        if (! str_starts_with($phoneNumber, '+')) {
             if (str_starts_with($phoneNumber, '0')) {
-                $phoneNumber = '+255' . substr($phoneNumber, 1);
+                $phoneNumber = '+255'.substr($phoneNumber, 1);
             } elseif (str_starts_with($phoneNumber, '255')) {
-                $phoneNumber = '+' . $phoneNumber;
+                $phoneNumber = '+'.$phoneNumber;
             } elseif (str_starts_with($phoneNumber, '7') && strlen($phoneNumber) == 9) {
-                $phoneNumber = '+255' . $phoneNumber;
+                $phoneNumber = '+255'.$phoneNumber;
             }
         }
 
@@ -677,8 +696,8 @@ public function downloadQrCode()
         $ranking = $this->fundi->ranking == 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi';
         $wardName = $this->fundi->ward?->name ?? 'your area';
 
-        return "Hongera {$name}! Umeidhinishwa rasmi kama {$ranking} katika kata ya {$wardName}. " .
-            "Sasa unaweza kuanza kufanya kazi. Kwa maelezo zaidi wasiliana nasi. Asante!";
+        return "Hongera {$name}! Umeidhinishwa rasmi kama {$ranking} katika kata ya {$wardName}. ".
+            'Sasa unaweza kuanza kufanya kazi. Kwa maelezo zaidi wasiliana nasi. Asante!';
     }
 
     /**
@@ -694,7 +713,7 @@ public function downloadQrCode()
             $message .= " Sababu: {$reason}.";
         }
 
-        $message .= " Unaweza kujaribu tena baadaye. Asante.";
+        $message .= ' Unaweza kujaribu tena baadaye. Asante.';
 
         return $message;
     }

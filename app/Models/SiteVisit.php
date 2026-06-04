@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class SiteVisit extends Model
 {
@@ -56,7 +56,7 @@ class SiteVisit extends Model
             ->withPivot('quantity', 'notes');
     }
 
-        /**
+    /**
      * Get total quantity of products across all site visits
      */
     public function getTotalProductQuantityAttribute(): int

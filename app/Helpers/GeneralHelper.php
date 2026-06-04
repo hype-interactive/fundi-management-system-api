@@ -12,11 +12,13 @@ use Illuminate\Support\Facades\Auth;
  * @return bool
  */
 if (! function_exists('isRoot')) {
-    function isRoot() {
+    function isRoot()
+    {
         $user = Auth::user();
         if ($user) {
             return $user->role_id == 1; // Assuming the role_id for root is 1
         }
+
         return false;
     }
 }
@@ -64,7 +66,7 @@ if (! function_exists('currentDistrictIds')) {
 if (! function_exists('generateDefaultPassword')) {
     function generateDefaultPassword(string $firstName, string $lastName): string
     {
-        return strtolower($firstName . $lastName . now()->format('Ymd'));
+        return strtolower($firstName.$lastName.now()->format('Ymd'));
     }
 }
 
@@ -81,7 +83,8 @@ if (! function_exists('assetToBase64')) {
     {
         $type = pathinfo($path, PATHINFO_EXTENSION);
         $data = file_get_contents($path);
-        return 'data:image/' . $type . ';base64,' . base64_encode($data);
+
+        return 'data:image/'.$type.';base64,'.base64_encode($data);
     }
 }
 
@@ -91,7 +94,7 @@ if (! function_exists('assetToBase64')) {
  * This function formats a given number into a currency string with two decimal places.
  * It uses the current locale's currency formatting rules.
  *
- * @param float $amount The amount to format.
+ * @param  float  $amount  The amount to format.
  * @return string The formatted currency string.
  */
 if (! function_exists('formatCurrency')) {

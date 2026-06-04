@@ -2,17 +2,18 @@
 
 namespace App\Livewire\SiteVisit;
 
-use Livewire\Component;
 use App\Models\SiteVisit;
+use Livewire\Component;
 
 class Tabs extends Component
 {
     public SiteVisit $siteVisit;
+
     public string $activeTab = 'details';
 
     protected $listeners = [
         'tabChanged',
-        'visitStatusChanged' => '$refresh'
+        'visitStatusChanged' => '$refresh',
     ];
 
     public function mount(SiteVisit $siteVisit)

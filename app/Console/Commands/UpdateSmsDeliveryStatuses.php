@@ -2,12 +2,13 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Jobs\UpdateSmsDeliveryStatuses as UpdateSmsDeliveryStatusesJob;
+use Illuminate\Console\Command;
 
 class UpdateSmsDeliveryStatuses extends Command
 {
     protected $signature = 'sms:update-statuses';
+
     protected $description = 'Update SMS delivery statuses from providers';
 
     public function handle()
@@ -17,6 +18,7 @@ class UpdateSmsDeliveryStatuses extends Command
         UpdateSmsDeliveryStatusesJob::dispatch();
 
         $this->info('SMS delivery status update job dispatched.');
+
         return 0;
     }
 }

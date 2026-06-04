@@ -2,24 +2,26 @@
 
 namespace App\Jobs;
 
-use App\Models\User;
 use App\Models\Fundi;
 use App\Models\SmsCampaign;
+use App\Models\User;
 use App\Services\SmsService;
 use App\Traits\LocationTrait;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class SendSmsCampaign implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels, LocationTrait;
+    use Dispatchable, InteractsWithQueue, LocationTrait, Queueable, SerializesModels;
 
     protected $campaign;
+
     public $timeout = 300; // 5 minutes timeout
+
     public $tries = 3;
 
     public function __construct(SmsCampaign $campaign)
@@ -72,7 +74,7 @@ class SendSmsCampaign implements ShouldQueue
             Log::info("SMS Campaign {$this->campaign->id} completed. Success: {$successCount}, Failed: {$failureCount}");
 
         } catch (\Exception $e) {
-            Log::error("SMS Campaign {$this->campaign->id} failed: " . $e->getMessage());
+            Log::error("SMS Campaign {$this->campaign->id} failed: ".$e->getMessage());
 
             $this->campaign->update([
                 'status' => 'failed',
@@ -96,12 +98,12 @@ class SendSmsCampaign implements ShouldQueue
 
         // Get operators if needed
         if (in_array($this->campaign->recipient_type, ['both', 'operators'])) {
-            $operatorQuery = User::whereHas('role', function($query) {
+            $operatorQuery = User::whereHas('role', function ($query) {
                 $query->where('name', 'operator');
             });
 
             // Apply specific user filters if custom selection
-            if (!empty($userIds)) {
+            if (! empty($userIds)) {
                 $operatorQuery->whereIn('id', $userIds);
             }
 
@@ -111,7 +113,7 @@ class SendSmsCampaign implements ShouldQueue
             foreach ($operatorQuery->get() as $operator) {
                 $recipients[] = [
                     'type' => 'user',
-                    'data' => $operator
+                    'data' => $operator,
                 ];
             }
         }
@@ -121,7 +123,7 @@ class SendSmsCampaign implements ShouldQueue
             $fundiQuery = Fundi::query();
 
             // Apply specific fundi filters if custom selection
-            if (!empty($fundiIds)) {
+            if (! empty($fundiIds)) {
                 $fundiQuery->whereIn('id', $fundiIds);
             }
 
@@ -131,7 +133,7 @@ class SendSmsCampaign implements ShouldQueue
             foreach ($fundiQuery->get() as $fundi) {
                 $recipients[] = [
                     'type' => 'fundi',
-                    'data' => $fundi
+                    'data' => $fundi,
                 ];
             }
         }
@@ -141,7 +143,7 @@ class SendSmsCampaign implements ShouldQueue
 
     public function failed(\Throwable $exception)
     {
-        Log::error("SMS Campaign Job {$this->campaign->id} failed permanently: " . $exception->getMessage());
+        Log::error("SMS Campaign Job {$this->campaign->id} failed permanently: ".$exception->getMessage());
 
         $this->campaign->update([
             'status' => 'failed',

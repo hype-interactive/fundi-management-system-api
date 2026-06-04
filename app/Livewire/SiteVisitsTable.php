@@ -3,14 +3,14 @@
 namespace App\Livewire;
 
 use App\Models\SiteVisit;
-use Livewire\Component;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use App\Traits\LocationTrait;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class SiteVisitsTable extends Component
 {
-    use WithPagination, LocationTrait;
+    use LocationTrait, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -44,14 +44,20 @@ class SiteVisitsTable extends Component
     public $visit_date_to = null;
 
     public $regions = [];
+
     public $districts = [];
+
     public $wards = [];
+
     public $status_options = [];
+
     public $operators = [];
+
     public $approvers = [];
 
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     public function updatedRegion($value)
@@ -60,7 +66,7 @@ class SiteVisitsTable extends Component
         $this->ward = null;
 
         // Load districts based on region selection
-        $this->districts = $this->getDistricts((int)$value);
+        $this->districts = $this->getDistricts((int) $value);
         $this->wards = collect();
 
         $this->resetPage();
@@ -125,10 +131,10 @@ class SiteVisitsTable extends Component
         return $query
             ->when($this->search_key, function ($query, $search_key) {
                 $query->where(function ($subQuery) use ($search_key) {
-                    $subQuery->where('site_name', 'like', '%' . $search_key . '%')
-                        ->orWhere('site_description', 'like', '%' . $search_key . '%')
+                    $subQuery->where('site_name', 'like', '%'.$search_key.'%')
+                        ->orWhere('site_description', 'like', '%'.$search_key.'%')
                         ->orWhereHas('operator', function ($operatorQuery) use ($search_key) {
-                            $operatorQuery->whereRaw("concat(fname, ' ', lname) like ?", ['%' . $search_key . '%']);
+                            $operatorQuery->whereRaw("concat(fname, ' ', lname) like ?", ['%'.$search_key.'%']);
                         });
                 });
             })
@@ -163,7 +169,7 @@ class SiteVisitsTable extends Component
         $this->regions = $this->getAccessibleRegions();
 
         // Load districts based on current region selection and user permissions
-        $this->districts = $this->getDistricts((int)$this->region);
+        $this->districts = $this->getDistricts((int) $this->region);
 
         // Load wards based on current district selection
         $this->wards = $this->getWards($this->district);
@@ -172,7 +178,7 @@ class SiteVisitsTable extends Component
         $this->status_options = [
             'approved' => 'Approved',
             'pending' => 'Pending Approval',
-            'rejected' => 'Rejected'
+            'rejected' => 'Rejected',
         ];
 
         $this->operators = $this->getOperators();
@@ -210,7 +216,7 @@ class SiteVisitsTable extends Component
      */
     public function toggleCompactView()
     {
-        $this->compactView = !$this->compactView;
+        $this->compactView = ! $this->compactView;
     }
 
     /**
@@ -218,7 +224,7 @@ class SiteVisitsTable extends Component
      */
     public function toggleMobileFilters()
     {
-        $this->showMobileFilters = !$this->showMobileFilters;
+        $this->showMobileFilters = ! $this->showMobileFilters;
     }
 
     /**
@@ -227,7 +233,7 @@ class SiteVisitsTable extends Component
     public function downloadSiteVisitPDF()
     {
         set_time_limit(300); // execution time to 5min
-        ini_set("memory_limit", "1000M");
+        ini_set('memory_limit', '1000M');
 
         return response()->streamDownload(function () {
             // Get the site visits query
@@ -249,7 +255,7 @@ class SiteVisitsTable extends Component
                     'visit_date' => $visit->visit_date->format('Y-m-d'),
                     'status' => $this->getVisitStatus($visit),
                     'gps_coordinates' => $visit->gps_latitude && $visit->gps_longitude
-                        ? $visit->gps_latitude . ', ' . $visit->gps_longitude
+                        ? $visit->gps_latitude.', '.$visit->gps_longitude
                         : 'N/A',
                 ];
             }
@@ -291,7 +297,7 @@ class SiteVisitsTable extends Component
                 'Photos Count',
                 'Mafundi Count',
                 'Products Count',
-                'Created At'
+                'Created At',
             ];
 
             $handle = fopen('php://output', 'w');
@@ -315,12 +321,12 @@ class SiteVisitsTable extends Component
                     $visit->photos->count(),
                     $visit->fundis->count(),
                     $visit->products->count(),
-                    $visit->created_at->format('Y-m-d H:i:s')
+                    $visit->created_at->format('Y-m-d H:i:s'),
                 ]);
             }
 
             fclose($handle);
-        }, 'site_visits_export_' . date('Y-m-d_H-i-s') . '.csv', [
+        }, 'site_visits_export_'.date('Y-m-d_H-i-s').'.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }
@@ -352,7 +358,7 @@ class SiteVisitsTable extends Component
     public function mount()
     {
         // For non-admin/root users, set their primary location
-        if (!$this->isAdminOrRoot()) {
+        if (! $this->isAdminOrRoot()) {
             $primaryDistrict = $this->getUserPrimaryDistrict();
             $primaryRegion = $this->getUserPrimaryRegion();
 
@@ -379,7 +385,7 @@ class SiteVisitsTable extends Component
             'operator_id',
             'approved_by',
             'visit_date_from',
-            'visit_date_to'
+            'visit_date_to',
         ]);
 
         // Don't reset region/district for non-admin/root users

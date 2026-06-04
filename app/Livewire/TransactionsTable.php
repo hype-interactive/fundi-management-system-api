@@ -2,21 +2,21 @@
 
 namespace App\Livewire;
 
-use Exception;
-use App\Models\Fundi;
-use Livewire\Component;
-use App\Traits\HasAlerts;
-use App\Models\Transaction;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use App\Models\DisbursementBatch;
+use App\Models\Fundi;
+use App\Models\Transaction;
+use App\Traits\HasAlerts;
+use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class TransactionsTable extends Component
 {
-    use WithPagination, HasAlerts;
+    use HasAlerts, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -41,10 +41,12 @@ class TransactionsTable extends Component
     public $date_to = '';
 
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     // Bulk action properties
     public $selectedTransactions = [];
+
     public $selectAll = false;
 
     protected $listeners = [
@@ -97,10 +99,10 @@ class TransactionsTable extends Component
 
         return $query
             ->when($this->search_key, function ($query, $search_key) {
-                $query->where('transaction_reference', 'like', '%' . $search_key . '%')
+                $query->where('transaction_reference', 'like', '%'.$search_key.'%')
                     ->orWhereHas('fundi', function ($q) use ($search_key) {
-                        $q->whereRaw("concat(fname, ' ', lname) like ?", ['%' . $search_key . '%'])
-                          ->orWhere('primary_phone', 'like', '%' . $search_key . '%');
+                        $q->whereRaw("concat(fname, ' ', lname) like ?", ['%'.$search_key.'%'])
+                            ->orWhere('primary_phone', 'like', '%'.$search_key.'%');
                     });
             })
             ->when($this->status, function ($query, $status) {
@@ -140,7 +142,7 @@ class TransactionsTable extends Component
             'fundi_id',
             'batch_id',
             'date_from',
-            'date_to'
+            'date_to',
         ]);
 
         $this->resetPage();
@@ -154,7 +156,7 @@ class TransactionsTable extends Component
      */
     public function toggleMobileFilters()
     {
-        $this->showMobileFilters = !$this->showMobileFilters;
+        $this->showMobileFilters = ! $this->showMobileFilters;
     }
 
     /**
@@ -162,7 +164,7 @@ class TransactionsTable extends Component
      */
     public function toggleCompactView()
     {
-        $this->compactView = !$this->compactView;
+        $this->compactView = ! $this->compactView;
 
         // Using trait method
         $this->showInfoToast(
@@ -184,6 +186,7 @@ class TransactionsTable extends Component
                 if ($transaction->status !== 'failed') {
                     // Using trait method
                     $this->showWarningAlert('Cannot Retry', 'Only failed transactions can be retried.');
+
                     return false;
                 }
 
@@ -196,7 +199,7 @@ class TransactionsTable extends Component
 
                 Log::info('Transaction marked for retry', [
                     'transaction_id' => $transactionId,
-                    'retry_count' => $transaction->retry_count
+                    'retry_count' => $transaction->retry_count,
                 ]);
 
                 return true;
@@ -237,9 +240,10 @@ class TransactionsTable extends Component
             function () use ($transactionId) {
                 $transaction = Transaction::findOrFail($transactionId);
 
-                if (!in_array($transaction->status, ['pending', 'processing'])) {
+                if (! in_array($transaction->status, ['pending', 'processing'])) {
                     // Using trait method
                     $this->showWarningAlert('Cannot Cancel', 'Only pending or processing transactions can be cancelled.');
+
                     return false;
                 }
 
@@ -251,7 +255,7 @@ class TransactionsTable extends Component
 
                 Log::info('Transaction cancelled', [
                     'transaction_id' => $transactionId,
-                    'cancelled_by' => Auth::id()
+                    'cancelled_by' => Auth::id(),
                 ]);
 
                 return true;
@@ -278,7 +282,7 @@ class TransactionsTable extends Component
         } catch (Exception $e) {
             // Using trait method
             $this->showErrorToast('Error', 'Failed to load transaction details.');
-            Log::error('Failed to view transaction: ' . $e->getMessage());
+            Log::error('Failed to view transaction: '.$e->getMessage());
         }
     }
 
@@ -293,6 +297,7 @@ class TransactionsTable extends Component
             if ($transactions->isEmpty()) {
                 // Using trait method
                 $this->showWarningAlert('No Data', 'No transactions found to export.');
+
                 return;
             }
 
@@ -308,7 +313,7 @@ class TransactionsTable extends Component
         } catch (Exception $e) {
             // Using trait method
             $this->showErrorAlert('Export Failed', 'Failed to export transactions. Please try again.');
-            Log::error('Transaction export failed: ' . $e->getMessage());
+            Log::error('Transaction export failed: '.$e->getMessage());
         }
     }
 
@@ -346,6 +351,7 @@ class TransactionsTable extends Component
         if (empty($this->selectedTransactions)) {
             // Using trait method
             $this->showWarningAlert('No Selection', 'Please select transactions to retry.');
+
             return;
         }
 
@@ -383,12 +389,13 @@ class TransactionsTable extends Component
                 if ($count === 0) {
                     // Using trait method
                     $this->showWarningAlert('No Failed Transactions', 'None of the selected transactions are in failed status.');
+
                     return false;
                 }
 
                 Log::info('Bulk transaction retry', [
                     'count' => $count,
-                    'user_id' => Auth::id()
+                    'user_id' => Auth::id(),
                 ]);
 
                 // Clear selection
@@ -398,7 +405,7 @@ class TransactionsTable extends Component
                 return true;
             },
             'Retry Scheduled',
-            count($this->selectedTransactions) . ' transaction(s) have been marked for retry.',
+            count($this->selectedTransactions).' transaction(s) have been marked for retry.',
             'Retry Failed',
             'Failed to schedule transactions for retry. Please try again.'
         );
@@ -412,6 +419,7 @@ class TransactionsTable extends Component
         if (empty($this->selectedTransactions)) {
             // Using trait method
             $this->showWarningAlert('No Selection', 'Please select transactions to cancel.');
+
             return;
         }
 
@@ -444,12 +452,13 @@ class TransactionsTable extends Component
                 if ($count === 0) {
                     // Using trait method
                     $this->showWarningAlert('Cannot Cancel', 'None of the selected transactions can be cancelled.');
+
                     return false;
                 }
 
                 Log::info('Bulk transaction cancellation', [
                     'count' => $count,
-                    'user_id' => Auth::id()
+                    'user_id' => Auth::id(),
                 ]);
 
                 // Clear selection
@@ -459,7 +468,7 @@ class TransactionsTable extends Component
                 return true;
             },
             'Transactions Cancelled',
-            count($this->selectedTransactions) . ' transaction(s) have been cancelled successfully.',
+            count($this->selectedTransactions).' transaction(s) have been cancelled successfully.',
             'Cancellation Failed',
             'Failed to cancel transactions. Please try again.'
         );
@@ -509,9 +518,9 @@ class TransactionsTable extends Component
                 ->whereNotNull('fundi_id')
                 ->distinct();
         })
-        ->orderBy('fname')
-        ->limit(100)
-        ->get();
+            ->orderBy('fname')
+            ->limit(100)
+            ->get();
     }
 
     /**
@@ -525,9 +534,9 @@ class TransactionsTable extends Component
                 ->whereNotNull('disbursement_batch_id')
                 ->distinct();
         })
-        ->orderBy('created_at', 'desc')
-        ->limit(50)
-        ->get();
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get();
     }
 
     /**
@@ -541,7 +550,7 @@ class TransactionsTable extends Component
             'sent' => 'Sent',
             'completed' => 'Completed',
             'failed' => 'Failed',
-            'cancelled' => 'Cancelled'
+            'cancelled' => 'Cancelled',
         ];
     }
 }

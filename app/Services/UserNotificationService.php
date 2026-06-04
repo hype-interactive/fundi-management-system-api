@@ -2,11 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Mail\LoginCredentials;
-use App\Services\SmsService;
-use Illuminate\Support\Facades\Mail;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class UserNotificationService
 {
@@ -24,7 +23,7 @@ class UserNotificationService
     {
         $results = [
             'sms' => ['success' => false, 'error' => null],
-            'email' => ['success' => false, 'error' => null]
+            'email' => ['success' => false, 'error' => null],
         ];
 
         try {
@@ -40,7 +39,8 @@ class UserNotificationService
             return $results;
 
         } catch (\Exception $e) {
-            Log::error("Exception sending login credentials to user {$user->id}: " . $e->getMessage());
+            Log::error("Exception sending login credentials to user {$user->id}: ".$e->getMessage());
+
             return $results;
         }
     }
@@ -53,7 +53,7 @@ class UserNotificationService
         try {
             $phoneNumber = $user->phone;
 
-            if (!$phoneNumber) {
+            if (! $phoneNumber) {
                 return ['success' => false, 'error' => 'No phone number available'];
             }
 
@@ -63,12 +63,13 @@ class UserNotificationService
             if ($result['success']) {
                 Log::info("Login SMS sent successfully to {$user->fname} {$user->lname} ({$phoneNumber})");
             } else {
-                Log::error("Failed to send login SMS to {$user->fname} {$user->lname}: " . ($result['error'] ?? 'Unknown error'));
+                Log::error("Failed to send login SMS to {$user->fname} {$user->lname}: ".($result['error'] ?? 'Unknown error'));
             }
 
             return $result;
         } catch (\Exception $e) {
-            Log::error("Exception sending login SMS to user {$user->id}: " . $e->getMessage());
+            Log::error("Exception sending login SMS to user {$user->id}: ".$e->getMessage());
+
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -82,9 +83,11 @@ class UserNotificationService
             Mail::to($user->email)->send(new LoginCredentials($user, $password));
 
             Log::info("Login email sent successfully to {$user->fname} {$user->lname} ({$user->email})");
+
             return ['success' => true];
         } catch (\Exception $e) {
-            Log::error("Failed to send login email to {$user->fname} {$user->lname}: " . $e->getMessage());
+            Log::error("Failed to send login email to {$user->fname} {$user->lname}: ".$e->getMessage());
+
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -96,7 +99,7 @@ class UserNotificationService
     {
         $results = [
             'sms' => ['success' => false, 'error' => null],
-            'email' => ['success' => false, 'error' => null]
+            'email' => ['success' => false, 'error' => null],
         ];
 
         try {
@@ -111,7 +114,8 @@ class UserNotificationService
             return $results;
 
         } catch (\Exception $e) {
-            Log::error("Exception sending password reset notification to user {$user->id}: " . $e->getMessage());
+            Log::error("Exception sending password reset notification to user {$user->id}: ".$e->getMessage());
+
             return $results;
         }
     }
@@ -124,11 +128,12 @@ class UserNotificationService
         try {
             $phoneNumber = $user->phone;
 
-            if (!$phoneNumber) {
+            if (! $phoneNumber) {
                 return ['success' => false, 'error' => 'No phone number available'];
             }
 
             $message = $this->generatePasswordResetSmsMessage($user, $newPassword);
+
             return $this->smsService->sendSms($phoneNumber, $message);
         } catch (\Exception $e) {
             return ['success' => false, 'error' => $e->getMessage()];
@@ -157,15 +162,15 @@ class UserNotificationService
         $name = $user->fname ?? 'User';
         $roleName = $user->role?->name ?? 'User';
 
-        return "Hongera {$name}! Umesajiliwa kama {$roleName}.\n\n" .
-               "AKAUNTI YAKO:\n" .
-               "Web App:\n" .
-               "Email: {$user->email}\n" .
-               "Password: {$password}\n\n" .
-               "Mobile App:\n" .
-               "Phone: {$user->phone}\n" .
-               "Password: {$password}\n\n" .
-               "MUHIMU: Badilisha password yako baada ya kuingia kwa usalama. Asante!";
+        return "Hongera {$name}! Umesajiliwa kama {$roleName}.\n\n".
+               "AKAUNTI YAKO:\n".
+               "Web App:\n".
+               "Email: {$user->email}\n".
+               "Password: {$password}\n\n".
+               "Mobile App:\n".
+               "Phone: {$user->phone}\n".
+               "Password: {$password}\n\n".
+               'MUHIMU: Badilisha password yako baada ya kuingia kwa usalama. Asante!';
     }
 
     /**
@@ -175,9 +180,9 @@ class UserNotificationService
     {
         $name = $user->fname ?? 'User';
 
-        return "Hujambo {$name}! Password yako imebadilishwa.\n\n" .
-               "Password mpya: {$newPassword}\n\n" .
-               "Ingia kwenye akaunti yako na ubadilishe password hii haraka. Asante!";
+        return "Hujambo {$name}! Password yako imebadilishwa.\n\n".
+               "Password mpya: {$newPassword}\n\n".
+               'Ingia kwenye akaunti yako na ubadilishe password hii haraka. Asante!';
     }
 
     /**
@@ -191,9 +196,9 @@ class UserNotificationService
         if ($smsSuccess && $emailSuccess) {
             Log::info("{$type} sent via SMS and email to {$user->email} ({$user->phone})");
         } elseif ($smsSuccess) {
-            Log::info("{$type} sent via SMS to {$user->phone}. Email failed: " . ($results['email']['error'] ?? 'Unknown'));
+            Log::info("{$type} sent via SMS to {$user->phone}. Email failed: ".($results['email']['error'] ?? 'Unknown'));
         } elseif ($emailSuccess) {
-            Log::info("{$type} sent via email to {$user->email}. SMS failed: " . ($results['sms']['error'] ?? 'Unknown'));
+            Log::info("{$type} sent via email to {$user->email}. SMS failed: ".($results['sms']['error'] ?? 'Unknown'));
         } else {
             Log::error("Failed to send {$type} to {$user->email} via both SMS and email");
         }
@@ -206,7 +211,7 @@ class UserNotificationService
     {
         $results = [
             'sms' => ['success' => false, 'error' => null],
-            'email' => ['success' => false, 'error' => null]
+            'email' => ['success' => false, 'error' => null],
         ];
 
         try {
@@ -221,7 +226,8 @@ class UserNotificationService
             return $results;
 
         } catch (\Exception $e) {
-            Log::error("Exception sending activation notification to user {$user->id}: " . $e->getMessage());
+            Log::error("Exception sending activation notification to user {$user->id}: ".$e->getMessage());
+
             return $results;
         }
     }
@@ -234,15 +240,15 @@ class UserNotificationService
         try {
             $phoneNumber = $user->phone;
 
-            if (!$phoneNumber) {
+            if (! $phoneNumber) {
                 return ['success' => false, 'error' => 'No phone number available'];
             }
 
             $name = $user->fname ?? 'User';
             $roleName = $user->role?->name ?? 'User';
 
-            $message = "Hujambo {$name}! Akaunti yako kama {$roleName} imetiishwa. " .
-                      "Unaweza sasa kuingia kwenye mfumo. Asante!";
+            $message = "Hujambo {$name}! Akaunti yako kama {$roleName} imetiishwa. ".
+                      'Unaweza sasa kuingia kwenye mfumo. Asante!';
 
             return $this->smsService->sendSms($phoneNumber, $message);
         } catch (\Exception $e) {

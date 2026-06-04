@@ -2,17 +2,16 @@
 
 namespace App\Livewire;
 
-use Exception;
-use Livewire\Component;
-use App\Traits\HasAlerts;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use App\Models\BudgetAllocation;
 use App\Models\DisbursementBatch;
+use App\Traits\HasAlerts;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class DisbursementBatchesTable extends Component
 {
-    use WithPagination, HasAlerts;
+    use HasAlerts, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -37,6 +36,7 @@ class DisbursementBatchesTable extends Component
     public $date_to = '';
 
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     public function mount()
@@ -65,8 +65,8 @@ class DisbursementBatchesTable extends Component
 
         return $query
             ->when($this->search_key, function ($query, $search_key) {
-                $query->where('title', 'like', '%' . $search_key . '%')
-                    ->orWhere('description', 'like', '%' . $search_key . '%');
+                $query->where('title', 'like', '%'.$search_key.'%')
+                    ->orWhere('description', 'like', '%'.$search_key.'%');
             })
             ->when($this->status, function ($query, $status) {
                 $query->where('status', $status);
@@ -142,7 +142,7 @@ class DisbursementBatchesTable extends Component
             'processing' => 'Processing',
             'completed' => 'Completed',
             'failed' => 'Failed',
-            'partial' => 'Partial'
+            'partial' => 'Partial',
         ];
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class LegacyFundi extends Model
 {
@@ -49,6 +49,7 @@ class LegacyFundi extends Model
         }
 
         $potentialCount = $this->getPotentialMatchesCount();
+
         return $potentialCount > 0 ? 'potential' : 'unmatched';
     }
 
@@ -60,7 +61,7 @@ class LegacyFundi extends Model
         return cache()->remember(
             "legacy_fundi_{$this->id}_potential_matches_count",
             now()->addMinutes(30),
-            fn() => $this->findPotentialMatches()->count()
+            fn () => $this->findPotentialMatches()->count()
         );
     }
 
@@ -83,7 +84,7 @@ class LegacyFundi extends Model
                     'fundi' => $fundi,
                     'match_type' => 'nida',
                     'confidence' => 95,
-                    'details' => 'Exact NIDA number match'
+                    'details' => 'Exact NIDA number match',
                 ]);
             }
         }
@@ -112,12 +113,12 @@ class LegacyFundi extends Model
                 'fundi' => $fundi,
                 'match_type' => 'phone',
                 'confidence' => 85,
-                'details' => 'Phone number match'
+                'details' => 'Phone number match',
             ]);
         }
 
         // 3. Name Similarity (Medium Priority - 60-80% confidence)
-        if (!$matches->isEmpty()) {
+        if (! $matches->isEmpty()) {
             // Skip name matching if we have high-confidence matches
             return $matches->sortByDesc('confidence');
         }
@@ -145,7 +146,7 @@ class LegacyFundi extends Model
 
         if ($this->region) {
             $query->whereHas('ward.district.region', function ($q) {
-                $q->where('name', 'like', '%' . $this->region . '%');
+                $q->where('name', 'like', '%'.$this->region.'%');
             });
         }
 
@@ -162,7 +163,7 @@ class LegacyFundi extends Model
                     'fundi' => $fundi,
                     'match_type' => 'name',
                     'confidence' => $confidence,
-                    'details' => "Name similarity: {$confidence}%"
+                    'details' => "Name similarity: {$confidence}%",
                 ]);
             }
         }
@@ -182,7 +183,7 @@ class LegacyFundi extends Model
         // Remove common prefixes
         $prefixes = ['mr', 'mrs', 'ms', 'dr', 'prof', 'eng', 'dkt'];
         foreach ($prefixes as $prefix) {
-            $name = preg_replace('/^' . $prefix . '\s+/', '', $name);
+            $name = preg_replace('/^'.$prefix.'\s+/', '', $name);
         }
 
         return $name;
@@ -195,9 +196,12 @@ class LegacyFundi extends Model
     {
         // Use Levenshtein distance for similarity
         $maxLen = max(strlen($name1), strlen($name2));
-        if ($maxLen === 0) return 0;
+        if ($maxLen === 0) {
+            return 0;
+        }
 
         $distance = levenshtein($name1, $name2);
+
         return 1 - ($distance / $maxLen);
     }
 

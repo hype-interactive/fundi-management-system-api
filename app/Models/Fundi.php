@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class Fundi extends Model
 {
@@ -37,7 +37,7 @@ class Fundi extends Model
         'rejected_by',
         'legacy_match',
         'legacy_id',
-        'qr_code_path'
+        'qr_code_path',
     ];
 
     protected $casts = [
@@ -67,9 +67,6 @@ class Fundi extends Model
         return $this->ranking === 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi';
     }
 
-
-
-
     /**
      * Boot method for model events
      */
@@ -88,12 +85,12 @@ class Fundi extends Model
     {
         // Check if relationship is loaded to prevent N+1
         if (
-            !$this->relationLoaded('ward') ||
-            !$this->ward->relationLoaded('district') ||
-            !$this->ward->district->relationLoaded('region')
+            ! $this->relationLoaded('ward') ||
+            ! $this->ward->relationLoaded('district') ||
+            ! $this->ward->district->relationLoaded('region')
         ) {
             Log::warning('Address accessor called without eager loading relationships. This may cause N+1 queries.', [
-                'fundi_id' => $this->id
+                'fundi_id' => $this->id,
             ]);
         }
 
@@ -106,8 +103,6 @@ class Fundi extends Model
 
     /**
      * Generate QR code (public method with event firing)
-     *
-     * @return string
      */
     public function generateQrCode(): string
     {
@@ -119,7 +114,7 @@ class Fundi extends Model
             ->size(300)
             ->generate($this->unique_id);
 
-        $filename = 'qrcodes/fundi_' . $this->id . '_' . time() . '.svg';
+        $filename = 'qrcodes/fundi_'.$this->id.'_'.time().'.svg';
         Storage::disk('public')->put($filename, $qrCode);
 
         $this->update(['qr_code_path' => $filename]);
@@ -129,8 +124,6 @@ class Fundi extends Model
 
     /**
      * Generate QR code without triggering model events
-     *
-     * @return string
      */
     public function generateQrCodeQuietly(): string
     {
@@ -145,7 +138,7 @@ class Fundi extends Model
             ->generate($this->unique_id);
 
         // Save to storage
-        $filename = 'qrcodes/fundi_' . $this->id . '_' . time() . '.svg';
+        $filename = 'qrcodes/fundi_'.$this->id.'_'.time().'.svg';
         Storage::disk('public')->put($filename, $qrCode);
 
         // Update model without triggering events again
@@ -342,8 +335,6 @@ class Fundi extends Model
         )->sum('quantity');
     }
 
-
-
     // Add direct access to the pivot model if needed
     public function siteVisitFundis()
     {
@@ -411,9 +402,10 @@ class Fundi extends Model
                 'height' => 150,
                 'crop' => 'fill',
                 'quality' => 'auto',
-                'fetch_format' => 'auto'
+                'fetch_format' => 'auto',
             ]);
         }
+
         return null;
     }
 
@@ -428,9 +420,10 @@ class Fundi extends Model
                 'height' => 50,
                 'crop' => 'fill',
                 'quality' => 'auto',
-                'fetch_format' => 'auto'
+                'fetch_format' => 'auto',
             ]);
         }
+
         return null;
     }
 
@@ -442,6 +435,7 @@ class Fundi extends Model
         if ($this->qr_code_path) {
             return Storage::url($this->qr_code_path);
         }
+
         return null;
     }
 }

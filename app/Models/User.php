@@ -3,16 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Notifications\Notifiable;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -33,7 +33,6 @@ class User extends Authenticatable
         'last_login_at',
         'device_token',
         'device_info',
-        'api_active',
     ];
 
     /**
@@ -156,9 +155,10 @@ class User extends Authenticatable
                 'height' => 150,
                 'crop' => 'fill',
                 'quality' => 'auto',
-                'fetch_format' => 'auto'
+                'fetch_format' => 'auto',
             ]);
         }
+
         return null;
     }
 
@@ -170,11 +170,10 @@ class User extends Authenticatable
                 'height' => 50,
                 'crop' => 'fill',
                 'quality' => 'auto',
-                'fetch_format' => 'auto'
+                'fetch_format' => 'auto',
             ]);
         }
+
         return null;
     }
-
-    
 }

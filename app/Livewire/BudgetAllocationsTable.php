@@ -4,13 +4,13 @@ namespace App\Livewire;
 
 use App\Models\BudgetAllocation;
 use App\Traits\HasAlerts;
-use Livewire\Component;
 use Livewire\Attributes\Url;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class BudgetAllocationsTable extends Component
 {
-    use WithPagination, HasAlerts;
+    use HasAlerts, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -33,10 +33,12 @@ class BudgetAllocationsTable extends Component
 
     // UI state
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     // Modal states
     public $showCreateModal = false;
+
     public $showEditModal = false;
 
     // Budget being edited
@@ -128,8 +130,9 @@ class BudgetAllocationsTable extends Component
     {
         $budget = BudgetAllocation::find($budgetId);
 
-        if (!$budget) {
+        if (! $budget) {
             $this->showErrorAlert('Error', 'Budget allocation not found');
+
             return;
         }
 
@@ -139,6 +142,7 @@ class BudgetAllocationsTable extends Component
                 'Cannot Delete',
                 'Cannot delete budget allocation with existing disbursements. Please remove disbursements first.'
             );
+
             return;
         }
 
@@ -159,7 +163,7 @@ class BudgetAllocationsTable extends Component
             function () use ($budgetId) {
                 $budget = BudgetAllocation::find($budgetId);
 
-                if (!$budget) {
+                if (! $budget) {
                     return false;
                 }
 
@@ -202,8 +206,8 @@ class BudgetAllocationsTable extends Component
 
         return $query
             ->when($this->search_key, function ($query, $search_key) {
-                $query->where('title', 'like', '%' . $search_key . '%')
-                    ->orWhere('description', 'like', '%' . $search_key . '%');
+                $query->where('title', 'like', '%'.$search_key.'%')
+                    ->orWhere('description', 'like', '%'.$search_key.'%');
             })
             ->when($this->status, function ($query, $status) {
                 $query->where('status', $status);
@@ -227,7 +231,7 @@ class BudgetAllocationsTable extends Component
 
     public function toggleCompactView()
     {
-        $this->compactView = !$this->compactView;
+        $this->compactView = ! $this->compactView;
     }
 
     public function exportToExcel()
@@ -245,7 +249,7 @@ class BudgetAllocationsTable extends Component
                 'Status',
                 'Created By',
                 'Created At',
-                'Disbursements Count'
+                'Disbursements Count',
             ];
 
             $handle = fopen('php://output', 'w');
@@ -267,12 +271,12 @@ class BudgetAllocationsTable extends Component
                     ucfirst($budget->status),
                     $budget->creator->full_name ?? 'N/A',
                     $budget->created_at->format('Y-m-d H:i:s'),
-                    $budget->disbursementBatches->count()
+                    $budget->disbursementBatches->count(),
                 ]);
             }
 
             fclose($handle);
-        }, 'budget_allocations_' . date('Y-m-d_H-i-s') . '.csv', [
+        }, 'budget_allocations_'.date('Y-m-d_H-i-s').'.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }
@@ -284,7 +288,7 @@ class BudgetAllocationsTable extends Component
             'status',
             'created_by',
             'date_from',
-            'date_to'
+            'date_to',
         ]);
         $this->showMobileFilters = false;
     }
@@ -313,7 +317,7 @@ class BudgetAllocationsTable extends Component
         return [
             'active' => 'Active',
             'cancelled' => 'Cancelled',
-            'completed' => 'Completed'
+            'completed' => 'Completed',
         ];
     }
 }

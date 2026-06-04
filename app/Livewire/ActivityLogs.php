@@ -2,14 +2,15 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\ActivityLog;
 use Livewire\Attributes\Url;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class ActivityLogs extends Component
 {
     use WithPagination;
+
     protected $paginationTheme = 'bootstrap';
 
     public $users;

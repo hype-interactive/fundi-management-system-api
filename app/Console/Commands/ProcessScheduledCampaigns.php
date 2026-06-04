@@ -7,6 +7,7 @@ use Illuminate\Console\Command;
 class ProcessScheduledCampaigns extends Command
 {
     protected $signature = 'sms:process-scheduled';
+
     protected $description = 'Process scheduled SMS campaigns that are due for sending';
 
     public function handle()
@@ -23,6 +24,7 @@ class ProcessScheduledCampaigns extends Command
         }
 
         $this->info("Processed {$dueCampaigns->count()} scheduled campaigns.");
+
         return 0;
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Http\Controllers\GeoJsonController;
+use Illuminate\Console\Command;
 
 class ProcessGeoJson extends Command
 {
@@ -19,7 +19,6 @@ class ProcessGeoJson extends Command
      *
      * @var string
      */
-
     protected $description = 'Process GeoJSON data';
 
     /**
@@ -27,7 +26,7 @@ class ProcessGeoJson extends Command
      */
     public function handle()
     {
-        $geoJsonController = new GeoJsonController();
+        $geoJsonController = new GeoJsonController;
         $geoJsonController->parseGeoJson();
         $this->info('GeoJSON data processed successfully.');
     }

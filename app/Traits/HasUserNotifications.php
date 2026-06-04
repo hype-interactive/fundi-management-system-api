@@ -64,13 +64,13 @@ trait HasUserNotifications
         $emailSuccess = $results['email']['success'] ?? false;
 
         if ($smsSuccess && $emailSuccess) {
-            session()->flash('message', ucfirst($actionType) . ' sent successfully via SMS and email.');
+            session()->flash('message', ucfirst($actionType).' sent successfully via SMS and email.');
         } elseif ($smsSuccess) {
-            session()->flash('message', ucfirst($actionType) . ' sent successfully via SMS. Email delivery failed.');
+            session()->flash('message', ucfirst($actionType).' sent successfully via SMS. Email delivery failed.');
         } elseif ($emailSuccess) {
-            session()->flash('message', ucfirst($actionType) . ' sent successfully via email. SMS delivery failed.');
+            session()->flash('message', ucfirst($actionType).' sent successfully via email. SMS delivery failed.');
         } else {
-            session()->flash('error', 'Failed to send ' . $actionType . ' via both SMS and email.');
+            session()->flash('error', 'Failed to send '.$actionType.' via both SMS and email.');
         }
     }
 
@@ -92,8 +92,9 @@ trait HasUserNotifications
             // Return true if at least one method succeeded
             return ($results['sms']['success'] ?? false) || ($results['email']['success'] ?? false);
         } catch (\Exception $e) {
-            Log::error("Failed to send {$type} notification to user {$user->id}: " . $e->getMessage());
+            Log::error("Failed to send {$type} notification to user {$user->id}: ".$e->getMessage());
             session()->flash('error', "Failed to send {$type} notification due to system error.");
+
             return false;
         }
     }

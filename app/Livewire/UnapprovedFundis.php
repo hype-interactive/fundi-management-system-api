@@ -3,19 +3,21 @@
 namespace App\Livewire;
 
 use App\Models\Fundi;
-use Livewire\Component;
-use Livewire\WithPagination;
-use App\Traits\LocationTrait;
 use App\Traits\HasAlerts;
+use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class UnapprovedFundis extends Component
 {
-    use WithPagination, LocationTrait, HasAlerts;
+    use HasAlerts, LocationTrait, WithPagination;
 
     public $district;
+
     public $selectedFundis = [];
+
     public $selectAll = false;
 
     protected $paginationTheme = 'bootstrap';
@@ -23,7 +25,7 @@ class UnapprovedFundis extends Component
     protected $listeners = [
         'refreshFundis' => '$refresh',
         'executeBulkDelete' => 'executeBulkDelete',
-        'executeSingleDelete' => 'executeSingleDelete'
+        'executeSingleDelete' => 'executeSingleDelete',
     ];
 
     public function updatedSelectAll($value)
@@ -39,8 +41,9 @@ class UnapprovedFundis extends Component
     {
         $fundi = Fundi::find($fundi_id);
 
-        if (!$fundi) {
+        if (! $fundi) {
             $this->showErrorAlert('Error', 'Fundi not found');
+
             return;
         }
 
@@ -56,6 +59,7 @@ class UnapprovedFundis extends Component
         ) {
             $this->showWarningAlert('Duplicate Found', 'Fundi already exists. Duplicate entry has been removed.');
             $fundi->delete();
+
             return;
         }
 
@@ -63,9 +67,9 @@ class UnapprovedFundis extends Component
         $result = $this->handleOperation(
             function () use ($fundi) {
                 return $fundi->update([
-                    "approved_at" => now(),
-                    "approved_by" => Auth::id(),
-                    "status" => "active"
+                    'approved_at' => now(),
+                    'approved_by' => Auth::id(),
+                    'status' => 'active',
                 ]);
             },
             'Approved!',
@@ -80,12 +84,14 @@ class UnapprovedFundis extends Component
             $this->selectedFundis = array_diff($this->selectedFundis, [$fundi_id]);
         }
     }
+
     public function reject(int $fundi_id)
     {
         $fundi = Fundi::find($fundi_id);
 
-        if (!$fundi) {
+        if (! $fundi) {
             session()->flash('error', 'Fundi not found');
+
             return;
         }
 
@@ -100,11 +106,12 @@ class UnapprovedFundis extends Component
         ) {
             session()->flash('message', 'Fundi already exists');
             $fundi->delete();
+
             return;
         }
 
         $fundi->update([
-            "status" => "inactive"
+            'status' => 'inactive',
         ]);
 
         session()->flash('message', 'Registration rejected');
@@ -116,6 +123,7 @@ class UnapprovedFundis extends Component
     {
         if (empty($this->selectedFundis)) {
             $this->showWarningAlert('No Selection', 'Please select at least one fundi to approve');
+
             return;
         }
 
@@ -128,7 +136,7 @@ class UnapprovedFundis extends Component
             foreach ($this->selectedFundis as $fundi_id) {
                 $fundi = Fundi::find($fundi_id);
 
-                if (!$fundi) {
+                if (! $fundi) {
                     continue;
                 }
 
@@ -145,13 +153,14 @@ class UnapprovedFundis extends Component
                 if ($isDuplicate) {
                     $fundi->delete();
                     $duplicates++;
+
                     continue;
                 }
 
                 $fundi->update([
-                    "approved_at" => now(),
-                    "approved_by" => Auth::id(),
-                    "status" => "active"
+                    'approved_at' => now(),
+                    'approved_by' => Auth::id(),
+                    'status' => 'active',
                 ]);
 
                 $approved++;
@@ -218,6 +227,7 @@ class UnapprovedFundis extends Component
     {
         if (empty($this->selectedFundis)) {
             $this->showWarningAlert('No Selection', 'Please select at least one fundi to delete');
+
             return;
         }
 
@@ -256,14 +266,12 @@ class UnapprovedFundis extends Component
         }
     }
 
-
-
     public function mount()
     {
         $currentUser = currentUser();
 
         // Set default district based on user permissions
-        if ($currentUser && !($currentUser->role->name === 'admin' || $currentUser->role->name === 'root')) {
+        if ($currentUser && ! ($currentUser->role->name === 'admin' || $currentUser->role->name === 'root')) {
             $this->district = $currentUser->primary_district->id ?? null;
         }
 
@@ -288,12 +296,10 @@ class UnapprovedFundis extends Component
         return $query->latest('created_at')->paginate(10);
     }
 
-
-
     public function render()
     {
         return view('livewire.unapproved-fundis', [
-            'fundis' => $this->fetch()
+            'fundis' => $this->fetch(),
         ]);
     }
 }

@@ -2,11 +2,11 @@
 
 namespace App\Services\Payment;
 
-use App\Models\Transaction;
 use App\Exceptions\SelcomException;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
+use App\Models\Transaction;
 use Exception;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Complete SELCOM Payment Service
@@ -16,13 +16,18 @@ class SelcomService
 {
     // API Endpoints
     private const BASE_URL = 'https://apigw.selcommobile.com';
+
     private const ENDPOINT_WALLET_CASHIN = '/v1/walletcashin/process';
+
     private const ENDPOINT_WALLET_QUERY = '/v1/walletcashin/query';
+
     private const ENDPOINT_NAME_LOOKUP = '/v1/walletcashin/namelookup';
+
     private const ENDPOINT_VENDOR_BALANCE = '/v1/vendor/balance';
 
     // Result Codes
     private const RESULT_SUCCESS = '000';
+
     private const RESULT_PENDING = '111';
 
     // Wallet Type Codes
@@ -41,10 +46,15 @@ class SelcomService
 
     // Configuration
     protected string $vendorId;
+
     protected string $vendorPin;
+
     protected string $apiKey;
+
     protected string $apiSecret;
+
     protected int $timeout;
+
     protected bool $debug;
 
     public function __construct()
@@ -102,7 +112,7 @@ class SelcomService
 
             return [
                 'success' => false,
-                'error' => 'Unable to check balance: ' . $e->getMessage(),
+                'error' => 'Unable to check balance: '.$e->getMessage(),
             ];
         }
     }
@@ -169,7 +179,7 @@ class SelcomService
 
             // Validate transaction
             $validation = $this->validateTransaction($transaction);
-            if (!$validation['valid']) {
+            if (! $validation['valid']) {
                 throw new SelcomException($validation['error']);
             }
 
@@ -199,7 +209,7 @@ class SelcomService
             // Make API call
             $response = $this->makeRequest(self::ENDPOINT_WALLET_CASHIN, $payload);
 
-            if (!$this->isSuccessfulResponse($response)) {
+            if (! $this->isSuccessfulResponse($response)) {
                 throw new SelcomException(
                     $response['message'] ?? 'Disbursement failed',
                     (int) ($response['resultcode'] ?? 0)
@@ -243,7 +253,7 @@ class SelcomService
 
             return [
                 'success' => false,
-                'error' => 'Disbursement exception: ' . $e->getMessage(),
+                'error' => 'Disbursement exception: '.$e->getMessage(),
             ];
         }
     }
@@ -296,7 +306,7 @@ class SelcomService
      */
     protected function makeRequest(string $endpoint, array $payload): array
     {
-        $url = self::BASE_URL . $endpoint;
+        $url = self::BASE_URL.$endpoint;
         $timestamp = now()->toIso8601String();
 
         // Build headers with signature
@@ -324,7 +334,7 @@ class SelcomService
                 ]);
             }
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 throw new SelcomException(
                     "API request failed: HTTP {$response->status()}",
                     $response->status()
@@ -340,7 +350,7 @@ class SelcomService
             ]);
 
             throw new SelcomException(
-                "Request failed: " . $e->getMessage(),
+                'Request failed: '.$e->getMessage(),
                 $e->getCode(),
                 $e
             );
@@ -377,7 +387,7 @@ class SelcomService
         $signData = "timestamp={$timestamp}";
 
         foreach ($fieldsOrder as $key) {
-            $signData .= "&{$key}=" . ($payload[$key] ?? '');
+            $signData .= "&{$key}=".($payload[$key] ?? '');
         }
 
         return base64_encode(
@@ -390,7 +400,7 @@ class SelcomService
      */
     protected function validateTransaction(Transaction $transaction): array
     {
-        if (!$transaction->fundi) {
+        if (! $transaction->fundi) {
             return ['valid' => false, 'error' => 'Fundi not found'];
         }
 
@@ -398,7 +408,7 @@ class SelcomService
             return ['valid' => false, 'error' => 'Fundi phone number not found'];
         }
 
-        if (!$this->isValidPhoneNumber($transaction->fundi->primary_phone)) {
+        if (! $this->isValidPhoneNumber($transaction->fundi->primary_phone)) {
             return ['valid' => false, 'error' => 'Invalid phone number format'];
         }
 
@@ -417,11 +427,11 @@ class SelcomService
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
         if (substr($phone, 0, 1) === '0') {
-            return '255' . substr($phone, 1);
+            return '255'.substr($phone, 1);
         }
 
         if (substr($phone, 0, 3) !== '255') {
-            return '255' . $phone;
+            return '255'.$phone;
         }
 
         return $phone;
@@ -433,6 +443,7 @@ class SelcomService
     protected function isValidPhoneNumber(string $phone): bool
     {
         $formatted = $this->formatPhoneNumber($phone);
+
         return preg_match('/^255[67][0-9]{8}$/', $formatted);
     }
 
@@ -446,7 +457,7 @@ class SelcomService
         // Extract prefix (4th-6th digits after 255)
         $prefix = substr($phone, 3, 3);
 
-        return match(true) {
+        return match (true) {
             in_array($prefix, ['074', '075', '076']) => 'vodacom',
             in_array($prefix, ['068', '069', '078']) => 'airtel',
             in_array($prefix, ['071', '065', '067']) => 'tigo',
@@ -486,7 +497,7 @@ class SelcomService
      */
     protected function mapStatusCode(?string $resultCode): string
     {
-        return match($resultCode) {
+        return match ($resultCode) {
             self::RESULT_SUCCESS => 'completed',
             self::RESULT_PENDING => 'pending',
             default => 'failed',
@@ -501,7 +512,8 @@ class SelcomService
         if (strlen($phone) < 4) {
             return '***';
         }
-        return substr($phone, 0, 3) . '****' . substr($phone, -2);
+
+        return substr($phone, 0, 3).'****'.substr($phone, -2);
     }
 
     /**

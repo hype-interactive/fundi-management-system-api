@@ -2,21 +2,21 @@
 
 namespace App\Livewire;
 
+use App\Jobs\GenerateFundiIdCards;
 use App\Models\Fundi;
 use App\Traits\HasAlerts;
-use Livewire\Component;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use App\Jobs\GenerateFundiIdCards;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class FundisTable extends Component
 {
-    use WithPagination, LocationTrait, HasAlerts;
+    use HasAlerts, LocationTrait, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -53,35 +53,46 @@ class FundisTable extends Component
     public $legacy_match = null;
 
     public $regions = [];
+
     public $districts = [];
+
     public $wards = [];
+
     public $gender_options = [];
+
     public $site_visit_count_options = [];
+
     public $approval_status_options = [];
+
     public $creators = [];
+
     public $approvers = [];
 
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     // Bulk selection properties
     public $selectedFundis = [];
+
     public $selectAll = false;
 
     protected $listeners = [
         'executeSingleDelete' => 'executeSingleDelete',
-        'executeBulkDelete' => 'executeBulkDelete'
+        'executeBulkDelete' => 'executeBulkDelete',
     ];
 
     public $bulkDownloadInProgress = false;
+
     public $bulkDownloadBatchId = null;
+
     public $downloadUrl = null;
 
     public function mount()
     {
         // For non-admin/root users, set their primary location
-        if (!$this->isAdminOrRoot()) {
+        if (! $this->isAdminOrRoot()) {
             $primaryDistrict = $this->getUserPrimaryDistrict();
             $primaryRegion = $this->getUserPrimaryRegion();
 
@@ -120,8 +131,6 @@ class FundisTable extends Component
         }
     }
 
-
-
     public function updatedSelectAll($value)
     {
         if ($value) {
@@ -137,7 +146,7 @@ class FundisTable extends Component
         $this->ward = null;
 
         // Load districts based on region selection
-        $this->districts = $this->getDistricts((int)$value);
+        $this->districts = $this->getDistricts((int) $value);
         $this->wards = collect();
 
         $this->resetPage();
@@ -202,15 +211,17 @@ class FundisTable extends Component
     public function bulkDownloadIdCards()
     {
         // Get filtered fundi IDs
-        $fundiIds = $this->getFilteredQuery()->pluck('id')->toArray();
+        $fundiIds = $this->getFundiQuery()->pluck('fundis.id')->toArray();
 
         if (empty($fundiIds)) {
             session()->flash('error', 'No fundis found to download.');
+
             return;
         }
 
         if (count($fundiIds) > 5000) {
             session()->flash('error', 'Too many fundis selected. Please narrow your filters (max 5000).');
+
             return;
         }
 
@@ -231,7 +242,7 @@ class FundisTable extends Component
      */
     public function checkBulkDownloadStatus()
     {
-        if (!$this->bulkDownloadBatchId || !$this->bulkDownloadInProgress) {
+        if (! $this->bulkDownloadBatchId || ! $this->bulkDownloadInProgress) {
             return;
         }
 
@@ -253,74 +264,6 @@ class FundisTable extends Component
         $this->bulkDownloadInProgress = false;
         $this->bulkDownloadBatchId = null;
         $this->downloadUrl = null;
-    }
-
-    /**
-     * Get filtered query (reusable method)
-     */
-    protected function getFilteredQuery()
-    {
-        $query = Fundi::query()
-            ->with(['ward.district.region', 'creator']);
-
-        // Apply search
-        if ($this->search_key) {
-            $query->where(function ($q) {
-                $q->where('fname', 'like', '%' . $this->search_key . '%')
-                    ->orWhere('lname', 'like', '%' . $this->search_key . '%')
-                    ->orWhere('mname', 'like', '%' . $this->search_key . '%')
-                    ->orWhere('unique_id', 'like', '%' . $this->search_key . '%')
-                    ->orWhere('primary_phone', 'like', '%' . $this->search_key . '%');
-            });
-        }
-
-        // Apply region filter
-        if ($this->region) {
-            $query->whereHas('ward.district.region', function ($q) {
-                $q->where('id', $this->region);
-            });
-        }
-
-        // Apply district filter
-        if ($this->district) {
-            $query->whereHas('ward.district', function ($q) {
-                $q->where('id', $this->district);
-            });
-        }
-
-        // Apply ward filter
-        if ($this->ward) {
-            $query->where('ward_id', $this->ward);
-        }
-
-        // Apply ranking filter
-        if ($this->ranking) {
-            $query->where('ranking', $this->ranking);
-        }
-
-        // Apply approval filter
-        if ($this->approval_status) {
-            if ($this->approval_status === 'approved') {
-                $query->approved();
-            } elseif ($this->approval_status === 'rejected') {
-                $query->rejected();
-            } elseif ($this->approval_status === 'pending') {
-                $query->pending();
-            }
-        }
-
-        if ($this->site_visit_count !== null && $this->site_visit_count !== '') {
-            $sub = '(SELECT COUNT(*) FROM site_visit_fundis WHERE site_visit_fundis.fundi_id = fundis.id)';
-            if ($this->site_visit_count === '0') {
-                $query->whereRaw("{$sub} = 0");
-            } elseif ($this->site_visit_count === '1-5') {
-                $query->whereRaw("{$sub} BETWEEN 1 AND 5");
-            } elseif ($this->site_visit_count === '5+') {
-                $query->whereRaw("{$sub} > 5");
-            }
-        }
-
-        return $query;
     }
 
     public function getFundiQuery()
@@ -347,20 +290,21 @@ class FundisTable extends Component
                 'fundis.created_at',
                 'fundis.legacy_match',
                 'fundis.legacy_id',
-                DB::raw("CONCAT_WS(' ', fname, mname, lname) as full_name")
+                DB::raw("CONCAT_WS(' ', fname, mname, lname) as full_name"),
             ])
             ->with([
                 'ward:id,name,district_id',
                 'ward.district:id,name,region_id',
-                'ward.district.region:id,name'
+                'ward.district.region:id,name',
             ]);
 
         $this->applyLocationFiltersToQuery($query, $this->region, $this->district, $this->ward);
 
         if ($this->search_key) {
-            $searchTerm = '%' . $this->search_key . '%';
+            $searchTerm = '%'.$this->search_key.'%';
             $query->where(function ($q) use ($searchTerm) {
-                $q->whereRaw("CONCAT_WS(' ', fname, mname, lname) LIKE ?", [$searchTerm]);
+                $q->whereRaw("CONCAT_WS(' ', fname, mname, lname) LIKE ?", [$searchTerm])
+                    ->orWhere('fundis.unique_id', 'like', $searchTerm);
 
                 // Handle phone search if the search term looks like a phone number
                 if (preg_match('/^[0-9\s\-\+]+$/', $this->search_key)) {
@@ -374,7 +318,7 @@ class FundisTable extends Component
         }
 
         return $query
-            ->when($this->gender, fn($q, $gender) => $q->where('fundis.gender', $gender))
+            ->when($this->gender, fn ($q, $gender) => $q->where('fundis.gender', $gender))
             ->when($this->site_visit_count !== null && $this->site_visit_count !== '', function ($q) {
                 $sub = '(SELECT COUNT(*) FROM site_visit_fundis WHERE site_visit_fundis.fundi_id = fundis.id)';
                 if ($this->site_visit_count === '0') {
@@ -387,20 +331,20 @@ class FundisTable extends Component
             })
             ->when($this->approval_status, function ($q, $approval_status) {
                 if ($approval_status === 'approved') {
-                    $q->whereNotNull('fundis.approved_at')->whereNull('fundis.rejected_at');
+                    $q->approved();
                 } elseif ($approval_status === 'rejected') {
-                    $q->whereNotNull('fundis.rejected_at');
+                    $q->rejected();
                 } elseif ($approval_status === 'pending') {
-                    $q->whereNull('fundis.approved_at')->whereNull('fundis.rejected_at');
+                    $q->pending();
                 }
             })
-            ->when($this->created_by, fn($q, $created_by) => $q->where('fundis.created_by', $created_by))
-            ->when($this->approved_by, fn($q, $approved_by) => $q->where('fundis.approved_by', $approved_by))
-            ->when($this->legacy_match, fn($q, $legacy_match) => $q->where('fundis.legacy_match', $legacy_match))
+            ->when($this->created_by, fn ($q, $created_by) => $q->where('fundis.created_by', $created_by))
+            ->when($this->approved_by, fn ($q, $approved_by) => $q->where('fundis.approved_by', $approved_by))
+            ->when($this->legacy_match, fn ($q, $legacy_match) => $q->where('fundis.legacy_match', $legacy_match))
             ->latest('fundis.created_at');
     }
 
-    // Format search string for phone searchability  
+    // Format search string for phone searchability
     public function formatSearchStringForPhoneSearch($searchTerm)
     {
         // Remove all non-digit characters (spaces, dashes, etc.)
@@ -410,7 +354,7 @@ class FundisTable extends Component
         $digitsOnly = ltrim($digitsOnly, '0');
 
         // Add country code and wildcard for LIKE query
-        return '%+255' . $digitsOnly . '%';
+        return '%+255'.$digitsOnly.'%';
     }
 
     public function loadData()
@@ -419,7 +363,7 @@ class FundisTable extends Component
         $this->regions = $this->getAccessibleRegions();
 
         // Load districts based on current region selection and user permissions
-        $this->districts = $this->getDistricts((int)$this->region);
+        $this->districts = $this->getDistricts((int) $this->region);
 
         // Load wards based on current district selection
         $this->wards = $this->getWards($this->district);
@@ -435,7 +379,7 @@ class FundisTable extends Component
         $this->approval_status_options = [
             'approved' => 'Approved',
             'pending' => 'Pending Approval',
-            'rejected' => 'Rejected'
+            'rejected' => 'Rejected',
         ];
 
         // Cache user lists for better performance
@@ -480,7 +424,7 @@ class FundisTable extends Component
      */
     public function toggleCompactView()
     {
-        $this->compactView = !$this->compactView;
+        $this->compactView = ! $this->compactView;
     }
 
     /**
@@ -535,6 +479,7 @@ class FundisTable extends Component
     {
         if (empty($this->selectedFundis)) {
             $this->showWarningAlert('No Selection', 'Please select at least one fundi to delete');
+
             return;
         }
 
@@ -579,7 +524,7 @@ class FundisTable extends Component
     public function downloadFundisPDF()
     {
         set_time_limit(300);
-        ini_set("memory_limit", "1000M");
+        ini_set('memory_limit', '1000M');
 
         return response()->streamDownload(function () {
             // Use chunk to avoid memory issues with large datasets
@@ -603,7 +548,7 @@ class FundisTable extends Component
                         'ranking' => $this->ranking_options[$fundi->ranking] ?? 'N/A',
                         'sites' => $fundi->siteVisitFundis()->count() ?? '0',
                         'bags' => $fundi->total_product_quantity ?? '0',
-                        'status' => $fundi->approved_at ? 'Approved' : 'Pending',
+                        'status' => $fundi->approval_status,
                     ];
                 }
             });
@@ -639,7 +584,7 @@ class FundisTable extends Component
                 'Registered By',
                 'Approved By',
                 'Created At',
-                'Approved At'
+                'Approved At',
             ];
 
             $handle = fopen('php://output', 'w');
@@ -664,13 +609,13 @@ class FundisTable extends Component
                             $fundi->creator->full_name ?? 'N/A',
                             $fundi->approver->full_name ?? 'N/A',
                             $fundi->created_at->format('Y-m-d H:i:s'),
-                            $fundi->approved_at ? $fundi->approved_at->format('Y-m-d H:i:s') : 'N/A'
+                            $fundi->approved_at ? $fundi->approved_at->format('Y-m-d H:i:s') : 'N/A',
                         ]);
                     }
                 });
 
             fclose($handle);
-        }, 'fundis_export_' . date('Y-m-d_H-i-s') . '.csv', [
+        }, 'fundis_export_'.date('Y-m-d_H-i-s').'.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }
@@ -689,7 +634,7 @@ class FundisTable extends Component
             'selectedFundis',
             'selectAll',
             'region',
-            'district'
+            'district',
         ]);
 
         // Don't reset region/district for non-admin/root users

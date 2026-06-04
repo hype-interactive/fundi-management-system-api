@@ -13,29 +13,39 @@ class LocationManager extends Component
     use WithPagination;
 
     public $view = 'districts'; // districts or wards
+
     public $search = '';
-    
+
     // District properties
     public $districtId = null;
+
     public $districtName = '';
+
     public $districtRegionId = '';
+
     public $showDistrictModal = false;
+
     public $isEditingDistrict = false;
-    
+
     // Ward properties
     public $wardId = null;
+
     public $wardName = '';
+
     public $wardDistrictId = '';
+
     public $showWardModal = false;
+
     public $isEditingWard = false;
-    
+
     // Filter
     public $filterRegionId = '';
+
     public $filterDistrictId = '';
 
     protected $queryString = ['search', 'view'];
+
     protected $paginationTheme = 'bootstrap';
-    
 
     public function updatingSearch()
     {
@@ -95,12 +105,13 @@ class LocationManager extends Component
     public function deleteDistrict($id)
     {
         $district = District::findOrFail($id);
-        
+
         if ($district->wards()->count() > 0) {
             session()->flash('error', 'Cannot delete district with existing wards.');
+
             return;
         }
-        
+
         $district->delete();
         session()->flash('message', 'District deleted successfully.');
     }
@@ -164,12 +175,13 @@ class LocationManager extends Component
     public function deleteWard($id)
     {
         $ward = Ward::findOrFail($id);
-        
+
         if ($ward->fundis()->count() > 0 || $ward->siteVisits()->count() > 0) {
             session()->flash('error', 'Cannot delete ward with existing data.');
+
             return;
         }
-        
+
         $ward->delete();
         session()->flash('message', 'Ward deleted successfully.');
     }
@@ -190,36 +202,36 @@ class LocationManager extends Component
     public function render()
     {
         $regions = Region::orderBy('name')->get();
-        
+
         if ($this->view === 'districts') {
             $query = District::with('region')
                 ->when($this->search, function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhereHas('region', function ($q) {
-                          $q->where('name', 'like', '%' . $this->search . '%');
-                      });
+                    $q->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhereHas('region', function ($q) {
+                            $q->where('name', 'like', '%'.$this->search.'%');
+                        });
                 })
                 ->when($this->filterRegionId, function ($q) {
                     $q->where('region_id', $this->filterRegionId);
                 })
                 ->orderBy('name');
-            
+
             $items = $query->paginate(15);
         } else {
             $districts = District::orderBy('name')->get();
-            
+
             $query = Ward::with('district.region')
                 ->when($this->search, function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhereHas('district', function ($q) {
-                          $q->where('name', 'like', '%' . $this->search . '%');
-                      });
+                    $q->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhereHas('district', function ($q) {
+                            $q->where('name', 'like', '%'.$this->search.'%');
+                        });
                 })
                 ->when($this->filterDistrictId, function ($q) {
                     $q->where('district_id', $this->filterDistrictId);
                 })
                 ->orderBy('name');
-            
+
             $items = $query->paginate(15);
         }
 

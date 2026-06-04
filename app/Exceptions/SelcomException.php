@@ -13,17 +13,26 @@ class SelcomException extends Exception
 
     // Failure reason constants
     public const REASON_AUTHENTICATION = 'AUTHENTICATION';
+
     public const REASON_TIMEOUT = 'TIMEOUT';
+
     public const REASON_NETWORK = 'NETWORK';
+
     public const REASON_INSUFFICIENT_BALANCE = 'INSUFFICIENT_BALANCE';
+
     public const REASON_INVALID_RECIPIENT = 'INVALID_RECIPIENT';
+
     public const REASON_INVALID_AMOUNT = 'INVALID_AMOUNT';
+
     public const REASON_DUPLICATE_TRANSACTION = 'DUPLICATE_TRANSACTION';
+
     public const REASON_REJECTED = 'REJECTED';
+
     public const REASON_CONFIGURATION = 'CONFIGURATION';
+
     public const REASON_UNKNOWN = 'UNKNOWN';
 
-    public function __construct(string $message, int $code = 0, Exception $previous = null)
+    public function __construct(string $message, int $code = 0, ?Exception $previous = null)
     {
         parent::__construct($message, $code, $previous);
         $this->failureReason = $this->categorizeFailure($code, $message);
@@ -112,7 +121,7 @@ class SelcomException extends Exception
      */
     public function getUserMessage(): string
     {
-        return match($this->failureReason) {
+        return match ($this->failureReason) {
             self::REASON_AUTHENTICATION => 'Payment service authentication failed. Please contact support.',
             self::REASON_TIMEOUT => 'Request timed out. Please try again.',
             self::REASON_NETWORK => 'Network error occurred. Please try again.',

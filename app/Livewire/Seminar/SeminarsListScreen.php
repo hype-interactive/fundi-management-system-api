@@ -6,14 +6,20 @@ use Livewire\Component;
 
 class SeminarsListScreen extends Component
 {
-
     public $showMobileFilters = false;
-    public $search_key= '';
+
+    public $search_key = '';
+
     public $status = 'all';
+
     public $date_from = null;
+
     public $date_to = null;
-     public $regions = [];
+
+    public $regions = [];
+
     public $districts = [];
+
     public $wards = [];
 
     public $status_options = [
