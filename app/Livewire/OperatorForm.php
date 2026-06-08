@@ -327,25 +327,6 @@ class OperatorForm extends Component
         }
     }
 
-    // Computed properties
-    public function getHasMultipleDistrictsProperty()
-    {
-        if ($this->operator && $this->editing) {
-            return $this->operator->districts->count() > 1;
-        }
-
-        return false;
-    }
-
-    public function getCurrentDistrictsProperty()
-    {
-        if ($this->operator && $this->editing) {
-            return $this->operator->districts;
-        }
-
-        return collect();
-    }
-
     /**
      * Reset the form to default values
      */

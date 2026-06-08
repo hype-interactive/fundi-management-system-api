@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\District;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -43,13 +44,18 @@ class BaseAPIController extends Controller
     }
 
     /**
-     * Get the districts IDs for the authenticated operator
+     * Get the districts IDs for the authenticated operator.
+     * Root and administrators see all districts.
      */
     protected function getOperatorDistricts()
     {
+        if (isRoot() || isAdministrator()) {
+            return District::pluck('id');
+        }
+
         $operator = $this->getOperator();
         if (! $operator) {
-            return collect(); // Return empty collection if no operator
+            return collect();
         }
 
         return $operator->districts->pluck('id');
