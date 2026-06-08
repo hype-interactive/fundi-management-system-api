@@ -55,14 +55,6 @@
                                 <div class="title">{{ $role_name }}</div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-sm-2">
-                                <div class="label">District</div>
-                            </div>
-                            <div class="col-sm-9">
-                                <div class="title">{{ $district_name }}</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

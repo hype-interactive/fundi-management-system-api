@@ -344,29 +344,6 @@
             </div>
         @endif
 
-        <!-- Warning for operators with multiple districts (backward compatibility) -->
-        @if ($editing && $this->has_multiple_districts)
-            <div class="alert alert-warning mb-3">
-                <div class="d-flex align-items-start">
-                    <i class="fas fa-exclamation-triangle mr-2 mt-1"></i>
-                    <div>
-                        <strong>Multiple Districts Detected</strong>
-                        <p class="mb-2">This operator currently has multiple districts assigned:</p>
-                        <ul class="mb-2">
-                            @foreach ($this->current_districts as $district)
-                                <li>{{ $district->name }} ({{ $district->region->name ?? 'Unknown Region' }})</li>
-                            @endforeach
-                        </ul>
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            After updating, this operator will only be assigned to the single district selected below.
-                            The other districts will be removed from their assignment.
-                        </small>
-                    </div>
-                </div>
-            </div>
-        @endif
-
         <!-- Location Assignment -->
         <div class="card mb-3">
             <div class="card-header bg-light" style="cursor: pointer;" data-toggle="collapse"
@@ -414,10 +391,7 @@
                             </div>
                             <small class="form-text text-muted">
                                 Select one or more districts this operator will manage in
-                                {{ $regions->where('id', $selected_region)->first()->name ?? 'the selected region' }}
-                                @if ($editing && $this->has_multiple_districts)
-                                    <br><strong>Note:</strong> This will replace all currently assigned districts.
-                                @endif
+                                {{ $regions->where('id', $selected_region)->first()->name ?? 'the selected region' }}.
                             </small>
                             @error('selected_districts')
                                 <span class="error text-danger"><small>{{ $message }}</small></span>

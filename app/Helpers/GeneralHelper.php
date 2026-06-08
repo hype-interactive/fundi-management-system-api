@@ -31,6 +31,18 @@ if (! function_exists('isRoot')) {
  *
  * @return \App\Models\User|null
  */
+if (! function_exists('isAdministrator')) {
+    function isAdministrator()
+    {
+        $user = Auth::user();
+        if ($user) {
+            return $user->role_id == 2;
+        }
+
+        return false;
+    }
+}
+
 if (! function_exists('currentUser')) {
     function currentUser(): ?User
     {

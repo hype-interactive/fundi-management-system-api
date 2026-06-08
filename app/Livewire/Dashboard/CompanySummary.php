@@ -4,6 +4,7 @@ namespace App\Livewire\Dashboard;
 
 use App\Models\Fundi;
 use App\Models\User;
+use App\Models\SiteVisit;
 use Livewire\Component;
 
 class CompanySummary extends Component
@@ -14,6 +15,8 @@ class CompanySummary extends Component
 
     public $fundi_count;
 
+    public $sites_count;
+
     public function render()
     {
         $this->admin_count = User::where('role_id', '!=', 3)->orWhereNull('role_id')->count(); // Assuming 3 is the role_id for 'operator'
@@ -21,6 +24,7 @@ class CompanySummary extends Component
         if (isRoot()) {
             $this->operator_count = User::where('role_id', 3)->count(); // Assuming 3 is the role_id for 'operator'
             $this->fundi_count = Fundi::count();
+            $this->sites_count = SiteVisit::count();
         } else {
             $districtIds = currentDistrictIds();
 
@@ -29,6 +33,7 @@ class CompanySummary extends Component
             })->count();
 
             $this->fundi_count = Fundi::get()->count();
+            $this->sites_count = SiteVisit::get()->count();
         }
 
         return view('livewire.dashboard.company-summary');

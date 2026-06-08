@@ -1,54 +1,50 @@
 <div>
     <div class="filter mb-3">
-        <div class="row align-items-center">
-            <div class="col-md-2">
+        <div class="row align-items-center g-2">
+            <div class="col-12 col-md">
                 <div class="search">
                     <input wire:model.live.debounce.300ms="search_key" type="text" placeholder="Search operators...">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
             </div>
-            <div class="col-md-4">
+            @if (isRoot())
+            <div class="col-12 col-md-4">
                 <div class="row g-2">
-                    @if (isRoot())
-                        <div class="col">
-                            @include('components.selects.select_region', ['regions' => $regions])
-                        </div>
-                        <div class="col">
-                            @include('components.selects.select_district', ['districts' => $districts])
-                        </div>
-                    @endif
+                    <div class="col">
+                        @include('components.selects.select_region', ['regions' => $regions])
+                    </div>
+                    <div class="col">
+                        @include('components.selects.select_district', ['districts' => $districts])
+                    </div>
                 </div>
             </div>
+            @endif
             {{-- Date Range Filters --}}
-            <div class="col-md-3">
-                <div class="row g-2">
-                    <div class="col-6">
-                        <input type="date" 
-                               wire:model.live="date_from" 
-                               class="form-control form-control-sm py-3"
-                               placeholder="From"
-                               max="{{ now()->format('Y-m-d') }}"
-                               title="From Date">
-                    </div>
-                    <div class="col-6">
-                        <input type="date" 
-                               wire:model.live="date_to" 
-                               class="form-control form-control-sm py-3"
-                               placeholder="To"
-                               max="{{ now()->format('Y-m-d') }}"
-                               title="To Date">
-                    </div>
+            <div class="col-12 col-md-auto">
+                <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted text-nowrap">From</small>
+                    <input type="date"
+                           wire:model.live="date_from"
+                           class="form-control form-control-sm"
+                           max="{{ now()->format('Y-m-d') }}"
+                           title="From Date">
+                    <small class="text-muted text-nowrap">—</small>
+                    <input type="date"
+                           wire:model.live="date_to"
+                           class="form-control form-control-sm"
+                           max="{{ now()->format('Y-m-d') }}"
+                           title="To Date">
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-12 col-md-auto">
                 <div class="d-flex justify-content-end gap-2">
                     <button wire:click="refresh" class="btn btn-sm btn-outline-secondary">
                         <i class="fa-solid fa-arrows-rotate"></i>
                     </button>
-                    <button wire:click="exportToExcel" class="btn btn-sm btn-outline-success ml-1">
+                    <button wire:click="exportToExcel" class="btn btn-sm btn-outline-success">
                         <i class="fa-solid fa-file-csv me-1"></i>Export
                     </button>
-                    <button wire:click="downloadOperatorPDF" class="btn btn-sm btn-outline-danger ml-1">
+                    <button wire:click="downloadOperatorPDF" class="btn btn-sm btn-outline-danger">
                         <i class="fa-solid fa-file-pdf me-1"></i>PDF
                     </button>
                 </div>

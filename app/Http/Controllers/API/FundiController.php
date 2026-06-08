@@ -64,7 +64,7 @@ class FundiController extends BaseAPIController
     {
         $query = Fundi::with(['ward.district.region', 'creator']);
 
-        if (! isRoot()) {
+        if (! isRoot() && ! isAdministrator()) {
             $query->whereHas('ward.district', function ($q) {
                 $q->whereIn('id', $this->getOperatorDistricts());
             });
@@ -205,7 +205,7 @@ class FundiController extends BaseAPIController
             ];
         }
 
-        if (! isRoot() && ! $this->getOperatorDistricts()->contains($fundi->ward->district_id)) {
+        if (! isRoot() && ! isAdministrator() && ! $this->getOperatorDistricts()->contains($fundi->ward->district_id)) {
             return [
                 'error' => true,
                 'message' => 'Unauthorized access',
@@ -580,7 +580,7 @@ class FundiController extends BaseAPIController
         $query = Fundi::where('status', 'active')
             ->with(['ward.district.region']);
 
-        if (! isRoot()) {
+        if (! isRoot() && ! isAdministrator()) {
             $districtIds = $this->getOperatorDistricts();
             $query->whereHas('ward.district', fn ($q) => $q->whereIn('id', $districtIds));
         }
@@ -771,7 +771,7 @@ class FundiController extends BaseAPIController
      */
     private function authorizeOperatorAccess(Fundi $fundi): bool
     {
-        return isRoot() || $this->getOperatorDistricts()->contains($fundi->ward->district_id);
+        return isRoot() || isAdministrator() || $this->getOperatorDistricts()->contains($fundi->ward->district_id);
     }
 
     /**
@@ -838,7 +838,7 @@ class FundiController extends BaseAPIController
      */
     private function isWardInOperatorDistricts(int $wardId): bool
     {
-        if (isRoot()) {
+        if (isRoot() || isAdministrator()) {
             return true;
         }
 

@@ -25,6 +25,7 @@ class OperatorProfileResource extends BaseResource
                 'avatar' => $this->profile_photo_avatar,
                 'original' => $this->profile_photo_url,
             ],
+            'has_all_district_access' => isRoot() || isAdministrator(),
             'primary_district' => new DistrictMinimalResource($this->whenLoaded('districts', $this->primary_district)),
             'districts' => DistrictMinimalResource::collection($this->whenLoaded('districts')),
             'stats' => $this->when(
