@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use App\Models\Fundi;
 use Livewire\Component;
-use App\Models\Transaction;
 use Livewire\WithPagination;
 
 class FundiTransactionForm extends Component
@@ -14,19 +13,27 @@ class FundiTransactionForm extends Component
     protected $paginationTheme = 'bootstrap';
 
     public $fundi;
+
     public $transactionsPerPage = 10;
+
     public $siteVisitsPerPage = 10;
-    public $activeTab = 'transactions';
+
+    public $activeTab = 'site_visits';
 
     // Filters for transactions
     public $transaction_status = null;
+
     public $processed_date_from = null;
+
     public $processed_date_to = null;
+
     public $disbursement_batch_id = null;
 
     // Filters for site visits
     public $site_visit_status = null;
+
     public $site_visit_date_from = null;
+
     public $site_visit_date_to = null;
 
     public function mount(Fundi $fundi)
@@ -96,16 +103,16 @@ class FundiTransactionForm extends Component
     {
         return $this->fundi->transactions()
             ->with(['disbursementBatch', 'disbursementBatch.budgetAllocation'])
-            ->when($this->transaction_status, function($query, $status) {
+            ->when($this->transaction_status, function ($query, $status) {
                 return $query->where('status', $status);
             })
-            ->when($this->processed_date_from, function($query, $date) {
+            ->when($this->processed_date_from, function ($query, $date) {
                 return $query->whereDate('processed_at', '>=', $date);
             })
-            ->when($this->processed_date_to, function($query, $date) {
+            ->when($this->processed_date_to, function ($query, $date) {
                 return $query->whereDate('processed_at', '<=', $date);
             })
-            ->when($this->disbursement_batch_id, function($query, $batchId) {
+            ->when($this->disbursement_batch_id, function ($query, $batchId) {
                 return $query->where('disbursement_batch_id', $batchId);
             })
             ->latest('created_at')
@@ -115,13 +122,13 @@ class FundiTransactionForm extends Component
     public function getSiteVisitsProperty()
     {
         return $this->fundi->siteVisits()
-            ->when($this->site_visit_status, function($query, $status) {
+            ->when($this->site_visit_status, function ($query, $status) {
                 return $query->where('status', $status);
             })
-            ->when($this->site_visit_date_from, function($query, $date) {
+            ->when($this->site_visit_date_from, function ($query, $date) {
                 return $query->whereDate('visit_date', '>=', $date);
             })
-            ->when($this->site_visit_date_to, function($query, $date) {
+            ->when($this->site_visit_date_to, function ($query, $date) {
                 return $query->whereDate('visit_date', '<=', $date);
             })
             ->latest('visit_date')
@@ -156,6 +163,7 @@ class FundiTransactionForm extends Component
     public function canViewTransactions()
     {
         $currentUser = currentUser();
+
         return $currentUser && in_array($currentUser->role->name, ['admin', 'root', 'finance', 'viewer']);
     }
 

@@ -2,12 +2,14 @@
     <div class="avatar-wrapper mb-4">
         <div class="light-border">
             <div class="avatar">
-                @if ($fundi->profile_picture_url)
-                    <img src="{{ asset('storage/' . $fundi->profile_picture) }}" alt="Profile Picture">
+                @if ($fundi->profile_photo_url)
+                    <img src="{{ $fundi->profile_photo_url }}"
+                    style ="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;"
+                         alt="{{ $fundi->full_name }}"
+                         onerror="this.onerror=null; this.src='{{ asset('images/profile.jpg') }}';">
                 @else
                     <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar">
                 @endif
-                {{-- <img src="{{ asset('images/avatar.png') }}" alt="Default Avatar"> --}}
             </div>
         </div>
     </div>
@@ -140,7 +142,18 @@
             </div>
         @endif
     </div>
+    @if ($fundi->qr_code_path)
+        <div class="actions-card text-center mt-4">
+            <img src="{{ asset('storage/' . $fundi->qr_code_path) }}" alt="Profile Picture">
+            <div class="action-buttons">
 
+                <button class="btn btn-primary btn-sm mt-3" wire:click="downloadQrCode">
+                    <i class="fa-solid fa-qrcode me-1"></i>
+                    Download Fundi ID
+                </button>
+            </div>
+        </div>
+    @endif
     <!-- Actions Section -->
     @if (!$fundi->approved_at || !$fundi->rejected_at)
         <div class="actions-card mt-4">
@@ -149,13 +162,19 @@
                 Actions
             </h6>
             <div class="action-buttons">
-                <button class="btn btn-success btn-sm" wire:click="confirmApprove">
-                    <i class="fa-solid fa-check me-1"></i>
-                    Approve Fundi
-                </button>
-                <button class="btn btn-danger btn-sm" wire:click="confirmReject">
-                    <i class="fa-solid fa-times me-1"></i>
-                    Reject Fundi
+                @if (!$fundi->approved_at)
+                    <button class="btn btn-success btn-sm" wire:click="confirmApprove">
+                        <i class="fa-solid fa-check me-1"></i>
+                        Approve
+                    </button>
+                    <button class="btn btn-warning btn-sm" wire:click="confirmReject">
+                        <i class="fa-solid fa-times me-1"></i>
+                        Reject
+                    </button>
+                @endif
+                <button class="btn btn-danger btn-sm" wire:click="confirmDelete">
+                    <i class="fa-solid fa-trash me-1"></i>
+                    Delete
                 </button>
             </div>
         </div>

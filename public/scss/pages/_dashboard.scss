@@ -5,8 +5,8 @@
     color: color(dark);
 
     .header {
-        h2 {
-            @include font-family(bold);
+        h2,h3 {
+            @include font-family(semi-bold);
         }
         p {
             color: grey;

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class SiteVisit extends Model
 {
@@ -54,6 +54,14 @@ class SiteVisit extends Model
     {
         return $this->belongsToMany(Product::class, 'site_visit_products')
             ->withPivot('quantity', 'notes');
+    }
+
+    /**
+     * Get total quantity of products across all site visits
+     */
+    public function getTotalProductQuantityAttribute(): int
+    {
+        return $this->products()->sum('quantity');
     }
 
     public function fundis()

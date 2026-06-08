@@ -1,0 +1,235 @@
+name: Deploy Fundi Management System API
+
+on:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.3
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql
+
+    - name: Copy .env
+      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+    - name: Install Dependencies
+      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+    - name: Generate key
+      run: php artisan key:generate
+
+    - name: Directory Permissions
+      run: chmod -R 777 storage bootstrap/cache
+
+    - name: Create Database
+      run: |
+        mkdir -p database
+        touch database/database.sqlite
+
+    - name: Execute tests
+      env:
+        DB_CONNECTION: sqlite
+        DB_DATABASE: database/database.sqlite
+      run: php artisan test
+
+  deploy-production:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.3
+
+    - name: Install Dependencies
+      run: composer install --no-dev --optimize-autoloader --no-scripts
+
+    - name: Create deployment archive
+      run: tar --warning=no-file-changed -czf app.tar.gz --exclude='.git' --exclude='.github' --exclude='node_modules' --exclude='tests' . || [[ $? -eq 1 ]]
+
+    - name: Deploy to Production Server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /var/www
+
+          # Create backup
+          if [ -d "mafundi.magicbuilders.co.tz" ]; then
+            cp -r mafundi.magicbuilders.co.tz mafundi-production-backup-$(date +%Y%m%d-%H%M%S)
+          fi
+
+          # Create fresh directory
+          rm -rf mafundi.magicbuilders.co.tz-new
+          mkdir -p mafundi.magicbuilders.co.tz-new
+
+    - name: Upload files to Production
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        source: "app.tar.gz"
+        target: "/var/www/"
+
+    - name: Extract and configure Production
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /var/www
+          tar -xzf app.tar.gz -C mafundi.magicbuilders.co.tz-new/
+
+          # Copy .env
+          if [ -f "mafundi.magicbuilders.co.tz/.env" ]; then
+            cp mafundi.magicbuilders.co.tz/.env mafundi.magicbuilders.co.tz-new/.env
+          fi
+
+          cd mafundi.magicbuilders.co.tz-new
+          composer install --no-dev --optimize-autoloader
+          php artisan key:generate --force
+          php artisan migrate --force
+          php artisan config:clear
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+
+          chown -R root:www-data /var/www/mafundi.magicbuilders.co.tz-new
+          chmod -R 755 /var/www/mafundi.magicbuilders.co.tz-new
+          chmod -R 775 /var/www/mafundi.magicbuilders.co.tz-new/storage
+          chmod -R 775 /var/www/mafundi.magicbuilders.co.tz-new/bootstrap/cache
+
+          # Atomic switch
+          if [ -d "/var/www/mafundi.magicbuilders.co.tz" ]; then
+            rm -rf /var/www/mafundi.magicbuilders.co.tz-old
+            mv /var/www/mafundi.magicbuilders.co.tz /var/www/mafundi.magicbuilders.co.tz-old
+          fi
+          mv /var/www/mafundi.magicbuilders.co.tz-new /var/www/mafundi.magicbuilders.co.tz
+
+          systemctl reload php8.3-fpm
+          systemctl reload nginx
+          rm -f /var/www/app.tar.gz
+
+          # Keep last 3 backups
+          cd /var/www
+          ls -t mafundi-production-backup-* 2>/dev/null | tail -n +4 | xargs -r rm -rf
+
+  deploy-develop:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.3
+
+    - name: Install Dependencies
+      run: composer install --optimize-autoloader --no-scripts
+
+    - name: Create deployment archive
+      run: tar --warning=no-file-changed -czf app.tar.gz --exclude='.git' --exclude='.github' --exclude='node_modules' --exclude='tests' . || [[ $? -eq 1 ]]
+
+    - name: Deploy to Development Server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /var/www
+
+          # Create backup
+          if [ -d "dev.magicbuilders.co.tz" ]; then
+            cp -r dev.magicbuilders.co.tz dev-backup-$(date +%Y%m%d-%H%M%S)
+          fi
+
+          # Create fresh directory
+          rm -rf dev.magicbuilders.co.tz-new
+          mkdir -p dev.magicbuilders.co.tz-new
+
+    - name: Upload files to Development
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        source: "app.tar.gz"
+        target: "/var/www/"
+
+    - name: Extract and configure Development
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /var/www
+          tar -xzf app.tar.gz -C dev.magicbuilders.co.tz-new/
+
+          # Copy .env
+          if [ -f "dev.magicbuilders.co.tz/.env" ]; then
+            cp dev.magicbuilders.co.tz/.env dev.magicbuilders.co.tz-new/.env
+          fi
+
+          cd dev.magicbuilders.co.tz-new
+          composer install --optimize-autoloader
+          php artisan key:generate --force
+          php artisan migrate --force
+          php artisan config:clear
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+
+          chown -R root:www-data /var/www/dev.magicbuilders.co.tz-new
+          chmod -R 755 /var/www/dev.magicbuilders.co.tz-new
+          chmod -R 775 /var/www/dev.magicbuilders.co.tz-new/storage
+          chmod -R 775 /var/www/dev.magicbuilders.co.tz-new/bootstrap/cache
+
+          # Atomic switch
+          if [ -d "/var/www/dev.magicbuilders.co.tz" ]; then
+            rm -rf /var/www/dev.magicbuilders.co.tz-old
+            mv /var/www/dev.magicbuilders.co.tz /var/www/dev.magicbuilders.co.tz-old
+          fi
+          mv /var/www/dev.magicbuilders.co.tz-new /var/www/dev.magicbuilders.co.tz
+
+          systemctl reload php8.3-fpm
+          systemctl reload nginx
+          rm -f /var/www/app.tar.gz
+
+          # Keep last 3 backups
+          cd /var/www
+          ls -t dev-backup-* 2>/dev/null | tail -n +4 | xargs -r rm -rf

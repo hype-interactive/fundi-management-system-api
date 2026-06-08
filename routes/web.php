@@ -1,13 +1,13 @@
 <?php
 
-use App\Livewire\Products;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\FundiController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\OperatorController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\SiteVisitController;
+use App\Http\Controllers\FundiController;
+use App\Http\Controllers\IdCardController;
 use App\Http\Controllers\LegacyDataController;
+use App\Http\Controllers\OperatorController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SiteVisitController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -23,8 +23,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/fundis/{fundi}', [FundiController::class, 'show'])->name('fundi');
 
     Route::get('/unapproved_fundis', function () {
-        return  view('pages.unapproved-fundis');
+        return view('pages.unapproved-fundis');
     })->name('unapproved-fundis');
+
+    // routes/web.php
+
+    // Add this route in your fundis route group
+    Route::get('/duplicate_fundis', function () {
+        return view('pages.fundi-duplicates');
+    })->name('fundis.duplicates');
 
     Route::get('/site-visits', function () {
         return view('pages.site-visits');
@@ -49,6 +56,10 @@ Route::middleware('auth')->group(function () {
         return view('pages.operators');
     })->name('operators');
 
+    Route::get('/locations', function () {
+        return view('pages.location-manager');
+    })->name('locations.manage');
+
     Route::get('/operators/{operator}', [OperatorController::class, 'show'])->name('operator');
 
     Route::get('/financials', function () {
@@ -72,10 +83,15 @@ Route::middleware('auth')->group(function () {
         return view('pages.financial.reports');
     })->name('financial.reports');
 
+    Route::get('/seminars', function () {
+        return view('pages.seminars');
+    })->name('seminars');
+
     /* Legacy fundis management routes
     * These routes handle the import, export, and management of legacy fundis data.
     * They include features like bulk operations, manual linking/unlinking, and progress tracking.
     */
+
     Route::prefix('legacy-data')->name('legacy-fundis.')->group(function () {
         // Main legacy fundis page
         Route::get('/', [LegacyDataController::class, 'index'])
@@ -134,16 +150,20 @@ Route::middleware('auth')->group(function () {
 Route::get('/register-fundi', App\Livewire\PublicFundiRegistration::class)
     ->name('fundi.public.register');
 
-//app download
+// app download
 Route::get('/app', function () {
     return view('pages.app-download');
 })->name('');
 
-//file download
+// ID - Generator
+
+Route::get('/id-card', [IdCardController::class, 'generate'])->name('fundi_id_download');
+
+// file download
 // Route::get('/download-apk', function () {
 //     return response()->download(public_path('apk/app-release.apk'), 'fundi-app.apk');
 // })->name('download-apk');
 
 Route::get('/download-apk', [App\Http\Controllers\APKController::class, 'download'])->name('download-apk');
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

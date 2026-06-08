@@ -1,8 +1,34 @@
 <div wire:poll.keep-alive>
+    {{-- Bulk Actions Bar --}}
+    @if (count($selectedFundis) > 0)
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
+            <div>
+                <i class="fa-solid fa-check-double me-2"></i>
+                <strong>{{ count($selectedFundis) }}</strong> fundi(s) selected
+            </div>
+            <div>
+                <button wire:click="bulkApprove" class="btn btn-success btn-sm me-2">
+                    <i class="fa-solid fa-check me-1"></i>
+                    Approve Selected
+                </button>
+            </div>
+        </div>
+    @endif
+
+    @if (session()->has('message'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('message') }}
+        </div>
+    @endif
+
     <div class="custom-table">
         <table class="table">
             <thead class="thead-light">
                 <tr>
+                    <th scope="col" style="width: 50px;">
+                        <input type="checkbox" wire:model.live="selectAll" class="form-check-input"
+                            @if (count($fundis) === 0) disabled @endif>
+                    </th>
                     <th scope="col">
                         <a wire:click="$refresh">
                             <i class="fa-solid fa-arrows-rotate"></i>
@@ -21,6 +47,10 @@
             <tbody>
                 @forelse ($fundis as $fundi)
                     <tr>
+                        <td>
+                            <input type="checkbox" wire:model.live="selectedFundis" value="{{ $fundi->id }}"
+                                class="form-check-input">
+                        </td>
                         <th scope="row">
                             <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle">
                                 <i class="fa-solid fa-user"></i>
@@ -62,6 +92,8 @@
                                     <i class="fa-solid fa-check text-success cursor-pointer"
                                         wire:click="approve({{ $fundi->id }})"></i>
                                     <i class="fa-solid fa-xmark text-danger ml-2 cursor-pointer"
+                                        wire:click="reject({{ $fundi->id }})"></i>
+                                    <i class="fa-solid fa-trash text-danger ml-2 cursor-pointer"
                                         wire:click="delete({{ $fundi->id }})"></i>
                                 </div>
                             </div>

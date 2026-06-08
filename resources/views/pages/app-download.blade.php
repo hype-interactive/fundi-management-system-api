@@ -224,7 +224,7 @@
             <a href="{{ route('download-apk') }}" class="download-btn">
                 Download APK 
             </a>
-            <p>Alternative link: <a href="https://we.tl/t-QlePzeY8KJ">Download APK </a></p>
+            <p>Alternative link: <a href="https://we.tl/t-ektAAovq4R">Download APK </a></p>
 
             <div class="warning">
                 <strong>Important:</strong> You may need to enable "Install from Unknown Sources" in your Android settings to install this app.

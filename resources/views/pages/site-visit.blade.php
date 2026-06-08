@@ -20,7 +20,7 @@
                             @endif
                         </div>
                     </div>
-                    <a href="{{ route('site-visits') }}" class="btn btn-custom">
+                    <a href="{{ url()->previous() }}" class="btn btn-custom">
                         <i class="fa-solid fa-arrow-left"></i> Back
                     </a>
                 </div>

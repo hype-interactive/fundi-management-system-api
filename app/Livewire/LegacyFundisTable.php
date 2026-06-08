@@ -3,11 +3,11 @@
 namespace App\Livewire;
 
 use App\Models\Fundi;
-use Livewire\Component;
 use App\Models\LegacyFundi;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use Illuminate\Support\Facades\Cache;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class LegacyFundisTable extends Component
 {
@@ -31,35 +31,43 @@ class LegacyFundisTable extends Component
     public $matchStatus = '';
 
     public $perPage = 25;
+
     public $compactView = false;
 
     // Modal states
     public $showMatchesModal = false;
+
     public $selectedLegacyId = null;
+
     public $potentialMatches = [];
+
     public $loadingMatches = false;
 
     // Filter options
     public $regions = [];
+
     public $districts = [];
+
     public $statusOptions = [
         'active' => 'Active',
         'inactive' => 'Inactive',
-        'pending' => 'Pending'
+        'pending' => 'Pending',
     ];
+
     public $matchStatusOptions = [
         'matched' => 'Matched',
         'potential' => 'Has Potential Matches',
-        'unmatched' => 'No Matches'
+        'unmatched' => 'No Matches',
     ];
 
     // Bulk operations
     public $selectedItems = [];
+
     public $selectAll = false;
 
     protected $listeners = [
         'refreshTable' => '$refresh',
-        'closeMatchesModal' => 'closeMatches'
+        'closeMatchesModal' => 'closeMatches',
     ];
 
     public function mount()
@@ -84,16 +92,16 @@ class LegacyFundisTable extends Component
             ->with('matchedFundi')
             ->when($this->search, function ($q) {
                 $q->where(function ($subQuery) {
-                    $subQuery->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhere('primary_phone', 'like', '%' . $this->search . '%')
-                        ->orWhere('nida_number', 'like', '%' . $this->search . '%');
+                    $subQuery->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('primary_phone', 'like', '%'.$this->search.'%')
+                        ->orWhere('nida_number', 'like', '%'.$this->search.'%');
                 });
             })
-            ->when($this->region, fn($q) => $q->where('region', $this->region))
-            ->when($this->district, fn($q) => $q->where('district', $this->district))
-            ->when($this->status, fn($q) => $q->where('status', $this->status))
+            ->when($this->region, fn ($q) => $q->where('region', $this->region))
+            ->when($this->district, fn ($q) => $q->where('district', $this->district))
+            ->when($this->status, fn ($q) => $q->where('status', $this->status))
             ->when($this->matchStatus, function ($q) {
-                match($this->matchStatus) {
+                match ($this->matchStatus) {
                     'matched' => $q->matched(),
                     'unmatched' => $q->unmatched(),
                     'potential' => $q->withPotentialMatches(),
@@ -133,7 +141,7 @@ class LegacyFundisTable extends Component
             ->values()
             ->toArray();
 
-        $this->districts = LegacyFundi::when($this->region, fn($q) => $q->where('region', $this->region))
+        $this->districts = LegacyFundi::when($this->region, fn ($q) => $q->where('region', $this->region))
             ->whereNotNull('district')
             ->distinct()
             ->pluck('district')
@@ -192,7 +200,9 @@ class LegacyFundisTable extends Component
      */
     public function loadPotentialMatches()
     {
-        if (!$this->selectedLegacyId) return;
+        if (! $this->selectedLegacyId) {
+            return;
+        }
 
         $legacyFundi = LegacyFundi::find($this->selectedLegacyId);
 
@@ -236,7 +246,7 @@ class LegacyFundisTable extends Component
                 $this->closeMatches();
                 $this->dispatch('showToast', [
                     'type' => 'success',
-                    'message' => 'Legacy fundi linked successfully!'
+                    'message' => 'Legacy fundi linked successfully!',
                 ]);
 
                 // Clear stats cache
@@ -244,13 +254,13 @@ class LegacyFundisTable extends Component
             } else {
                 $this->dispatch('showToast', [
                     'type' => 'error',
-                    'message' => 'This fundi is already linked to another legacy record.'
+                    'message' => 'This fundi is already linked to another legacy record.',
                 ]);
             }
         } catch (\Exception $e) {
             $this->dispatch('showToast', [
                 'type' => 'error',
-                'message' => 'Failed to link: ' . $e->getMessage()
+                'message' => 'Failed to link: '.$e->getMessage(),
             ]);
         }
     }
@@ -266,7 +276,7 @@ class LegacyFundisTable extends Component
             if ($legacyFundi->unlink()) {
                 $this->dispatch('showToast', [
                     'type' => 'success',
-                    'message' => 'Legacy fundi unlinked successfully!'
+                    'message' => 'Legacy fundi unlinked successfully!',
                 ]);
 
                 // Clear stats cache
@@ -274,13 +284,13 @@ class LegacyFundisTable extends Component
             } else {
                 $this->dispatch('showToast', [
                     'type' => 'error',
-                    'message' => 'No linked fundi found for this legacy record.'
+                    'message' => 'No linked fundi found for this legacy record.',
                 ]);
             }
         } catch (\Exception $e) {
             $this->dispatch('showToast', [
                 'type' => 'error',
-                'message' => 'Failed to unlink: ' . $e->getMessage()
+                'message' => 'Failed to unlink: '.$e->getMessage(),
             ]);
         }
     }
@@ -296,8 +306,9 @@ class LegacyFundisTable extends Component
             if ($unmatchedCount === 0) {
                 $this->dispatch('showToast', [
                     'type' => 'info',
-                    'message' => 'No unmatched legacy fundis found.'
+                    'message' => 'No unmatched legacy fundis found.',
                 ]);
+
                 return;
             }
 
@@ -313,7 +324,7 @@ class LegacyFundisTable extends Component
 
             $this->dispatch('showToast', [
                 'type' => 'success',
-                'message' => "Auto-matched {$matchedCount} legacy fundis with high confidence!"
+                'message' => "Auto-matched {$matchedCount} legacy fundis with high confidence!",
             ]);
 
             // Clear stats cache
@@ -322,7 +333,7 @@ class LegacyFundisTable extends Component
         } catch (\Exception $e) {
             $this->dispatch('showToast', [
                 'type' => 'error',
-                'message' => 'Auto-match failed: ' . $e->getMessage()
+                'message' => 'Auto-match failed: '.$e->getMessage(),
             ]);
         }
     }
@@ -344,8 +355,9 @@ class LegacyFundisTable extends Component
         if (empty($this->selectedItems)) {
             $this->dispatch('showToast', [
                 'type' => 'warning',
-                'message' => 'Please select items to perform bulk operation.'
+                'message' => 'Please select items to perform bulk operation.',
             ]);
+
             return;
         }
 
@@ -363,7 +375,7 @@ class LegacyFundisTable extends Component
 
         $this->dispatch('showToast', [
             'type' => 'success',
-            'message' => "Bulk linked {$matchedCount} legacy fundis."
+            'message' => "Bulk linked {$matchedCount} legacy fundis.",
         ]);
 
         Cache::forget('legacy_fundis_stats');
@@ -379,7 +391,7 @@ class LegacyFundisTable extends Component
             'region',
             'district',
             'status',
-            'matchStatus'
+            'matchStatus',
         ]);
 
         $this->loadFilterOptions();
@@ -390,21 +402,25 @@ class LegacyFundisTable extends Component
      */
     public function export()
     {
-        $query = $this->getLegacyFundis();
-        $filename = 'legacy_fundis_' . date('Y-m-d_H-i-s') . '.csv';
+        // add execution time to 5 minutes
+        set_time_limit(2500);
+        $filename = 'legacy_fundis_'.date('Y-m-d_H-i-s').'.csv';
 
-        return response()->streamDownload(function () use ($query) {
+        return response()->streamDownload(function () {
             $handle = fopen('php://output', 'w');
 
             // Headers
             fputcsv($handle, [
                 'ID', 'Name', 'Phone', 'NIDA', 'Region', 'District',
-                'Ward', 'Status', 'Match Status', 'Matched Fundi ID'
+                'Ward', 'Status', 'Match Status', 'Matched Fundi ID',
             ]);
 
-            // Data
-            $query->chunk(500, function ($legacyFundis) use ($handle) {
-                foreach ($legacyFundis as $legacy) {
+            // Use cursor for memory-efficient iteration over large datasets
+            // Make sure getLegacyFundis() returns a Query Builder, not a Collection
+            $this->getLegacyFundisQuery()
+                ->with('matchedFundi:id') // Eager load only the id
+                ->cursor()
+                ->each(function ($legacy) use ($handle) {
                     fputcsv($handle, [
                         $legacy->id,
                         $legacy->name,
@@ -415,12 +431,33 @@ class LegacyFundisTable extends Component
                         $legacy->ward ?? 'N/A',
                         ucfirst($legacy->status),
                         ucfirst($legacy->match_status),
-                        $legacy->matchedFundi?->id ?? 'N/A'
+                        $legacy->matchedFundi?->id ?? 'N/A',
                     ]);
-                }
-            });
+                });
 
             fclose($handle);
-        }, $filename);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Get the query builder (not the result) for legacy fundis
+     */
+    private function getLegacyFundisQuery()
+    {
+        // Return the query builder WITHOUT calling ->get()
+        return LegacyFundi::query()
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', "%{$this->search}%")
+                        ->orWhere('primary_phone', 'like', "%{$this->search}%")
+                        ->orWhere('nida_number', 'like', "%{$this->search}%");
+                });
+            });
+        // ->when($this->selectedRegion, fn($q) => $q->where('region', $this->selectedRegion))
+        // ->when($this->selectedDistrict, fn($q) => $q->where('district', $this->selectedDistrict))
+        // ->when($this->selectedStatus, fn($q) => $q->where('status', $this->selectedStatus))
+        // ->when($this->selectedMatchStatus, fn($q) => $q->where('match_status', $this->selectedMatchStatus));
     }
 }

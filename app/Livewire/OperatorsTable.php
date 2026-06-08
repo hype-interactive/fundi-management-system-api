@@ -4,21 +4,22 @@ namespace App\Livewire;
 
 use App\Models\Role;
 use App\Models\User;
-use Livewire\Component;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use App\Traits\LocationTrait;
+use Carbon\Carbon;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class OperatorsTable extends Component
 {
-    use WithPagination, LocationTrait;
+    use LocationTrait, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
     #[Url]
     public $search_key = '';
 
-    public $perPage = 10;
+    public $perPage = 12;
 
     #[Url]
     public $region = null;
@@ -32,22 +33,30 @@ class OperatorsTable extends Component
     #[Url]
     public $status = null;
 
+    // Date range filters
+    #[Url]
+    public $date_from = null;
+
+    #[Url]
+    public $date_to = null;
+
     public $regions = [];
+
     public $districts = [];
+
     public $roles = [];
+
     public $status_options = [];
 
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     public function updatedRegion($value)
     {
         $this->district = null;
-
-        // Load districts based on region selection
-        $this->districts = $this->getDistricts((int)$value);
-
+        $this->districts = $this->getDistricts((int) $value);
         $this->resetPage();
     }
 
@@ -71,19 +80,83 @@ class OperatorsTable extends Component
         $this->resetPage();
     }
 
+    public function updatedDateFrom()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateTo()
+    {
+        $this->resetPage();
+    }
+
     public function fetch()
     {
         return $this->getOperatorQuery()->paginate($this->perPage);
+    }
+
+    /**
+     * Get the date range for filtering
+     */
+    public function getDateRange(): array
+    {
+        $from = $this->date_from ? Carbon::parse($this->date_from)->startOfDay() : null;
+        $to = $this->date_to ? Carbon::parse($this->date_to)->endOfDay() : null;
+
+        return compact('from', 'to');
+    }
+
+    /**
+     * Check if date filters are active
+     */
+    public function hasDateFilter(): bool
+    {
+        return $this->date_from || $this->date_to;
+    }
+
+    /**
+     * Get stats for an operator within the date range
+     */
+    public function getOperatorStats($operator): array
+    {
+        $dateRange = $this->getDateRange();
+
+        if ($dateRange['from'] && $dateRange['to']) {
+            // Filtered stats
+            $siteVisits = $operator->siteVisits()
+                ->whereBetween('created_at', [$dateRange['from'], $dateRange['to']])
+                ->count();
+            $fundis = $operator->createdFundis()
+                ->whereBetween('created_at', [$dateRange['from'], $dateRange['to']])
+                ->count();
+        } else {
+            // Default: Today, Week, Month, Total
+            $siteVisits = null;
+            $fundis = null;
+        }
+
+        return [
+            'filtered_site_visits' => $siteVisits,
+            'filtered_fundis' => $fundis,
+            'today_visits' => $operator->siteVisits()->whereDate('created_at', today())->count(),
+            'today_fundis' => $operator->createdFundis()->whereDate('created_at', today())->count(),
+            'week_visits' => $operator->siteVisits()->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'week_fundis' => $operator->createdFundis()->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'month_visits' => $operator->siteVisits()->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+            'month_fundis' => $operator->createdFundis()->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+            'total_visits' => $operator->siteVisits()->count(),
+            'total_fundis' => $operator->createdFundis()->count(),
+        ];
     }
 
     public function getOperatorQuery()
     {
         $this->loadData();
 
-        $query = User::with(['role', 'districts.region'])->where("role_id", '!=', 1) // Exclude root users
-            ->where("role_id", '!=', 2); // Exclude admin users
+        $query = User::with(['role', 'districts.region'])
+            ->where('role_id', '!=', 1)
+            ->where('role_id', '!=', 2);
 
-        // Apply location-based filters
         if ($this->region) {
             $query->whereHas('districts.region', function ($q) {
                 $q->where('regions.id', $this->region);
@@ -99,9 +172,9 @@ class OperatorsTable extends Component
         return $query
             ->when($this->search_key, function ($query, $search_key) {
                 $query->where(function ($q) use ($search_key) {
-                    $q->whereRaw("concat(fname, ' ', mname, ' ', lname) like ?", ['%' . $search_key . '%'])
-                        ->orWhere('email', 'like', '%' . $search_key . '%')
-                        ->orWhere('phone', 'like', '%' . $search_key . '%');
+                    $q->whereRaw("concat(fname, ' ', mname, ' ', lname) like ?", ['%'.$search_key.'%'])
+                        ->orWhere('email', 'like', '%'.$search_key.'%')
+                        ->orWhere('phone', 'like', '%'.$search_key.'%');
                 });
             })
             ->when($this->status, function ($query, $status) {
@@ -112,53 +185,45 @@ class OperatorsTable extends Component
 
     public function loadData()
     {
-        // Load regions based on user permissions
         $this->regions = $this->getAccessibleRegions();
-
-        // Load districts based on current region selection and user permissions
-        $this->districts = $this->getDistricts((int)$this->region);
-
-        // Load roles (excluding sensitive roles if needed)
+        $this->districts = $this->getDistricts((int) $this->region);
         $this->roles = Role::orderBy('name')->get();
-
         $this->status_options = [
             'active' => 'Active',
-            'inactive' => 'Inactive'
+            'inactive' => 'Inactive',
         ];
     }
 
-    /**
-     * Toggle compact view for better mobile experience
-     */
     public function toggleCompactView()
     {
-        $this->compactView = !$this->compactView;
+        $this->compactView = ! $this->compactView;
     }
 
-    /**
-     * Download the PDF of operators
-     */
     public function downloadOperatorPDF()
     {
-        set_time_limit(300); // execution time to 5min
-        ini_set("memory_limit", "1000M");
+        set_time_limit(300);
+        ini_set('memory_limit', '1000M');
 
         return response()->streamDownload(function () {
-            // Get the operators query
             $operators = $this->getOperatorQuery()->get();
 
-            // Create an array of rows
             $rows = [];
             foreach ($operators as $operator) {
-                $districts = $operator->districts->pluck('name')->join(', ');
+                $stats = $this->getOperatorStats($operator);
 
                 $rows[] = [
                     'name' => $operator->full_name,
-                    'email' => $operator->email,
                     'phone' => $operator->phone,
-                    'role' => $operator->role->display_name ?? 'N/A',
-                    'districts' => $districts ?: 'N/A',
-                    'status' => ucfirst($operator->status),
+                    'site' => [
+                        'today' => $stats['today_visits'],
+                        'month' => $stats['month_visits'],
+                        'all_time' => $stats['total_visits'],
+                    ],
+                    'fundis' => [
+                        'today' => $stats['today_fundis'],
+                        'month' => $stats['month_fundis'],
+                        'all_time' => $stats['total_fundis'],
+                    ],
                 ];
             }
 
@@ -167,16 +232,12 @@ class OperatorsTable extends Component
             $html_view = view('documents.operators', compact('title', 'date', 'rows'))->render();
             $pdf = app('dompdf.wrapper');
             $pdf->loadHTML($html_view);
-
             $pdf->setPaper('A4', 'landscape');
 
             echo $pdf->stream();
         }, 'magic_builders_operators.pdf');
     }
 
-    /**
-     * Export current filtered data to Excel
-     */
     public function exportToExcel()
     {
         return response()->streamDownload(function () {
@@ -189,11 +250,14 @@ class OperatorsTable extends Component
                 'Role',
                 'Status',
                 'Districts',
-                'Site Visits Count',
-                'Approved Fundis Count',
+                'Site Visits (Today)',
+                'Site Visits (Month)',
+                'Site Visits (All Time)',
+                'Fundis Registered (Today)',
+                'Fundis Registered (Month)',
+                'Fundis Registered (All Time)',
                 'Total Incentives',
                 'Created At',
-                'Last Updated'
             ];
 
             $handle = fopen('php://output', 'w');
@@ -202,6 +266,7 @@ class OperatorsTable extends Component
             foreach ($operators as $operator) {
                 $districts = $operator->districts->pluck('name')->join(', ');
                 $totalIncentives = $operator->incentives()->sum('amount');
+                $stats = $this->getOperatorStats($operator);
 
                 fputcsv($handle, [
                     $operator->full_name,
@@ -210,24 +275,26 @@ class OperatorsTable extends Component
                     $operator->role->display_name ?? 'N/A',
                     ucfirst($operator->status),
                     $districts ?: 'N/A',
-                    $operator->siteVisits()->count(),
-                    $operator->approvedFundis()->count(),
+                    $stats['today_visits'],
+                    $stats['month_visits'],
+                    $stats['total_visits'],
+                    $stats['today_fundis'],
+                    $stats['month_fundis'],
+                    $stats['total_fundis'],
                     number_format($totalIncentives, 2),
                     $operator->created_at->format('Y-m-d H:i:s'),
-                    $operator->updated_at->format('Y-m-d H:i:s')
                 ]);
             }
 
             fclose($handle);
-        }, 'operators_export_' . date('Y-m-d_H-i-s') . '.csv', [
+        }, 'operators_export_'.date('Y-m-d_H-i-s').'.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }
 
     public function mount()
     {
-        // For non-admin/root users, set their primary location
-        if (!$this->isAdminOrRoot()) {
+        if (! $this->isAdminOrRoot()) {
             $primaryDistrict = $this->getUserPrimaryDistrict();
             $primaryRegion = $this->getUserPrimaryRegion();
 
@@ -240,10 +307,7 @@ class OperatorsTable extends Component
             }
         }
 
-        // Auto-hide mobile filters initially on mobile
         $this->showMobileFilters = false;
-
-        // Set compact view based on screen size
         $this->compactView = false;
     }
 
@@ -252,15 +316,15 @@ class OperatorsTable extends Component
         $this->reset([
             'search_key',
             'role_id',
-            'status'
+            'status',
+            'date_from',
+            'date_to',
         ]);
 
-        // Don't reset region/district for non-admin/root users
         if ($this->isAdminOrRoot()) {
             $this->reset(['region', 'district']);
         }
 
-        // Hide mobile filters after refresh
         $this->showMobileFilters = false;
     }
 

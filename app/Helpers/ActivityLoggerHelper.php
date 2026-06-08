@@ -9,10 +9,10 @@ if (! function_exists('activity')) {
     /**
      * Record an activity log entry
      *
-     * @param  string  $logType           Type of log (create, update, delete, etc.)
-     * @param  string  $description       Human-readable description of the activity
+     * @param  string  $logType  Type of log (create, update, delete, etc.)
+     * @param  string  $description  Human-readable description of the activity
      * @param  \Illuminate\Database\Eloquent\Model|null  $subject  Related model instance
-     * @param  array   $properties        Additional custom properties to store
+     * @param  array  $properties  Additional custom properties to store
      * @return \App\Models\ActivityLog
      */
     function activity(string $logType, string $description, ?Model $subject = null, array $properties = [])
@@ -31,7 +31,7 @@ if (! function_exists('activity')) {
             $modelId = $subject->getKey();
 
             // Add subject attributes to properties if not sensitive/large
-            if (!isset($properties['subject'])) {
+            if (! isset($properties['subject'])) {
                 $attributes = $subject->getAttributes();
 
                 // Filter out any potentially sensitive fields
@@ -70,10 +70,10 @@ if (! function_exists('activityFor')) {
     /**
      * Create a log entry for a specific model action
      *
-     * @param  \Illuminate\Database\Eloquent\Model  $model     The model being acted upon
-     * @param  string  $action                                 Action performed (created, updated, deleted, etc.)
-     * @param  string|null  $description                       Optional custom description
-     * @param  array  $properties                              Additional properties to log
+     * @param  \Illuminate\Database\Eloquent\Model  $model  The model being acted upon
+     * @param  string  $action  Action performed (created, updated, deleted, etc.)
+     * @param  string|null  $description  Optional custom description
+     * @param  array  $properties  Additional properties to log
      * @return \App\Models\ActivityLog
      */
     function activityFor(Model $model, string $action, ?string $description = null, array $properties = [])
@@ -85,13 +85,13 @@ if (! function_exists('activityFor')) {
 
             // Try to find a more human-readable identifier if available
             foreach (['name', 'title', 'email', 'username'] as $field) {
-                if (isset($model->$field) && !empty($model->$field)) {
+                if (isset($model->$field) && ! empty($model->$field)) {
                     $identifier = $model->$field;
                     break;
                 }
             }
 
-            $description = ucfirst($action) . " $modelName #$identifier";
+            $description = ucfirst($action)." $modelName #$identifier";
         }
 
         // Track what changed if this was an update
@@ -106,7 +106,7 @@ if (! function_exists('activityFor')) {
     }
 }
 
-if (!function_exists('getLogTypeColor')) {
+if (! function_exists('getLogTypeColor')) {
     function getLogTypeColor($log)
     {
         switch (strtolower($log->log_type)) {
@@ -128,7 +128,7 @@ if (!function_exists('getLogTypeColor')) {
     }
 }
 
-if (!function_exists('getBorderStyle')) {
+if (! function_exists('getBorderStyle')) {
     function getBorderStyle($log)
     {
         switch (strtolower($log->log_type)) {

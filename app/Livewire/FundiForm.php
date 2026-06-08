@@ -2,57 +2,78 @@
 
 namespace App\Livewire;
 
-use Exception;
 use App\Models\Fundi;
-use Livewire\Component;
-use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use App\Services\CloudinaryImageService;
 use App\Traits\HasAlerts;
+use Exception;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class FundiForm extends Component
 {
-    use WithFileUploads, HasAlerts;
+    use HasAlerts, WithFileUploads;
 
-    // Inject CloudinaryImageService
     protected $cloudinaryService;
 
     // Fundi form properties
     public $fundi_id = null;
+
     public $fname = '';
+
     public $mname = '';
+
     public $lname = '';
+
     public $gender = '';
+
     public $nida_number = '';
+
     public $primary_phone = '';
+
     public $transaction_phone = '';
+
     public $district = null;
+
     public $ward_id = null;
+
     public $ranking = '';
+
     public $profile_photo = null;
+
     public $status = 'active';
+
     public $legacy_match = false;
+
     public $legacy_id = '';
 
     // Cloudinary properties
     public $profile_photo_url = null;
+
     public $profile_photo_public_id = null;
 
     // Component compatibility
     public $ward = null;
+
     public $district_id = null;
 
     // UI state properties
     public $action_text = 'Create';
+
     public $editing = false;
+
     public $existing_photo = null;
+
     public $remove_photo = false;
-    public $mode = 'create'; // 'create' or 'edit'
-    public $saving = false; // Loading state
+
+    public $mode = 'create';
+
+    public $saving = false;
 
     // Districts and wards for dropdowns
     public $districts = [];
+
     public $wards = [];
 
     // Accept fundi model for editing
@@ -82,14 +103,8 @@ class FundiForm extends Component
         }
         $this->loadDistricts();
 
-        // Display any flashed alerts
         $this->displayFlashedAlerts();
     }
-
-    // public function resetValidation()
-    // {
-    //     $this->resetErrorBag();
-    // }
 
     /**
      * Load fundi data for editing
@@ -105,7 +120,6 @@ class FundiForm extends Component
         $this->primary_phone = $fundi->primary_phone;
         $this->transaction_phone = $fundi->transaction_phone;
 
-        // Set district first to load wards correctly
         $this->district = $fundi->ward->district->id;
         $this->loadWards();
         $this->ward_id = $fundi->ward_id;
@@ -116,7 +130,6 @@ class FundiForm extends Component
         $this->legacy_match = $fundi->legacy_match;
         $this->legacy_id = $fundi->legacy_id;
 
-        // Handle existing Cloudinary photo
         $this->profile_photo_url = $fundi->profile_photo_url;
         $this->profile_photo_public_id = $fundi->profile_photo_public_id;
 
@@ -138,14 +151,12 @@ class FundiForm extends Component
     {
         $currentUser = currentUser();
 
-        // If admin or root, get all districts, otherwise get user's districts
         if ($currentUser && ($currentUser->role->name === 'admin' || $currentUser->role->name === 'root')) {
             $this->districts = \App\Models\District::orderBy('name')->get();
         } else {
             $this->districts = $currentUser->districts;
 
-            // Set default district to user's primary district
-            if ($currentUser->primary_district && !$this->district) {
+            if ($currentUser->primary_district && ! $this->district) {
                 $this->district = $currentUser->primary_district->id;
                 $this->loadWards();
             }
@@ -165,7 +176,6 @@ class FundiForm extends Component
             $this->wards = [];
         }
 
-        // Reset ward selection if district changes
         if ($this->editing == false) {
             $this->ward_id = null;
         }
@@ -179,7 +189,9 @@ class FundiForm extends Component
         $this->loadWards();
     }
 
-    // Add this watcher to sync ward to ward_id
+    /**
+     * Sync ward to ward_id
+     */
     public function updatedWard($value)
     {
         $this->ward_id = $value;
@@ -210,22 +222,18 @@ class FundiForm extends Component
             'editing',
             'existing_photo',
             'remove_photo',
-            'saving'
+            'saving',
         ]);
 
-        // Set default values
         $this->action_text = 'Create';
         $this->status = 'active';
         $this->legacy_match = false;
 
-        // Load user's primary district if available
         $currentUser = currentUser();
         if ($currentUser && $currentUser->primary_district) {
             $this->district = $currentUser->primary_district->id;
             $this->loadWards();
         }
-
-        // $this->showInfoAlert('Form Reset', 'Form has been reset to default values.');
     }
 
     /**
@@ -237,10 +245,11 @@ class FundiForm extends Component
             $fundi = Fundi::findOrFail($fundiId);
             $this->resetForm();
             $this->loadFundiData($fundi);
+
             $this->showSuccessAlert('Fundi Loaded', 'Fundi data loaded successfully for editing.');
         } catch (Exception $e) {
             $this->showErrorAlert('Error', 'Failed to load fundi data. Please try again.');
-            Log::error('Failed to load fundi: ' . $e->getMessage());
+            Log::error('Failed to load fundi: '.$e->getMessage());
         }
     }
 
@@ -289,18 +298,17 @@ class FundiForm extends Component
      */
     public function createOrUpdateFundi()
     {
-        // Set loading state
         $this->saving = true;
 
-        // Validate form data
+        // Validation rules WITHOUT unique constraints (we check manually in validateNoDuplicates)
         $rules = [
             'fname' => 'required|string|max:255',
             'mname' => 'nullable|string|max:255',
             'lname' => 'required|string|max:255',
             'gender' => 'required|in:male,female',
             'nida_number' => 'nullable|string|max:255',
-            'primary_phone' => 'required|string|max:20|unique:fundis,primary_phone,' . $this->fundi_id,
-            'transaction_phone' => 'nullable|string|max:20',
+            'primary_phone' => 'required|string|max:20',
+            'transaction_phone' => 'required|string|max:20',
             'district' => 'required|exists:districts,id',
             'ward_id' => 'required|exists:wards,id',
             'ranking' => 'required|in:fundi_kuu,fundi_msaidizi',
@@ -319,39 +327,33 @@ class FundiForm extends Component
 
         $isCreating = empty($this->fundi_id);
 
-        // Show loading alert
         $this->showLoadingAlert(
             $isCreating ? 'Creating Fundi' : 'Updating Fundi',
             'Please wait while we process your request...'
         );
 
-        // Use the handleOperationWithFlash method for better error handling
         $result = $this->handleOperationWithFlash(
             function () use ($isCreating) {
                 return $this->saveFundi($isCreating);
             },
             'Success',
-            'Fundi ' . ($isCreating ? 'created' : 'updated') . ' successfully!',
+            'Fundi '.($isCreating ? 'created' : 'updated').' successfully!',
             'Error',
-            'Failed to ' . ($isCreating ? 'create' : 'update') . ' fundi. Please try again.'
+            'Failed to '.($isCreating ? 'create' : 'update').' fundi. Please try again.'
         );
 
         $this->saving = false;
 
         if ($result) {
-            // Handle different modes differently
             if ($this->mode === 'create') {
-                // Reset form after saving and redirect
                 $this->resetForm();
                 $this->loadDistricts();
+
                 return redirect('/fundis');
             } else {
-                // For edit mode, reload the fundi data and stay on page
                 $fundi = Fundi::find($this->fundi_id);
                 if ($fundi) {
                     $this->loadFundiData($fundi);
-
-                    // Dispatch event to refresh other components
                     $this->dispatch('fundiUpdated', 'Fundi updated successfully!');
                 }
             }
@@ -363,26 +365,28 @@ class FundiForm extends Component
      */
     private function saveFundi($isCreating)
     {
+        // Check for duplicates before proceeding
+        if (! $this->validateNoDuplicates($isCreating)) {
+            return false;
+        }
+
         // Handle profile photo upload to Cloudinary
         $photo_url = $this->profile_photo_url;
         $photo_public_id = $this->profile_photo_public_id;
 
-        // Handle photo upload
         if ($this->profile_photo) {
             $photoResult = $this->handlePhotoUpload();
-            if (!$photoResult) {
-                return false; // Photo upload failed
+            if (! $photoResult) {
+                return false;
             }
             $photo_url = $photoResult['url'];
             $photo_public_id = $photoResult['public_id'];
         } elseif ($this->remove_photo && $this->editing) {
-            // Remove existing photo
             $this->handlePhotoRemoval();
             $photo_url = null;
             $photo_public_id = null;
         }
 
-        // Prepare data for create/update
         $fundiData = [
             'fname' => $this->fname,
             'mname' => $this->mname,
@@ -400,13 +404,11 @@ class FundiForm extends Component
             'legacy_id' => $this->legacy_match ? $this->legacy_id : null,
         ];
 
-        // Only add unique_id and created_by for new records
         if ($isCreating) {
-            $fundiData['unique_id'] = 'F' . date('Ymd') . rand(1000, 9999);
+            $fundiData['unique_id'] = 'F'.date('Ymd').rand(1000, 9999);
             $fundiData['created_by'] = Auth::id();
         }
 
-        // Create or update the fundi
         $fundi = Fundi::updateOrCreate(
             ['id' => $this->fundi_id],
             $fundiData
@@ -416,25 +418,81 @@ class FundiForm extends Component
     }
 
     /**
+     * Validate that no duplicate fundi exists based on business rules:
+     * 1. Primary phone must be entirely unique
+     * 2. Transaction phone must be entirely unique
+     * 3. NIDA must be unique (if provided)
+     * 4. Combination of fname + lname + ward_id must be unique
+     */
+    private function validateNoDuplicates(bool $isCreating): bool
+    {
+        $excludeId = $isCreating ? null : $this->fundi_id;
+        $hasErrors = false;
+
+        // Rule 1: Check primary phone uniqueness
+        $primaryPhoneExists = Fundi::where('primary_phone', $this->primary_phone)
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->exists();
+
+        if ($primaryPhoneExists) {
+            $this->addError('primary_phone', 'This primary phone number is already registered.');
+            $hasErrors = true;
+        }
+
+        // Rule 2: Check transaction phone uniqueness
+        $transactionPhoneExists = Fundi::where('transaction_phone', $this->transaction_phone)
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->exists();
+
+        if ($transactionPhoneExists) {
+            $this->addError('transaction_phone', 'This transaction phone number is already registered.');
+            $hasErrors = true;
+        }
+
+        // Rule 3: Check NIDA uniqueness if provided
+        if ($this->nida_number) {
+            $nidaExists = Fundi::where('nida_number', $this->nida_number)
+                ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+                ->exists();
+
+            if ($nidaExists) {
+                $this->addError('nida_number', 'This NIDA number is already registered.');
+                $hasErrors = true;
+            }
+        }
+
+        // Rule 4: Check fname + lname + ward_id uniqueness
+        $nameCombinationExists = Fundi::where('fname', $this->fname)
+            ->where('lname', $this->lname)
+            ->where('ward_id', $this->ward_id)
+            ->when($excludeId, fn ($query) => $query->where('id', '!=', $excludeId))
+            ->exists();
+
+        if ($nameCombinationExists) {
+            $this->addError('fname', 'A fundi with this name already exists in the selected ward.');
+            $hasErrors = true;
+        }
+
+        return ! $hasErrors;
+    }
+
+    /**
      * Handle photo upload with error handling
      */
     private function handlePhotoUpload()
     {
         try {
-            // Test Cloudinary connection first
-            if (!$this->cloudinaryService->testConnection()) {
+            if (! $this->cloudinaryService->testConnection()) {
                 throw new Exception('Unable to connect to image storage service.');
             }
 
             if ($this->editing && $this->profile_photo_public_id) {
-                // Update existing image (delete old, upload new)
                 $uploadResult = $this->cloudinaryService->update(
                     $this->profile_photo,
                     $this->profile_photo_public_id,
                     'FundiApp/Fundis'
                 );
             } else {
-                // Upload new image
                 $uploadResult = $this->cloudinaryService->upload(
                     $this->profile_photo,
                     'FundiApp/Fundis'
@@ -444,22 +502,22 @@ class FundiForm extends Component
             if ($uploadResult && isset($uploadResult['url']) && isset($uploadResult['public_id'])) {
                 Log::info('Photo uploaded successfully', [
                     'url' => $uploadResult['url'],
-                    'public_id' => $uploadResult['public_id']
+                    'public_id' => $uploadResult['public_id'],
                 ]);
 
                 return [
                     'url' => $uploadResult['url'],
-                    'public_id' => $uploadResult['public_id']
+                    'public_id' => $uploadResult['public_id'],
                 ];
             } else {
                 Log::error('Photo upload failed - invalid result', [
-                    'result' => $uploadResult
+                    'result' => $uploadResult,
                 ]);
                 throw new Exception('Invalid upload result from Cloudinary service.');
             }
         } catch (Exception $e) {
-            Log::error('Photo upload exception: ' . $e->getMessage());
-            throw new Exception('Photo upload failed: ' . $e->getMessage());
+            Log::error('Photo upload exception: '.$e->getMessage());
+            throw new Exception('Photo upload failed: '.$e->getMessage());
         }
     }
 
@@ -471,15 +529,14 @@ class FundiForm extends Component
         try {
             if ($this->profile_photo_public_id) {
                 $deleteResult = $this->cloudinaryService->delete($this->profile_photo_public_id);
-                if (!$deleteResult) {
+                if (! $deleteResult) {
                     Log::warning('Failed to delete old photo', [
-                        'public_id' => $this->profile_photo_public_id
+                        'public_id' => $this->profile_photo_public_id,
                     ]);
                 }
             }
         } catch (Exception $e) {
-            Log::error('Photo deletion exception: ' . $e->getMessage());
-            // Continue with saving even if deletion fails
+            Log::error('Photo deletion exception: '.$e->getMessage());
         }
     }
 
@@ -489,11 +546,9 @@ class FundiForm extends Component
     public function cancelEdit()
     {
         if ($this->editing && $this->fundi) {
-            // Reload original data
             $this->loadFundiData($this->fundi);
             $this->showInfoAlert('Changes Cancelled', 'Form has been reset to original values.');
         } else {
-            // Reset form for new creation
             $this->resetForm();
         }
     }
@@ -503,8 +558,9 @@ class FundiForm extends Component
      */
     public function duplicateFundi()
     {
-        if (!$this->editing) {
+        if (! $this->editing) {
             $this->showWarningAlert('Cannot Duplicate', 'You can only duplicate an existing fundi.');
+
             return;
         }
 
@@ -520,7 +576,6 @@ class FundiForm extends Component
      */
     public function confirmDuplicateFundi()
     {
-        // Clear ID and reset to create mode
         $this->fundi_id = null;
         $this->editing = false;
         $this->mode = 'create';
@@ -528,12 +583,13 @@ class FundiForm extends Component
 
         // Clear unique fields
         $this->primary_phone = '';
+        $this->transaction_phone = '';
         $this->nida_number = '';
         $this->profile_photo_url = null;
         $this->profile_photo_public_id = null;
         $this->existing_photo = null;
 
-        $this->showSuccessAlert('Fundi Duplicated', 'Fundi data copied for new creation. Please update the phone number and other unique fields.');
+        $this->showSuccessAlert('Fundi Duplicated', 'Fundi data copied for new creation. Please update the phone numbers and other unique fields.');
     }
 
     /**
@@ -541,15 +597,17 @@ class FundiForm extends Component
      */
     public function deleteFundi()
     {
-        if (!$this->editing || !$this->fundi_id) {
+        if (! $this->editing || ! $this->fundi_id) {
             $this->showWarningAlert('Cannot Delete', 'No fundi selected for deletion.');
+
             return;
         }
 
-        $this->showConfirmation(
-            'Delete Fundi',
-            'Are you sure you want to delete this fundi? This action cannot be undone.',
-            'confirmDeleteFundi'
+        $this->showDeleteConfirmation(
+            'confirmDeleteFundi',
+            [],
+            'Delete Fundi?',
+            'Are you sure you want to delete this fundi? This action cannot be undone.'
         );
     }
 
@@ -562,12 +620,13 @@ class FundiForm extends Component
             function () {
                 $fundi = Fundi::find($this->fundi_id);
                 if ($fundi) {
-                    // Delete photo from Cloudinary if exists
                     if ($fundi->profile_photo_public_id) {
                         $this->cloudinaryService->delete($fundi->profile_photo_public_id);
                     }
+
                     return $fundi->delete();
                 }
+
                 return false;
             },
             'Success',
@@ -577,7 +636,6 @@ class FundiForm extends Component
         );
 
         if ($result) {
-            // Redirect to fundis list
             return redirect('/fundis');
         }
     }
@@ -591,7 +649,8 @@ class FundiForm extends Component
             'fname' => 'required|string|max:255',
             'lname' => 'required|string|max:255',
             'gender' => 'required|in:male,female',
-            'primary_phone' => 'required|string|max:20|unique:fundis,primary_phone,' . $this->fundi_id,
+            'primary_phone' => 'required|string|max:20',
+            'transaction_phone' => 'required|string|max:20',
             'district' => 'required|exists:districts,id',
             'ward_id' => 'required|exists:wards,id',
             'ranking' => 'required|in:fundi_kuu,fundi_msaidizi',
@@ -607,7 +666,6 @@ class FundiForm extends Component
      */
     public function saveDraft()
     {
-        // This could be implemented to save form data to session or temporary storage
         $this->showInfoAlert('Draft Saved', 'Your progress has been saved as a draft.');
     }
 

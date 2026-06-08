@@ -14,7 +14,7 @@ abstract class BaseSmsService
     /**
      * Send SMS to a single recipient
      */
-    abstract public function sendSms(string $phoneNumber, string $message, string|null $campaignId = null): array;
+    abstract public function sendSms(string $phoneNumber, string $message, ?string $campaignId = null): array;
 
     /**
      * Check delivery status of a message

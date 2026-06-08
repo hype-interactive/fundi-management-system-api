@@ -2,27 +2,30 @@
 
 namespace App\Livewire;
 
-use Exception;
 use App\Models\Fundi;
-use Livewire\Component;
-use App\Traits\HasAlerts;
-use Livewire\WithFileUploads;
-use Livewire\Attributes\Title;
-use Livewire\Attributes\Layout;
-use Illuminate\Support\Facades\Log;
 use App\Services\CloudinaryImageService;
+use App\Traits\HasAlerts;
+use Exception;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Layout('layouts.guest')]
 #[Title('Fundi Registration')]
 class PublicFundiRegistration extends Component
 {
-    use WithFileUploads, HasAlerts;
+    use HasAlerts, WithFileUploads;
 
     // PIN Authentication
     public $pin = '';
+
     public $is_authenticated = false;
+
     public $pin_attempts = 0;
+
     public $max_pin_attempts = 5;
 
     // Registration PIN (store in .env as FUNDI_REGISTRATION_PIN)
@@ -30,28 +33,45 @@ class PublicFundiRegistration extends Component
 
     // Fundi form properties
     public $fname = '';
+
     public $mname = '';
+
     public $lname = '';
+
     public $gender = '';
+
     public $nida_number = '';
+
     public $primary_phone = '';
+
     public $transaction_phone = '';
+
     public $district = null;
+
     public $ward_id = null;
+
     public $ranking = '';
+
     public $profile_photo = null;
+
     public $profile_photo_url = null;
+
     public $profile_photo_public_id = null;
+
     public $legacy_match = false;
+
     public $legacy_id = '';
 
     // UI state
     public $saving = false;
+
     public $registration_complete = false;
+
     public $registered_fundi_id = null;
 
     // Dropdowns
     public $districts = [];
+
     public $wards = [];
 
     // Inject CloudinaryImageService
@@ -82,23 +102,24 @@ class PublicFundiRegistration extends Component
         Log::info('PIN verification attempt', [
             'ip' => request()->ip(),
             'pin_length' => strlen($this->pin),
-            'config_pin' => config('app.fundi_registration_pin', 'NOT_SET')
+            'config_pin' => config('app.fundi_registration_pin', 'NOT_SET'),
         ]);
 
         // Rate limiting to prevent brute force
-        $key = 'fundi-registration:' . request()->ip();
+        $key = 'fundi-registration:'.request()->ip();
 
         if (RateLimiter::tooManyAttempts($key, $this->max_pin_attempts)) {
             $seconds = RateLimiter::availableIn($key);
             $this->showErrorAlert(
                 'Too Many Attempts',
-                "Too many failed attempts. Please try again in " . ceil($seconds / 60) . " minutes."
+                'Too many failed attempts. Please try again in '.ceil($seconds / 60).' minutes.'
             );
+
             return;
         }
 
         $this->validate([
-            'pin' => 'required|string|min:4'
+            'pin' => 'required|string|min:4',
         ]);
 
         // Check if PIN matches
@@ -163,7 +184,7 @@ class PublicFundiRegistration extends Component
         if ($value && count($this->wards) > 0) {
             Log::info('District changed, wards loaded', [
                 'district_id' => $value,
-                'wards_count' => count($this->wards)
+                'wards_count' => count($this->wards),
             ]);
         }
     }
@@ -176,7 +197,7 @@ class PublicFundiRegistration extends Component
         if ($value) {
             Log::info('Ward selected', [
                 'ward_id' => $value,
-                'district_id' => $this->district
+                'district_id' => $this->district,
             ]);
         }
     }
@@ -218,7 +239,7 @@ class PublicFundiRegistration extends Component
      */
     public function updatedLegacyMatch($value)
     {
-        if (!$value) {
+        if (! $value) {
             // Clear legacy_id when unchecked
             $this->legacy_id = '';
             $this->resetErrorBag('legacy_id');
@@ -247,7 +268,7 @@ class PublicFundiRegistration extends Component
         // Only validate if the field has a validation rule
         if (array_key_exists($propertyName, $validationRules)) {
             $this->validateOnly($propertyName, [
-                $propertyName => $validationRules[$propertyName]
+                $propertyName => $validationRules[$propertyName],
             ]);
         }
     }
@@ -257,8 +278,9 @@ class PublicFundiRegistration extends Component
      */
     public function registerFundi()
     {
-        if (!$this->is_authenticated) {
+        if (! $this->is_authenticated) {
             $this->showErrorAlert('Unauthorized', 'Please authenticate first.');
+
             return;
         }
 
@@ -303,12 +325,12 @@ class PublicFundiRegistration extends Component
 
             // Create fundi with status 'pending' for review
             $fundi = Fundi::create([
-                'unique_id' => 'F' . date('Ymd') . rand(1000, 9999),
+                'unique_id' => 'F'.date('Ymd').rand(1000, 9999),
                 'fname' => $this->fname,
                 'mname' => $this->mname,
                 'lname' => $this->lname,
                 'gender' => $this->gender,
-                'nida_number' => !empty($this->nida_number) ? $this->nida_number : null,
+                'nida_number' => ! empty($this->nida_number) ? $this->nida_number : null,
                 'primary_phone' => $this->formatPhoneNumber($this->primary_phone),
                 'transaction_phone' => $this->transaction_phone ? $this->formatPhoneNumber($this->transaction_phone) : null,
                 'ward_id' => $this->ward_id,
@@ -326,7 +348,7 @@ class PublicFundiRegistration extends Component
 
             $this->showSuccessAlert(
                 'Registration Successful!',
-                'Fundi registered successfully. Reference ID: ' . $fundi->unique_id
+                'Fundi registered successfully. Reference ID: '.$fundi->unique_id
             );
 
             Log::info('Public fundi registration completed', [
@@ -334,11 +356,11 @@ class PublicFundiRegistration extends Component
                 'unique_id' => $fundi->unique_id,
                 'ip' => request()->ip(),
                 'district_id' => $this->district,
-                'ward_id' => $this->ward_id
+                'ward_id' => $this->ward_id,
             ]);
         } catch (Exception $e) {
-            Log::error('Public fundi registration failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error('Public fundi registration failed: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
             $this->showErrorAlert('Registration Failed', 'An error occurred. Please try again.');
         } finally {
@@ -352,7 +374,7 @@ class PublicFundiRegistration extends Component
     private function handlePhotoUpload()
     {
         try {
-            if (!$this->cloudinaryService->testConnection()) {
+            if (! $this->cloudinaryService->testConnection()) {
                 throw new Exception('Unable to connect to image storage service.');
             }
 
@@ -364,13 +386,14 @@ class PublicFundiRegistration extends Component
             if ($uploadResult && isset($uploadResult['url']) && isset($uploadResult['public_id'])) {
                 return [
                     'url' => $uploadResult['url'],
-                    'public_id' => $uploadResult['public_id']
+                    'public_id' => $uploadResult['public_id'],
                 ];
             }
 
             return null;
         } catch (Exception $e) {
-            Log::error('Photo upload exception: ' . $e->getMessage());
+            Log::error('Photo upload exception: '.$e->getMessage());
+
             return null;
         }
     }
@@ -397,7 +420,7 @@ class PublicFundiRegistration extends Component
             'legacy_match',
             'legacy_id',
             'registration_complete',
-            'registered_fundi_id'
+            'registered_fundi_id',
         ]);
 
         $this->wards = [];
@@ -427,7 +450,7 @@ class PublicFundiRegistration extends Component
     /**
      * Format phone number to include +255 prefix
      *
-     * @param string $phone
+     * @param  string  $phone
      * @return string
      */
     private function formatPhoneNumber($phone)
@@ -440,10 +463,10 @@ class PublicFundiRegistration extends Component
 
         // If it already starts with 255, add the + prefix
         if (substr($phone, 0, 3) === '255') {
-            return '+' . $phone;
+            return '+'.$phone;
         }
 
         // Otherwise, prepend +255
-        return '+255' . $phone;
+        return '+255'.$phone;
     }
 }

@@ -2,20 +2,18 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Models\Region;
-use App\Models\District;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use App\Http\Resources\WardMinimalResource;
-use App\Http\Resources\RegionMinimalResource;
 use App\Http\Resources\DistrictMinimalResource;
+use App\Http\Resources\RegionMinimalResource;
+use App\Http\Resources\WardMinimalResource;
+use App\Models\District;
+use App\Models\Region;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AddressController extends BaseAPIController
 {
     /**
      * Get all the Regions
-     *
-     * @return JsonResponse
      */
     public function getRegions(): JsonResponse
     {
@@ -37,16 +35,13 @@ class AddressController extends BaseAPIController
 
     /**
      * Get all the Districts of a Region
-     *
-     * @param int $region_id
-     * @return JsonResponse
      */
     public function getDistricts(int $region_id): JsonResponse
     {
         try {
             $region = Region::find($region_id);
 
-            if (!$region) {
+            if (! $region) {
                 return $this->errorResponse(
                     'Region not found',
                     ['region_id' => 'The specified region does not exist'],
@@ -71,16 +66,13 @@ class AddressController extends BaseAPIController
 
     /**
      * Get all the Wards of a District
-     *
-     * @param int $district_id
-     * @return JsonResponse
      */
     public function getWards(int $district_id): JsonResponse
     {
         try {
             $district = District::find($district_id);
 
-            if (!$district) {
+            if (! $district) {
                 return $this->errorResponse(
                     'District not found',
                     ['district_id' => 'The specified district does not exist'],
@@ -94,7 +86,7 @@ class AddressController extends BaseAPIController
                 $operatorDistricts = $this->getOperatorDistricts();
 
                 // Fix: Check if operatorDistricts is a collection and not empty
-                if (!$operatorDistricts || !$operatorDistricts->contains($district_id)) {
+                if (! $operatorDistricts || ! $operatorDistricts->contains($district_id)) {
                     return $this->errorResponse(
                         'Access denied',
                         ['district_id' => 'You do not have access to this district'],
@@ -122,8 +114,6 @@ class AddressController extends BaseAPIController
      * Get all locations with hierarchical structure
      * For admin users: all locations
      * For operators: only their assigned districts and wards
-     *
-     * @return JsonResponse
      */
     public function getLocations(): JsonResponse
     {
@@ -143,7 +133,7 @@ class AddressController extends BaseAPIController
             if ($operator &&
                 $operator->role->name !== 'admin' &&
                 $operator->role->name !== 'root' &&
-                !$operatorDistricts->isEmpty()) {
+                ! $operatorDistricts->isEmpty()) {
 
                 $regionsQuery->whereHas('districts', function ($query) use ($operatorDistricts) {
                     $query->whereIn('id', $operatorDistricts->toArray());
@@ -160,7 +150,7 @@ class AddressController extends BaseAPIController
                 if ($operator &&
                     $operator->role->name !== 'admin' &&
                     $operator->role->name !== 'root' &&
-                    !$operatorDistricts->isEmpty()) {
+                    ! $operatorDistricts->isEmpty()) {
 
                     $districts = $districts->whereIn('id', $operatorDistricts->toArray());
                 }
@@ -187,7 +177,7 @@ class AddressController extends BaseAPIController
                 }
 
                 // Only include regions that have districts (for operators)
-                if (!empty($districts_data)) {
+                if (! empty($districts_data)) {
                     $locations[] = [
                         'id' => $region->id,
                         'name' => $region->name,
@@ -213,15 +203,13 @@ class AddressController extends BaseAPIController
     /**
      * Get operator's assigned districts only
      * Useful for mobile apps to get operator's working areas
-     *
-     * @return JsonResponse
      */
     public function getOperatorAssignedDistricts(): JsonResponse
     {
         try {
             $operator = $this->getOperator();
 
-            if (!$operator) {
+            if (! $operator) {
                 return $this->errorResponse(
                     'Authentication required',
                     null,
@@ -229,7 +217,7 @@ class AddressController extends BaseAPIController
                 );
             }
 
-            if (!$this->isOperatorActive()) {
+            if (! $this->isOperatorActive()) {
                 return $this->errorResponse(
                     'Account is inactive',
                     null,
@@ -239,7 +227,7 @@ class AddressController extends BaseAPIController
 
             $operator = $this->getOperatorWithRelations(['districts.region', 'districts.wards']);
 
-            if (!$operator || !$operator->districts) {
+            if (! $operator || ! $operator->districts) {
                 return $this->successResponse(
                     [],
                     'No districts assigned to this operator'
@@ -264,16 +252,13 @@ class AddressController extends BaseAPIController
     /**
      * Get wards within operator's assigned districts
      * Useful for mobile dropdowns when creating fundis or site visits
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function getOperatorAssignedWards(Request $request): JsonResponse
     {
         try {
             $operator = $this->getOperator();
 
-            if (!$operator) {
+            if (! $operator) {
                 return $this->errorResponse(
                     'Authentication required',
                     null,
@@ -281,7 +266,7 @@ class AddressController extends BaseAPIController
                 );
             }
 
-            if (!$this->isOperatorActive()) {
+            if (! $this->isOperatorActive()) {
                 return $this->errorResponse(
                     'Account is inactive',
                     null,
@@ -291,7 +276,7 @@ class AddressController extends BaseAPIController
 
             $operatorDistricts = $this->getOperatorDistricts();
 
-            if (!$operatorDistricts || $operatorDistricts->isEmpty()) {
+            if (! $operatorDistricts || $operatorDistricts->isEmpty()) {
                 return $this->successResponse(
                     [],
                     'No wards available - no districts assigned'
@@ -309,7 +294,7 @@ class AddressController extends BaseAPIController
                 $districtId = $request->input('district_id');
 
                 // Verify operator has access to this district
-                if (!$operatorDistricts->contains($districtId)) {
+                if (! $operatorDistricts->contains($districtId)) {
                     return $this->errorResponse(
                         'Access denied to specified district',
                         ['district_id' => 'You do not have access to this district'],
@@ -344,9 +329,6 @@ class AddressController extends BaseAPIController
     /**
      * Search locations (regions, districts, wards) by name
      * Respects operator district restrictions
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function searchLocations(Request $request): JsonResponse
     {
@@ -368,13 +350,13 @@ class AddressController extends BaseAPIController
             }
 
             // Search regions (only if admin or contains operator's districts)
-            if (!$type || $type === 'region') {
+            if (! $type || $type === 'region') {
                 $regionsQuery = Region::where('name', 'like', "%{$search}%");
 
                 if ($operator &&
                     $operator->role->name !== 'admin' &&
                     $operator->role->name !== 'root' &&
-                    !$operatorDistricts->isEmpty()) {
+                    ! $operatorDistricts->isEmpty()) {
 
                     $regionsQuery->whereHas('districts', function ($query) use ($operatorDistricts) {
                         $query->whereIn('id', $operatorDistricts->toArray());
@@ -393,14 +375,14 @@ class AddressController extends BaseAPIController
             }
 
             // Search districts
-            if (!$type || $type === 'district') {
+            if (! $type || $type === 'district') {
                 $districtsQuery = District::with('region')
                     ->where('name', 'like', "%{$search}%");
 
                 if ($operator &&
                     $operator->role->name !== 'admin' &&
                     $operator->role->name !== 'root' &&
-                    !$operatorDistricts->isEmpty()) {
+                    ! $operatorDistricts->isEmpty()) {
 
                     $districtsQuery->whereIn('id', $operatorDistricts->toArray());
                 }
@@ -411,7 +393,7 @@ class AddressController extends BaseAPIController
                         'id' => $district->id,
                         'name' => $district->name,
                         'type' => 'district',
-                        'full_name' => $district->name . ', ' . $district->region->name,
+                        'full_name' => $district->name.', '.$district->region->name,
                         'region_id' => $district->region_id,
                         'name' => $district->region->name,
                     ];
@@ -419,14 +401,14 @@ class AddressController extends BaseAPIController
             }
 
             // Search wards
-            if (!$type || $type === 'ward') {
+            if (! $type || $type === 'ward') {
                 $wardsQuery = \App\Models\Ward::with(['district.region'])
                     ->where('name', 'like', "%{$search}%");
 
                 if ($operator &&
                     $operator->role->name !== 'admin' &&
                     $operator->role->name !== 'root' &&
-                    !$operatorDistricts->isEmpty()) {
+                    ! $operatorDistricts->isEmpty()) {
 
                     $wardsQuery->whereHas('district', function ($query) use ($operatorDistricts) {
                         $query->whereIn('id', $operatorDistricts->toArray());
@@ -439,7 +421,7 @@ class AddressController extends BaseAPIController
                         'id' => $ward->id,
                         'name' => $ward->name,
                         'type' => 'ward',
-                        'full_name' => $ward->name . ', ' . $ward->district->name . ', ' . $ward->district->region->name,
+                        'full_name' => $ward->name.', '.$ward->district->name.', '.$ward->district->region->name,
                         'district_id' => $ward->district_id,
                         'name' => $ward->district->name,
                         'region_id' => $ward->district->region_id,

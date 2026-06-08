@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class Fundi extends Model
 {
@@ -34,6 +37,7 @@ class Fundi extends Model
         'rejected_by',
         'legacy_match',
         'legacy_id',
+        'qr_code_path',
     ];
 
     protected $casts = [
@@ -42,161 +46,355 @@ class Fundi extends Model
         'legacy_match' => 'boolean',
     ];
 
-    public function getFullNameAttribute()
+    /**
+     * Relationships that should always be loaded to prevent N+1
+     */
+    protected $with = [];
+
+    /**
+     * Get full name accessor
+     */
+    public function getFullNameAttribute(): string
     {
         return trim("{$this->fname} {$this->mname} {$this->lname}");
     }
 
-    public function getFundiRankingAttribute()
+    /**
+     * Get fundi ranking formatted
+     */
+    public function getFundiRankingAttribute(): string
     {
-        return trim($this->ranking == 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi');
+        return $this->ranking === 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi';
     }
 
     /**
-     * Get the approval status with proper priority handling
-     * Priority order: Rejected > Approved > Pending
+     * Boot method for model events
+     */
+    protected static function booted(): void
+    {
+        static::created(function ($fundi) {
+            $fundi->generateQrCodeQuietly();
+        });
+    }
+
+    /**
+     * Get formatted address attribute
+     * WARNING: Always eager load 'ward.district.region' to prevent N+1 queries
+     */
+    public function getAddressAttribute(): string
+    {
+        // Check if relationship is loaded to prevent N+1
+        if (
+            ! $this->relationLoaded('ward') ||
+            ! $this->ward->relationLoaded('district') ||
+            ! $this->ward->district->relationLoaded('region')
+        ) {
+            Log::warning('Address accessor called without eager loading relationships. This may cause N+1 queries.', [
+                'fundi_id' => $this->id,
+            ]);
+        }
+
+        $regionName = $this->ward->district->region->name ?? '';
+        $districtName = $this->ward->district->name ?? '';
+        $wardName = $this->ward->name ?? '';
+
+        return "{$wardName}/{$districtName}/{$regionName}";
+    }
+
+    /**
+     * Generate QR code (public method with event firing)
+     */
+    public function generateQrCode(): string
+    {
+        if ($this->qr_code_path && Storage::disk('public')->exists($this->qr_code_path)) {
+            return $this->qr_code_path;
+        }
+
+        $qrCode = QrCode::format('svg')
+            ->size(300)
+            ->generate($this->unique_id);
+
+        $filename = 'qrcodes/fundi_'.$this->id.'_'.time().'.svg';
+        Storage::disk('public')->put($filename, $qrCode);
+
+        $this->update(['qr_code_path' => $filename]);
+
+        return $filename;
+    }
+
+    /**
+     * Generate QR code without triggering model events
+     */
+    public function generateQrCodeQuietly(): string
+    {
+        // Skip if already exists
+        if ($this->qr_code_path && Storage::disk('public')->exists($this->qr_code_path)) {
+            return $this->qr_code_path;
+        }
+
+        // Generate QR code
+        $qrCode = QrCode::format('svg')
+            ->size(300)
+            ->generate($this->unique_id);
+
+        // Save to storage
+        $filename = 'qrcodes/fundi_'.$this->id.'_'.time().'.svg';
+        Storage::disk('public')->put($filename, $qrCode);
+
+        // Update model without triggering events again
+        $this->updateQuietly(['qr_code_path' => $filename]);
+
+        return $filename;
+    }
+
+    /**
+     * Get the approval status based on most recent action
+     * Compares timestamps to determine if approved or rejected status takes precedence
+     *
+     * The most recent action (approval or rejection) always takes precedence
      */
     public function getApprovalStatusAttribute(): string
     {
-        // Check for rejection first (highest priority)
-        // A fundi is rejected if they have either rejected_at timestamp OR rejected_by user
-        if ($this->rejected_at !== null || $this->rejected_by !== null) {
-            return 'Rejected';
-        }
-
-        // Check for approval (second priority)
-        // A fundi is approved if they have both approved_at timestamp AND approved_by user
-        if ($this->approved_at !== null && $this->approved_by !== null) {
-            return 'Approved';
-        }
-
-        // Default to pending if neither rejected nor fully approved
-        return 'Pending';
-    }
-
-    /**
-     * Alternative method if you want more granular status checking
-     */
-    public function getDetailedApprovalStatusAttribute(): string
-    {
-        // Most recent action takes precedence based on timestamps
+        // Get timestamps (use 0 if null for comparison)
         $rejectedTime = $this->rejected_at?->timestamp ?? 0;
         $approvedTime = $this->approved_at?->timestamp ?? 0;
 
-        // If both timestamps exist, compare them
+        // If both actions exist, the most recent one takes precedence
         if ($rejectedTime > 0 && $approvedTime > 0) {
             return $rejectedTime > $approvedTime ? 'Rejected' : 'Approved';
         }
 
-        // Single action checks
-        if ($rejectedTime > 0 || $this->rejected_by !== null) {
+        // If only rejection exists
+        if ($rejectedTime > 0 && $this->rejected_by !== null) {
             return 'Rejected';
         }
 
+        // If only approval exists (must have both timestamp and approver)
         if ($approvedTime > 0 && $this->approved_by !== null) {
             return 'Approved';
         }
 
+        // Default to pending if neither action has been taken
         return 'Pending';
     }
 
     /**
-     * Helper methods for status checking
+     * Check if fundi is approved
      */
     public function isApproved(): bool
     {
         return $this->approval_status === 'Approved';
     }
 
+    /**
+     * Check if fundi is rejected
+     */
     public function isRejected(): bool
     {
         return $this->approval_status === 'Rejected';
     }
 
+    /**
+     * Check if fundi is pending
+     */
     public function isPending(): bool
     {
         return $this->approval_status === 'Pending';
     }
 
     /**
-     * Scope methods for querying by approval status
+     * Scope for approved fundis
+     * Properly handles cases where rejection is more recent than approval
      */
     public function scopeApproved($query)
     {
         return $query->whereNotNull('approved_at')
             ->whereNotNull('approved_by')
             ->where(function ($q) {
-                $q->whereNull('rejected_at')
-                    ->whereNull('rejected_by');
+                // Either no rejection exists, or approval is more recent than rejection
+                $q->where(function ($subQ) {
+                    $subQ->whereNull('rejected_at')
+                        ->whereNull('rejected_by');
+                })
+                    ->orWhere(function ($subQ) {
+                        // Both exist, but approval is more recent
+                        $subQ->whereNotNull('rejected_at')
+                            ->whereRaw('approved_at > rejected_at');
+                    });
             });
     }
 
+    /**
+     * Scope for rejected fundis
+     * Properly handles cases where approval is more recent than rejection
+     */
     public function scopeRejected($query)
     {
-        return $query->where(function ($q) {
-            $q->whereNotNull('rejected_at')
-                ->orWhereNotNull('rejected_by');
-        });
+        return $query->whereNotNull('rejected_at')
+            ->whereNotNull('rejected_by')
+            ->where(function ($q) {
+                // Either no approval exists, or rejection is more recent than approval
+                $q->where(function ($subQ) {
+                    $subQ->whereNull('approved_at')
+                        ->whereNull('approved_by');
+                })
+                    ->orWhere(function ($subQ) {
+                        // Both exist, but rejection is more recent
+                        $subQ->whereNotNull('approved_at')
+                            ->whereRaw('rejected_at > approved_at');
+                    });
+            });
     }
 
+    /**
+     * Scope for pending fundis
+     * No approval or rejection has been made
+     */
     public function scopePending($query)
     {
         return $query->where(function ($q) {
+            // No approval
             $q->whereNull('approved_at')
-                ->orWhereNull('approved_by');
+                ->whereNull('approved_by');
         })->where(function ($q) {
+            // No rejection
             $q->whereNull('rejected_at')
                 ->whereNull('rejected_by');
         });
     }
 
+    /**
+     * Scope for active fundis
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope for inactive fundis
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('status', 'inactive');
+    }
+
+    // ==================== RELATIONSHIPS ====================
+
+    /**
+     * Get the ward that the fundi belongs to
+     */
     public function ward()
     {
         return $this->belongsTo(Ward::class);
     }
 
+    /**
+     * Get the user who created this fundi
+     */
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Get the user who approved this fundi
+     */
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    /**
+     * Get the user who rejected this fundi
+     */
     public function rejector()
     {
         return $this->belongsTo(User::class, 'rejected_by');
     }
 
+    /**
+     * Get site visits associated with this fundi
+     */
+    // Update the existing relationship to include pivot data
     public function siteVisits()
     {
-        return $this->belongsToMany(SiteVisit::class, 'site_visit_fundis');
+        return $this->belongsToMany(SiteVisit::class, 'site_visit_fundis')
+            ->withPivot('notes')
+            ->withTimestamps();
     }
 
+    /**
+     * Get total quantity of products across all site visits
+     */
+    public function getTotalProductQuantityAttribute(): int
+    {
+        return SiteVisitProduct::whereIn(
+            'site_visit_id',
+            $this->siteVisits()->select('site_visits.id')
+        )->sum('quantity');
+    }
+
+    // Add direct access to the pivot model if needed
+    public function siteVisitFundis()
+    {
+        return $this->hasMany(SiteVisitFundi::class);
+    }
+
+    /**
+     * Get transactions for this fundi
+     */
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
     }
 
+    /**
+     * Get SMS messages sent to this fundi
+     */
     public function smsMessages()
     {
         return $this->hasMany(SmsMessage::class, 'recipient_id')
             ->where('recipient_type', 'fundi');
     }
 
+    /**
+     * Get the district through ward relationship
+     */
     public function district()
     {
-        return $this->ward->district();
+        return $this->hasOneThrough(
+            District::class,
+            Ward::class,
+            'id',           // Foreign key on ward table
+            'id',           // Foreign key on district table
+            'ward_id',      // Local key on fundi table
+            'district_id'   // Local key on ward table
+        );
     }
 
+    /**
+     * Get the region through ward and district relationships
+     */
     public function region()
     {
-        return $this->ward->district->region();
+        return $this->hasOneThrough(
+            Region::class,
+            District::class,
+            'id',           // Foreign key on district table
+            'id',           // Foreign key on region table
+            'ward_id',      // Local key on fundi table (via ward)
+            'region_id'     // Local key on district table
+        )->join('wards', 'wards.district_id', '=', 'districts.id')
+            ->where('wards.id', $this->ward_id);
     }
 
-    public function getProfilePhotoThumbnailAttribute()
+    // ==================== CLOUDINARY IMAGE HELPERS ====================
+
+    /**
+     * Get thumbnail version of profile photo
+     */
+    public function getProfilePhotoThumbnailAttribute(): ?string
     {
         if ($this->profile_photo_public_id) {
             return Cloudinary::url($this->profile_photo_public_id, [
@@ -204,13 +402,17 @@ class Fundi extends Model
                 'height' => 150,
                 'crop' => 'fill',
                 'quality' => 'auto',
-                'fetch_format' => 'auto'
+                'fetch_format' => 'auto',
             ]);
         }
+
         return null;
     }
 
-    public function getProfilePhotoAvatarAttribute()
+    /**
+     * Get avatar version of profile photo
+     */
+    public function getProfilePhotoAvatarAttribute(): ?string
     {
         if ($this->profile_photo_public_id) {
             return Cloudinary::url($this->profile_photo_public_id, [
@@ -218,9 +420,22 @@ class Fundi extends Model
                 'height' => 50,
                 'crop' => 'fill',
                 'quality' => 'auto',
-                'fetch_format' => 'auto'
+                'fetch_format' => 'auto',
             ]);
         }
+
+        return null;
+    }
+
+    /**
+     * Get full URL to QR code
+     */
+    public function getQrCodeUrlAttribute(): ?string
+    {
+        if ($this->qr_code_path) {
+            return Storage::url($this->qr_code_path);
+        }
+
         return null;
     }
 }

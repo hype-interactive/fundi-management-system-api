@@ -7,13 +7,21 @@ use Livewire\Component;
 class ConfirmationModal extends Component
 {
     public $show = false;
+
     public $title = '';
+
     public $message = '';
+
     public $type = 'delete'; // delete, approve, reject
+
     public $itemName = '';
+
     public $itemDetails = [];
+
     public $rejectionReason = '';
+
     public $confirmMethod = '';
+
     public $confirmParams = [];
 
     protected $listeners = ['showConfirmation'];
@@ -35,6 +43,7 @@ class ConfirmationModal extends Component
     {
         if ($this->type === 'reject' && empty($this->rejectionReason)) {
             $this->addError('rejectionReason', 'Rejection reason is required.');
+
             return;
         }
 

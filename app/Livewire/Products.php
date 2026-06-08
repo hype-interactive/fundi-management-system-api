@@ -3,13 +3,13 @@
 namespace App\Livewire;
 
 use App\Models\Product;
-use App\Traits\HasAlerts;
 use App\Services\CloudinaryImageService;
+use App\Traits\HasAlerts;
+use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
-use Livewire\Attributes\Url;
-use Illuminate\Support\Facades\Log;
 
 class Products extends Component
 {
@@ -31,20 +31,30 @@ class Products extends Component
 
     // Product form properties
     public $product;
+
     public $product_id;
+
     public $name;
+
     public $description;
+
     public $visibility = 'public';
+
     public $availability = 'available';
+
     public $photo;
+
     public $current_photo_url;
+
     public $current_photo_public_id;
 
     public $action_text;
+
     public $is_editing = false;
 
     // Mobile responsiveness
     public $showMobileFilters = false;
+
     public $compactView = false;
 
     protected CloudinaryImageService $cloudinaryService;
@@ -56,7 +66,7 @@ class Products extends Component
 
     public function mount()
     {
-        $this->action_text = "Create";
+        $this->action_text = 'Create';
 
         // Display any flashed alerts
         $this->displayFlashedAlerts();
@@ -104,8 +114,8 @@ class Products extends Component
         // Apply search filter
         if ($this->search_key) {
             $query->where(function ($subQuery) {
-                $subQuery->where('name', 'like', '%' . $this->search_key . '%')
-                    ->orWhere('description', 'like', '%' . $this->search_key . '%');
+                $subQuery->where('name', 'like', '%'.$this->search_key.'%')
+                    ->orWhere('description', 'like', '%'.$this->search_key.'%');
             });
         }
 
@@ -119,7 +129,7 @@ class Products extends Component
             $query->where('availability', $this->availability_filter);
         }
 
-        return $query->orderBy('created_at', 'desc');
+        return $query->orderBy('created_at', 'asc');
     }
 
     /**
@@ -142,10 +152,10 @@ class Products extends Component
             'availability',
             'photo',
             'current_photo_url',
-            'current_photo_public_id'
+            'current_photo_public_id',
         ]);
 
-        $this->action_text = "Create";
+        $this->action_text = 'Create';
         $this->product_id = null;
         $this->is_editing = false;
         $this->visibility = 'public';
@@ -160,7 +170,7 @@ class Products extends Component
         $this->reset([
             'search_key',
             'visibility_filter',
-            'availability_filter'
+            'availability_filter',
         ]);
         $this->showMobileFilters = false;
     }
@@ -170,7 +180,7 @@ class Products extends Component
      */
     public function toggleMobileFilters()
     {
-        $this->showMobileFilters = !$this->showMobileFilters;
+        $this->showMobileFilters = ! $this->showMobileFilters;
     }
 
     /**
@@ -178,7 +188,7 @@ class Products extends Component
      */
     public function toggleCompactView()
     {
-        $this->compactView = !$this->compactView;
+        $this->compactView = ! $this->compactView;
     }
 
     /**
@@ -186,7 +196,7 @@ class Products extends Component
      */
     public function setProduct($product)
     {
-        $this->action_text = "Update";
+        $this->action_text = 'Update';
         $this->is_editing = true;
 
         $this->product = Product::find($product['id']);
@@ -243,9 +253,9 @@ class Products extends Component
                 return $product ? true : false;
             },
             'Success',
-            'Product ' . strtolower($this->action_text) . 'd successfully.',
+            'Product '.strtolower($this->action_text).'d successfully.',
             'Error',
-            'Failed to ' . strtolower($this->action_text) . ' product.'
+            'Failed to '.strtolower($this->action_text).' product.'
         );
 
         if ($result) {
@@ -263,7 +273,7 @@ class Products extends Component
     private function handlePhotoUpload()
     {
         // If no new photo is uploaded, return null (keep existing photo)
-        if (!$this->photo) {
+        if (! $this->photo) {
             return null;
         }
 
@@ -276,28 +286,30 @@ class Products extends Component
                     'width' => 1200,
                     'height' => 800,
                     'crop' => 'limit',
-                    'quality' => 'auto:good'
+                    'quality' => 'auto:good',
                 ]
             );
 
-            if (!$uploadResult) {
+            if (! $uploadResult) {
                 Log::error('Failed to upload product photo to Cloudinary');
+
                 return false;
             }
 
             // If updating and old photo exists, delete it
             if ($this->is_editing && $this->current_photo_public_id) {
                 $deleteResult = $this->cloudinaryService->delete($this->current_photo_public_id);
-                if (!$deleteResult) {
+                if (! $deleteResult) {
                     Log::warning('Failed to delete old product photo', [
-                        'public_id' => $this->current_photo_public_id
+                        'public_id' => $this->current_photo_public_id,
                     ]);
                 }
             }
 
             return $uploadResult;
         } catch (\Exception $e) {
-            Log::error('Error handling product photo upload: ' . $e->getMessage());
+            Log::error('Error handling product photo upload: '.$e->getMessage());
+
             return false;
         }
     }
@@ -310,27 +322,28 @@ class Products extends Component
         try {
             $product = Product::find($productId);
 
-            if (!$product) {
-                session()->flash('error', "Product not found.");
+            if (! $product) {
+                session()->flash('error', 'Product not found.');
+
                 return;
             }
 
             // Delete photo from Cloudinary if exists
             if ($product->photo_public_id) {
                 $deleteResult = $this->cloudinaryService->delete($product->photo_public_id);
-                if (!$deleteResult) {
+                if (! $deleteResult) {
                     Log::warning('Failed to delete product photo from Cloudinary', [
-                        'public_id' => $product->photo_public_id
+                        'public_id' => $product->photo_public_id,
                     ]);
                 }
             }
 
             // Delete the product
             $product->delete();
-            session()->flash('message', "Product deleted successfully.");
+            session()->flash('message', 'Product deleted successfully.');
         } catch (\Exception $e) {
-            Log::error('Error deleting product: ' . $e->getMessage());
-            session()->flash('error', "Failed to delete product.");
+            Log::error('Error deleting product: '.$e->getMessage());
+            session()->flash('error', 'Failed to delete product.');
         }
     }
 
@@ -349,11 +362,11 @@ class Products extends Component
                 $status = $product->visibility === 'public' ? 'shown' : 'hidden';
                 session()->flash('message', "Product {$status} successfully.");
             } else {
-                session()->flash('error', "Product not found.");
+                session()->flash('error', 'Product not found.');
             }
         } catch (\Exception $e) {
-            Log::error('Error toggling product visibility: ' . $e->getMessage());
-            session()->flash('error', "Failed to update product visibility.");
+            Log::error('Error toggling product visibility: '.$e->getMessage());
+            session()->flash('error', 'Failed to update product visibility.');
         }
     }
 
@@ -372,11 +385,11 @@ class Products extends Component
                 $status = $product->availability === 'available' ? 'available' : 'unavailable';
                 session()->flash('message', "Product marked as {$status} successfully.");
             } else {
-                session()->flash('error', "Product not found.");
+                session()->flash('error', 'Product not found.');
             }
         } catch (\Exception $e) {
-            Log::error('Error toggling product availability: ' . $e->getMessage());
-            session()->flash('error', "Failed to update product availability.");
+            Log::error('Error toggling product availability: '.$e->getMessage());
+            session()->flash('error', 'Failed to update product availability.');
         }
     }
 
@@ -385,7 +398,7 @@ class Products extends Component
      */
     public function getThumbnail($publicId, $width = 200, $height = 200)
     {
-        if (!$publicId) {
+        if (! $publicId) {
             return null;
         }
 

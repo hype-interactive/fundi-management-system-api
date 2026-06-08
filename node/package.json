@@ -1,0 +1,13 @@
+{
+    "name": "laravel-scheduler",
+    "version": "1.0.0",
+    "description": "Node.js scheduler for Laravel (local development)",
+    "main": "scheduler.js",
+    "scripts": {
+        "start": "node scheduler.js",
+        "dev": "node scheduler.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "MIT"
+}

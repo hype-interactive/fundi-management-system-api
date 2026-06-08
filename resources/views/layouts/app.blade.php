@@ -1,6 +1,11 @@
 @extends('layouts.main')
 @section('layout')
     <div class="main-wrapper">
+        @if (app()->environment('development'))
+            <div style="background:#dc2626;color:#fff;font-size:12px;font-weight:500;text-align:center;padding:4px 0;letter-spacing:0.02em;position:sticky;top:0;z-index:9999;">
+                You are working on Development Environment
+            </div>
+        @endif
         <div class="d-flex">
             <div class="navigation">
                 <div class="brand-logo">
@@ -23,6 +28,12 @@
                         <a class="nav-link" href="/site-visits">
                             <i class="fa-solid fa-location"></i></i>
                             Site Visits
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{route('seminars')}}">
+                            <i class="fa-solid fa-person-chalkboard"></i>
+                            Seminars
                         </a>
                     </li>
                     <li class="nav-item">
@@ -56,14 +67,16 @@
                                         class="fa-regular fa-folder-open"></i></a>
                                 <a href="/products" class="btn btn-custom inner-btn mt-3">Products <i
                                         class="fa-solid fa-shopping-bag"></i></a>
+                                        <a href="{{route('locations.manage')}}" class="btn btn-custom inner-btn mt-3">Locations <i
+                                        class="fa-solid fa-map"></i></a>
                             </div>
                         </div>
                     </li>
-                    @if (isRoot())
+                    {{-- @if (isRoot())
                         <li class="nav-item">
                             <a href="/logs" class="nav-link"><i class="fa-solid fa-file-shield"></i> Logs</a>
                         </li>
-                    @endif
+                    @endif --}}
                 </ul>
                 <div class="avatar-wrapper dropup">
                     <a class="avatar" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

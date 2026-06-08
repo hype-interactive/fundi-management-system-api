@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\API;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Services\Financial\FinancialManagementService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class SelcomCallbackController extends Controller
 {
@@ -24,7 +24,7 @@ class SelcomCallbackController extends Controller
     {
         try {
             // Verify callback signature (optional but recommended)
-            if (!$this->verifyCallbackSignature($request)) {
+            if (! $this->verifyCallbackSignature($request)) {
                 Log::warning('Invalid Selcom callback signature', [
                     'ip' => $request->ip(),
                     'payload' => $request->all(),
@@ -42,7 +42,7 @@ class SelcomCallbackController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Callback processed successfully'
+                'message' => 'Callback processed successfully',
             ]);
 
         } catch (\Exception $e) {
@@ -54,7 +54,7 @@ class SelcomCallbackController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Callback processing failed'
+                'message' => 'Callback processing failed',
             ], 500);
         }
     }
@@ -74,7 +74,7 @@ class SelcomCallbackController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Name lookup callback processed'
+                'message' => 'Name lookup callback processed',
             ]);
 
         } catch (\Exception $e) {
@@ -85,7 +85,7 @@ class SelcomCallbackController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Callback processing failed'
+                'message' => 'Callback processing failed',
             ], 500);
         }
     }

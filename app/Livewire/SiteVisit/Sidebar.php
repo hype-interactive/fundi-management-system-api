@@ -2,11 +2,11 @@
 
 namespace App\Livewire\SiteVisit;
 
-use Livewire\Component;
 use App\Models\SiteVisit;
-use Livewire\Attributes\On;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 class Sidebar extends Component
 {
@@ -36,7 +36,7 @@ class Sidebar extends Component
                 'Products' => $this->siteVisit->products?->count(),
             ],
             'confirmMethod' => 'approveVisit',
-            'confirmParams' => []
+            'confirmParams' => [],
         ]);
     }
 
@@ -53,7 +53,27 @@ class Sidebar extends Component
                 'Date' => $this->siteVisit->created_at?->format('M d, Y g:i A'),
             ],
             'confirmMethod' => 'rejectVisit',
-            'confirmParams' => []
+            'confirmParams' => [],
+        ]);
+    }
+
+    public function confirmDelete()
+    {
+        $this->dispatch('showConfirmation', [
+            'title' => 'Delete Site Visit',
+            'message' => 'Are you sure you want to permanently delete this site visit? This action cannot be undone.',
+            'type' => 'delete',
+            'itemName' => "Site Visit #{$this->siteVisit->id}",
+            'itemDetails' => [
+                'Site Name' => $this->siteVisit->site_name ?? 'Not specified',
+                'Created by' => $this->siteVisit->operator?->full_name ?? 'Unknown',
+                'Date' => $this->siteVisit->created_at?->format('M d, Y g:i A'),
+                'Photos' => $this->siteVisit->photos?->count(),
+                'Products' => $this->siteVisit->products?->count(),
+                'Mafundi' => $this->siteVisit->fundis?->count(),
+            ],
+            'confirmMethod' => 'deleteVisit',
+            'confirmParams' => [],
         ]);
     }
 
@@ -90,13 +110,32 @@ class Sidebar extends Component
         session()->flash('message', 'Site visit rejected.');
     }
 
+    #[On('deleteVisit')]
+    public function deleteVisit()
+    {
+        try {
+            $siteVisitId = $this->siteVisit->id;
+
+            // Delete the site visit (photos, products, and fundis relationships should be handled by cascade or model events)
+            $this->siteVisit->delete();
+
+            session()->flash('message', "Site visit #{$siteVisitId} has been deleted successfully.");
+
+            // Redirect to site visits list
+            return redirect()->route('site-visits');
+        } catch (\Exception $e) {
+            Log::error("Failed to delete site visit {$this->siteVisit->id}: ".$e->getMessage());
+            session()->flash('error', 'Failed to delete site visit. Please try again.');
+        }
+    }
+
     public function exportVisit()
     {
         try {
             $this->isExporting = true; // Set loading state
 
             set_time_limit(300); // Set execution time to 5min
-            ini_set("memory_limit", "1000M");
+            ini_set('memory_limit', '1000M');
 
             return response()->streamDownload(function () {
                 // Load the site visit with all necessary relationships
@@ -106,7 +145,7 @@ class Sidebar extends Component
                     'products',
                     'fundis',
                     'photos',
-                    'approver'
+                    'approver',
                 ])->find($this->siteVisit->id);
 
                 // Convert photos to base64 for PDF embedding
@@ -119,12 +158,14 @@ class Sidebar extends Component
                             // Validate photo_url exists and is not empty
                             if (empty($photo->photo_url)) {
                                 Log::warning("Photo {$photo->id} has empty photo_url");
+
                                 return null;
                             }
 
                             // Validate URL format
-                            if (!filter_var($photo->photo_url, FILTER_VALIDATE_URL)) {
+                            if (! filter_var($photo->photo_url, FILTER_VALIDATE_URL)) {
                                 Log::warning("Photo {$photo->id} has invalid URL: {$photo->photo_url}");
+
                                 return null;
                             }
 
@@ -133,6 +174,7 @@ class Sidebar extends Component
 
                             if ($imageData === false || empty($imageData)) {
                                 Log::error("Failed to fetch photo {$photo->id} from URL: {$photo->photo_url}");
+
                                 return null;
                             }
 
@@ -141,8 +183,9 @@ class Sidebar extends Component
                             $mimeType = $finfo->buffer($imageData);
 
                             // Validate it's actually an image
-                            if (!str_starts_with($mimeType, 'image/')) {
+                            if (! str_starts_with($mimeType, 'image/')) {
                                 Log::error("Photo {$photo->id} is not a valid image. MIME type: {$mimeType}");
+
                                 return null;
                             }
 
@@ -151,10 +194,10 @@ class Sidebar extends Component
 
                             return [
                                 'base64' => "data:{$mimeType};base64,{$base64}",
-                                'original_url' => $photo->photo_url
+                                'original_url' => $photo->photo_url,
                             ];
                         } catch (\Exception $e) {
-                            Log::error("Failed to process photo {$photo->id}: " . $e->getMessage());
+                            Log::error("Failed to process photo {$photo->id}: ".$e->getMessage());
                         }
 
                         return null;
@@ -179,7 +222,8 @@ class Sidebar extends Component
                 echo $pdf->stream();
             }, "site_visit_report_{$this->siteVisit->id}_{$this->siteVisit->site_name}.pdf");
         } catch (\Exception $e) {
-            session()->flash('error', 'Failed to export site visit report: ' . $e->getMessage());
+            session()->flash('error', 'Failed to export site visit report: '.$e->getMessage());
+
             return;
         } finally {
             $this->isExporting = false; // Reset loading state

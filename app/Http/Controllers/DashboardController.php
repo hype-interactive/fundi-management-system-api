@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Region;
 use App\Models\District;
-use Illuminate\Http\Request;
 use App\Traits\PlatformSummaryTrait;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -156,7 +155,7 @@ class DashboardController extends Controller
         $pdf = app('dompdf.wrapper');
         $pdf->loadView('reports.platform-summary-pdf', $data);
 
-        return $pdf->download('platform-summary-' . now()->format('Y-m-d') . '.pdf');
+        return $pdf->download('platform-summary-'.now()->format('Y-m-d').'.pdf');
     }
 
     private function exportToExcel($data)

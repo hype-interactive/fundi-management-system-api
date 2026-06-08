@@ -22,61 +22,46 @@
 
     <!-- Enhanced Filters Section with Two Rows -->
     <div class="filter mb-3 {{ !$showMobileFilters ? 'd-none d-md-block' : '' }}">
-        <!-- Filter Header -->
-        {{-- <div class="row mb-2 d-none d-md-flex">
-            <div class="col">
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">
-                        <i class="fa-solid fa-filter me-1"></i>Search & Filter Options
-                    </small>
-                    <button wire:click="clearAllFilters" class="btn btn-outline-secondary btn-sm" type="button">
-                        <i class="fa-solid fa-times me-1"></i>Clear All
-                    </button>
-                </div>
-            </div>
-        </div> --}}
 
         <!-- First Row: Search + Primary Location Filters -->
         <div class="row g-3 mb-3">
-            <!-- Enhanced Search -->
-            <div class="col-md-4 col-12">
-                <div class="search position-relative">
-                    <input wire:model.live.debounce.300ms="search_key" type="text" id="search"
-                        placeholder="Search site name, operator...">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    @if($search_key)
-                        <button wire:click="$set('search_key', '')"
-                                class="btn btn-sm position-absolute"
-                                style="right: 35px; top: 50%; transform: translateY(-50%); border: none; background: none;">
-                            <i class="fa-solid fa-times text-muted"></i>
-                        </button>
-                    @endif
-                </div>
-            </div>
 
             <!-- Primary Location Filters -->
-            <div class="col-md-8 col-12">
+            <div class="col-md-12 col-12">
                 <div class="row g-2">
-                    @if (isRoot())
-                        <div class="col-lg-3 col-md-4 col-6">
-                            <div class="select">
-                                @include('components.selects.select_region')
-                            </div>
+                    <div class="col-md-6 col-12 mb-4">
+                        <div class="search position-relative">
+                            <input wire:model.live.debounce.300ms="search_key" type="text" id="search"
+                                placeholder="Search site name, operator...">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            @if ($search_key)
+                                <button wire:click="$set('search_key', '')" class="btn btn-sm position-absolute"
+                                    style="right: 35px; top: 50%; transform: translateY(-50%); border: none; background: none;">
+                                    <i class="fa-solid fa-times text-muted"></i>
+                                </button>
+                            @endif
                         </div>
-                        <div class="col-lg-3 col-md-4 col-6">
-                            <div class="select">
-                                @include('components.selects.select_district')
-                            </div>
+                    </div>
+                    {{-- @if (isRoot()) --}}
+                    <div class="col-lg-3 col-md-4 col-6 ">
+                        <div class="select">
+                            @include('components.selects.select_region')
                         </div>
-                    @endif
+                    </div>
+                    <div class="col-lg-3 col-md-4 col-6 ">
+                        <div class="select">
+                            @include('components.selects.select_district')
+                        </div>
+                    </div>
+                    {{-- @endif --}}
 
-                    <div class="col-lg-3 col-md-4 col-6">
+                    <div class="col-lg-2 col-md-4 col-6 ">
                         <div class="select">
                             @include('components.selects.select_ward')
                         </div>
                     </div>
 
-                    <div class="col-lg-3 col-md-4 col-6">
+                    <div class="col-lg-2 col-md-4 col-6 ">
                         <div class="select">
                             <select wire:model.live="status" class="form-select form-select-sm">
                                 <option value="">All Status</option>
@@ -86,75 +71,32 @@
                             </select>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
+                    <!-- Operator Filter -->
+                    <div class="col-lg-2 col-md-4 col-6 ">
+                        <div class="select">
+                            <select wire:model.live="operator_id" class="form-select form-select-sm">
+                                <option value="">All Operators</option>
+                                @foreach ($operators as $operator)
+                                    <option value="{{ $operator->id }}">{{ $operator->full_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
 
-        <!-- Second Row: Advanced Filters -->
-        <div class="row g-3">
-            <!-- Operator Filter -->
-            <div class="col-lg-3 col-md-4 col-6">
-                <div class="select">
-                    <select wire:model.live="operator_id" class="form-select form-select-sm">
-                        <option value="">All Operators</option>
-                        @foreach ($operators as $operator)
-                            <option value="{{ $operator->id }}">{{ $operator->full_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
+                    <!-- Date Filters -->
+                    <div class="col-lg-3 col-md-4 col-6 ">
+                        <div class="select">
+                            <input wire:model.live="visit_date_from" type="date" class="form-select form-select-sm"
+                                placeholder="From Date" title="From Date">
+                        </div>
+                    </div>
 
-            <!-- Date Filters -->
-            <div class="col-lg-2 col-md-4 col-6">
-                <div class="select">
-                    <input wire:model.live="visit_date_from" type="date" class="form-select form-select-sm"
-                    placeholder="From Date" title="From Date">
-                </div>
-            </div>
-
-            <div class="col-lg-2 col-md-4 col-6">
-                <div class="select">
-                    <input wire:model.live="visit_date_to" type="date" class="form-select form-select-sm"
-                    placeholder="To Date" title="To Date">
-                </div>
-            </div>
-
-            <!-- Results Summary -->
-            <div class="col-lg-5 col-md-12 col-12">
-                <div class="d-flex justify-content-between align-items-center h-100">
-                    <!-- Applied Filters Tags -->
-                    {{-- <div class="filter-tags d-flex flex-wrap gap-1">
-                        @if($search_key)
-                            <span class="badge bg-primary small">
-                                Search: {{ Str::limit($search_key, 15) }}
-                                <button wire:click="$set('search_key', '')" class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;"></button>
-                            </span>
-                        @endif
-                        @if($status)
-                            <span class="badge bg-info small">
-                                Status: {{ $status_options[$status] ?? $status }}
-                                <button wire:click="$set('status', '')" class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;"></button>
-                            </span>
-                        @endif
-                        @if($operator_id)
-                            <span class="badge bg-warning text-dark small">
-                                Operator: {{ $operators->where('id', $operator_id)->first()?->full_name ?? 'Unknown' }}
-                                <button wire:click="$set('operator_id', '')" class="btn-close ms-1" style="font-size: 0.6rem;"></button>
-                            </span>
-                        @endif
-                        @if($visit_date_from || $visit_date_to)
-                            <span class="badge bg-success small">
-                                Date: {{ $visit_date_from ?: 'Start' }} - {{ $visit_date_to ?: 'End' }}
-                                <button wire:click="clearDateFilters" class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;"></button>
-                            </span>
-                        @endif
-                    </div> --}}
-
-                    <!-- Results Count (Mobile Hidden) -->
-                    <small class="text-muted d-none d-lg-block">
-                        <i class="fa-solid fa-list me-1"></i>
-                        {{ $siteVisits->total() }} results
-                    </small>
+                    <div class="col-lg-3 col-md-4 col-6 ">
+                        <div class="select">
+                            <input wire:model.live="visit_date_to" type="date" class="form-select form-select-sm"
+                                placeholder="To Date" title="To Date">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -163,22 +105,18 @@
     <!-- Desktop Actions -->
     <div class="results-summary mb-2 d-none d-md-flex justify-content-between align-items-center">
         <div class="d-flex gap-2 align-items-center">
+            <span class="results-count">
+                <i class="fa-solid fa-location me-1"></i>
+                {{ number_format($siteVisits->total()) }} Sites
+            </span>
+        </div>
+
+        <div class="d-flex gap-2">
             <button wire:click="toggleCompactView"
                 class="btn btn-sm {{ $compactView ? 'btn-primary' : 'btn-outline-primary' }}">
                 <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }}"></i>
                 {{ $compactView ? 'Expand' : 'Compact' }}
             </button>
-
-            <!-- Results Summary for Desktop -->
-            <small class="text-muted ms-2">
-                Showing {{ $siteVisits->count() }} of {{ $siteVisits->total() }} site visits
-                @if($search_key || $status || $operator_id || $visit_date_from || $visit_date_to)
-                    (filtered)
-                @endif
-            </small>
-        </div>
-
-        <div class="d-flex gap-2">
             <button wire:click="refresh" class="btn btn-outline-secondary btn-sm">
                 <i class="fa-solid fa-arrows-rotate me-1"></i>
                 Clear Filters

@@ -2,9 +2,9 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
-use Illuminate\Auth\AuthenticationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
@@ -52,7 +52,7 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthenticated',
-                'errors' => null
+                'errors' => null,
             ], 401);
         }
 
@@ -73,7 +73,7 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'success' => false,
                     'message' => 'Route not found',
-                    'errors' => null
+                    'errors' => null,
                 ], 404);
             }
 
@@ -82,7 +82,7 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $exception->errors()
+                    'errors' => $exception->errors(),
                 ], 422);
             }
 
@@ -91,7 +91,7 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthenticated',
-                    'errors' => null
+                    'errors' => null,
                 ], 401);
             }
 
@@ -100,7 +100,7 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized',
-                    'errors' => null
+                    'errors' => null,
                 ], 403);
             }
 
@@ -109,7 +109,7 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'success' => false,
                     'message' => 'Method not allowed',
-                    'errors' => null
+                    'errors' => null,
                 ], 405);
             }
 
@@ -123,8 +123,8 @@ class Handler extends ExceptionHandler
                     'errors' => config('app.debug') ? [
                         'file' => $exception->getFile(),
                         'line' => $exception->getLine(),
-                        'trace' => $exception->getTraceAsString()
-                    ] : null
+                        'trace' => $exception->getTraceAsString(),
+                    ] : null,
                 ], 500);
             }
         }

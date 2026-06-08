@@ -17,7 +17,7 @@ class ForceJsonResponse
     {
         // Force Accept header to application/json for API routes
         $request->headers->set('Accept', 'application/json');
-        
+
         return $next($request);
     }
 }

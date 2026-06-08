@@ -6,15 +6,17 @@ use App\Models\BudgetAllocation;
 use App\Models\DisbursementBatch;
 use App\Models\Transaction;
 use App\Traits\HasAlerts;
-use Livewire\Component;
 use Carbon\Carbon;
+use Livewire\Component;
 
 class FinancialDashboard extends Component
 {
     use HasAlerts;
 
     public $dashboardData = [];
+
     public $selectedPeriod = '30'; // Days
+
     public $refreshing = false;
 
     public function mount()
@@ -108,7 +110,7 @@ class FinancialDashboard extends Component
     public function refreshDashboard()
     {
         $this->loadDashboardData();
-        $this->showSuccessAlert('Dashboard Refreshed', 'Data has been updated successfully.');
+        $this->showSuccessToast('Refreshed', 'Dashboard data updated successfully');
     }
 
     public function render()

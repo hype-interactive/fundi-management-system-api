@@ -19,7 +19,6 @@
     ];
 @endphp
 
-<span class="badge bg-{{ $rankingData['color'] }} ranking-badge">
-    <i class="fa-solid {{ $rankingData['icon'] }} me-1"></i>
+<span class="text-{{ $rankingData['color'] }} ranking-badge">
     {{ $rankingData['label'] }}
 </span>

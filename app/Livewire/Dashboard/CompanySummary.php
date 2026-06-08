@@ -2,14 +2,16 @@
 
 namespace App\Livewire\Dashboard;
 
-use App\Models\User;
 use App\Models\Fundi;
+use App\Models\User;
 use Livewire\Component;
 
 class CompanySummary extends Component
 {
     public $admin_count;
+
     public $operator_count;
+
     public $fundi_count;
 
     public function render()
@@ -26,10 +28,9 @@ class CompanySummary extends Component
                 $q->whereIn('districts.id', $districtIds);
             })->count();
 
-            $this->fundi_count = Fundi::whereHas('ward', function ($q) use ($districtIds) {
-                $q->whereIn('district_id', $districtIds);
-            })->count();
+            $this->fundi_count = Fundi::get()->count();
         }
+
         return view('livewire.dashboard.company-summary');
     }
 }

@@ -2,22 +2,19 @@
 
 namespace App\Http\Controllers\API;
 
-use Carbon\Carbon;
-use App\Models\Fundi;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use App\Http\Resources\FundiMinimalResource;
 use App\Http\Resources\SiteVisitListResource;
-use App\Models\User;
+use App\Models\Fundi;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends BaseAPIController
 {
     public function index(Request $request): JsonResponse
     {
-        $operator_id = $this->getOperator();
-        $operator = User::with(['siteVisits', 'siteVisits.ward'])
-            ->findOrFail($operator_id);
+        $operator = $this->getOperator();
         $districtIds = $this->getOperatorDistricts();
 
         // Get date range for stats (default last 30 days)
@@ -32,7 +29,7 @@ class DashboardController extends BaseAPIController
 
             'approved' => Fundi::whereHas('ward.district', function ($q) use ($districtIds) {
                 $q->whereIn('id', $districtIds);
-            })->whereNotNull('approved_at')->count(),
+            })->approved()->count(),
 
             'pending' => Fundi::whereHas('ward.district', function ($q) use ($districtIds) {
                 $q->whereIn('id', $districtIds);
@@ -65,10 +62,10 @@ class DashboardController extends BaseAPIController
             ->whereIn('districts.id', $districtIds)
             ->selectRaw('
                 COUNT(*) as total_count,
-                SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as successful_count,
-                SUM(CASE WHEN status = "completed" THEN amount ELSE 0 END) as total_amount,
-                SUM(CASE WHEN processed_at BETWEEN ? AND ? THEN amount ELSE 0 END) as period_amount
-            ', [$dateFrom, $dateTo])
+                SUM(CASE WHEN transactions.status = ? THEN 1 ELSE 0 END) as successful_count,
+                SUM(CASE WHEN transactions.status = ? THEN transactions.amount ELSE 0 END) as total_amount,
+                SUM(CASE WHEN transactions.processed_at BETWEEN ? AND ? THEN transactions.amount ELSE 0 END) as period_amount
+            ', ['completed', 'completed', $dateFrom, $dateTo])
             ->first();
 
         // Recent activities

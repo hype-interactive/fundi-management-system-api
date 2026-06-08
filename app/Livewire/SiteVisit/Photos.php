@@ -2,8 +2,8 @@
 
 namespace App\Livewire\SiteVisit;
 
-use Livewire\Component;
 use App\Models\SiteVisit;
+use Livewire\Component;
 
 class Photos extends Component
 {

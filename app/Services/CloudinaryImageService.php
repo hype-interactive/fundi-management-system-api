@@ -3,27 +3,25 @@
 namespace App\Services;
 
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
-use Illuminate\Http\UploadedFile;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class CloudinaryImageService
 {
     /**
      * Upload an image to Cloudinary
      *
-     * @param UploadedFile|TemporaryUploadedFile $file
-     * @param string $folder
-     * @param array $options
-     * @return array|null
+     * @param  UploadedFile|TemporaryUploadedFile  $file
      */
     public function upload($file, string $folder = 'uploads', array $options = []): ?array
     {
         try {
             // Validate file
-            if (!$file || !$file->isValid()) {
+            if (! $file || ! $file->isValid()) {
                 Log::error('Invalid file provided for upload');
+
                 return null;
             }
 
@@ -32,7 +30,7 @@ class CloudinaryImageService
                 'folder' => $folder,
                 'quality' => 'auto',
                 'fetch_format' => 'auto',
-                'resource_type' => 'image'
+                'resource_type' => 'image',
             ];
 
             // Merge with provided options
@@ -42,7 +40,7 @@ class CloudinaryImageService
                 'file_type' => get_class($file),
                 'file_size' => $file->getSize(),
                 'mime_type' => $file->getMimeType(),
-                'folder' => $folder
+                'folder' => $folder,
             ]);
 
             // Handle Livewire TemporaryUploadedFile
@@ -54,12 +52,13 @@ class CloudinaryImageService
                 return $this->uploadRegularFile($file, $folder, $uploadOptions);
             }
 
-            throw new Exception('Unsupported file type: ' . get_class($file));
+            throw new Exception('Unsupported file type: '.get_class($file));
         } catch (Exception $e) {
-            Log::error('Cloudinary upload failed: ' . $e->getMessage(), [
+            Log::error('Cloudinary upload failed: '.$e->getMessage(), [
                 'file_type' => isset($file) ? get_class($file) : 'null',
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return null;
         }
     }
@@ -67,8 +66,7 @@ class CloudinaryImageService
     /**
      * Convert Cloudinary ApiResponse to array
      *
-     * @param mixed $response
-     * @return array|null
+     * @param  mixed  $response
      */
     private function convertResponseToArray($response): ?array
     {
@@ -99,6 +97,7 @@ class CloudinaryImageService
                             $array[$field] = $response[$field];
                         }
                     }
+
                     return $array;
                 }
             }
@@ -112,24 +111,20 @@ class CloudinaryImageService
 
     /**
      * Upload a Livewire TemporaryUploadedFile
-     *
-     * @param TemporaryUploadedFile $file
-     * @param array $uploadOptions
-     * @return array|null
      */
     private function uploadTemporaryFile(TemporaryUploadedFile $file, array $uploadOptions): ?array
     {
         // Get the real path of the temporary file
         $filePath = $file->getRealPath();
 
-        if (!$filePath || !file_exists($filePath)) {
+        if (! $filePath || ! file_exists($filePath)) {
             throw new Exception('Temporary file path not found or file does not exist');
         }
 
         Log::info('Uploading TemporaryUploadedFile', [
             'path' => $filePath,
             'file_exists' => file_exists($filePath),
-            'file_size' => filesize($filePath)
+            'file_size' => filesize($filePath),
         ]);
 
         // Try multiple approaches for uploading
@@ -143,15 +138,15 @@ class CloudinaryImageService
             if ($result) {
                 Log::info('Method 1 (direct path) succeeded', [
                     'has_secure_url' => isset($result['secure_url']),
-                    'has_public_id' => isset($result['public_id'])
+                    'has_public_id' => isset($result['public_id']),
                 ]);
             }
         } catch (Exception $e) {
-            Log::warning('Method 1 (direct path) failed: ' . $e->getMessage());
+            Log::warning('Method 1 (direct path) failed: '.$e->getMessage());
         }
 
         // Method 2: Using file contents if Method 1 failed
-        if (!$result || !isset($result['secure_url'])) {
+        if (! $result || ! isset($result['secure_url'])) {
             try {
                 $fileContents = file_get_contents($filePath);
                 if ($fileContents === false) {
@@ -160,7 +155,7 @@ class CloudinaryImageService
 
                 // Create a data URI
                 $mimeType = $file->getMimeType() ?: 'image/jpeg';
-                $dataUri = 'data:' . $mimeType . ';base64,' . base64_encode($fileContents);
+                $dataUri = 'data:'.$mimeType.';base64,'.base64_encode($fileContents);
 
                 $apiResponse = Cloudinary::uploadApi()->upload($dataUri, $uploadOptions);
                 $result = $this->convertResponseToArray($apiResponse);
@@ -168,16 +163,16 @@ class CloudinaryImageService
                 if ($result) {
                     Log::info('Method 2 (data URI) succeeded', [
                         'has_secure_url' => isset($result['secure_url']),
-                        'has_public_id' => isset($result['public_id'])
+                        'has_public_id' => isset($result['public_id']),
                     ]);
                 }
             } catch (Exception $e) {
-                Log::warning('Method 2 (data URI) failed: ' . $e->getMessage());
+                Log::warning('Method 2 (data URI) failed: '.$e->getMessage());
             }
         }
 
         // Method 3: Copy to temporary location and upload
-        if (!$result || !isset($result['secure_url'])) {
+        if (! $result || ! isset($result['secure_url'])) {
             try {
                 $tempPath = tempnam(sys_get_temp_dir(), 'cloudinary_upload_');
                 if (copy($filePath, $tempPath)) {
@@ -188,26 +183,26 @@ class CloudinaryImageService
                     if ($result) {
                         Log::info('Method 3 (temp copy) succeeded', [
                             'has_secure_url' => isset($result['secure_url']),
-                            'has_public_id' => isset($result['public_id'])
+                            'has_public_id' => isset($result['public_id']),
                         ]);
                     }
                 }
             } catch (Exception $e) {
-                Log::warning('Method 3 (temp copy) failed: ' . $e->getMessage());
+                Log::warning('Method 3 (temp copy) failed: '.$e->getMessage());
             }
         }
 
         // Validate the result
-        if (!$result) {
+        if (! $result) {
             throw new Exception('All upload methods failed - no result returned');
         }
 
-        if (!is_array($result)) {
-            throw new Exception('Invalid response type from Cloudinary: ' . gettype($result));
+        if (! is_array($result)) {
+            throw new Exception('Invalid response type from Cloudinary: '.gettype($result));
         }
 
-        if (!isset($result['secure_url']) || !isset($result['public_id'])) {
-            throw new Exception('Invalid response from Cloudinary - missing required fields. Response: ' . json_encode($result));
+        if (! isset($result['secure_url']) || ! isset($result['public_id'])) {
+            throw new Exception('Invalid response from Cloudinary - missing required fields. Response: '.json_encode($result));
         }
 
         return [
@@ -218,17 +213,12 @@ class CloudinaryImageService
             'mime_type' => $file->getMimeType(),
             'width' => $result['width'] ?? null,
             'height' => $result['height'] ?? null,
-            'format' => $result['format'] ?? null
+            'format' => $result['format'] ?? null,
         ];
     }
 
     /**
      * Upload a regular UploadedFile
-     *
-     * @param UploadedFile $file
-     * @param string $folder
-     * @param array $uploadOptions
-     * @return array|null
      */
     private function uploadRegularFile(UploadedFile $file, string $folder, array $uploadOptions): ?array
     {
@@ -237,7 +227,7 @@ class CloudinaryImageService
         // Use the storeOnCloudinary method for regular uploaded files
         $cloudinaryImage = $file->storeOnCloudinary($folder, $uploadOptions);
 
-        if (!$cloudinaryImage) {
+        if (! $cloudinaryImage) {
             throw new Exception('Failed to upload file to Cloudinary');
         }
 
@@ -249,18 +239,14 @@ class CloudinaryImageService
             'mime_type' => $file->getMimeType(),
             'width' => $cloudinaryImage->getWidth(),
             'height' => $cloudinaryImage->getHeight(),
-            'format' => $cloudinaryImage->getFormat()
+            'format' => $cloudinaryImage->getFormat(),
         ];
     }
 
     /**
      * Update an image (delete old and upload new)
      *
-     * @param UploadedFile|TemporaryUploadedFile $newFile
-     * @param string|null $oldPublicId
-     * @param string $folder
-     * @param array $options
-     * @return array|null
+     * @param  UploadedFile|TemporaryUploadedFile  $newFile
      */
     public function update($newFile, ?string $oldPublicId = null, string $folder = 'uploads', array $options = []): ?array
     {
@@ -268,30 +254,28 @@ class CloudinaryImageService
             // Upload new image first
             $uploadResult = $this->upload($newFile, $folder, $options);
 
-            if (!$uploadResult) {
+            if (! $uploadResult) {
                 throw new Exception('Failed to upload new image');
             }
 
             // Delete old image if exists and new upload was successful
             if ($oldPublicId) {
                 $deleteResult = $this->delete($oldPublicId);
-                if (!$deleteResult) {
+                if (! $deleteResult) {
                     Log::warning('Failed to delete old image', ['public_id' => $oldPublicId]);
                 }
             }
 
             return $uploadResult;
         } catch (Exception $e) {
-            Log::error('Cloudinary update failed: ' . $e->getMessage());
+            Log::error('Cloudinary update failed: '.$e->getMessage());
+
             return null;
         }
     }
 
     /**
      * Delete an image from Cloudinary
-     *
-     * @param string $publicId
-     * @return bool
      */
     public function delete(string $publicId): bool
     {
@@ -303,26 +287,23 @@ class CloudinaryImageService
 
             Log::info('Delete result', ['result' => $result]);
 
-            return !empty($result['deleted'][$publicId]) && $result['deleted'][$publicId] === 'deleted';
+            return ! empty($result['deleted'][$publicId]) && $result['deleted'][$publicId] === 'deleted';
         } catch (Exception $e) {
-            Log::error('Cloudinary delete failed: ' . $e->getMessage(), ['public_id' => $publicId]);
+            Log::error('Cloudinary delete failed: '.$e->getMessage(), ['public_id' => $publicId]);
+
             return false;
         }
     }
 
     /**
      * Get optimized image URL with transformations
-     *
-     * @param string $publicId
-     * @param array $transformations
-     * @return string
      */
     public function getOptimizedUrl(string $publicId, array $transformations = []): string
     {
         try {
             $defaultTransformations = [
                 'quality' => 'auto',
-                'fetch_format' => 'auto'
+                'fetch_format' => 'auto',
             ];
 
             $transformations = array_merge($defaultTransformations, $transformations);
@@ -333,18 +314,14 @@ class CloudinaryImageService
             // CORRECT - Use cloudinary_url instead:
             return Cloudinary::image($publicId, $transformations);
         } catch (Exception $e) {
-            Log::error('Failed to generate optimized URL: ' . $e->getMessage());
+            Log::error('Failed to generate optimized URL: '.$e->getMessage());
+
             return '';
         }
     }
 
     /**
      * Upload multiple images
-     *
-     * @param array $files
-     * @param string $folder
-     * @param array $options
-     * @return array
      */
     public function uploadMultiple(array $files, string $folder = 'uploads', array $options = []): array
     {
@@ -364,9 +341,6 @@ class CloudinaryImageService
 
     /**
      * Delete multiple images
-     *
-     * @param array $publicIds
-     * @return array
      */
     public function deleteMultiple(array $publicIds): array
     {
@@ -381,28 +355,18 @@ class CloudinaryImageService
 
     /**
      * Generate thumbnail URL
-     *
-     * @param string $publicId
-     * @param int $width
-     * @param int $height
-     * @param string $crop
-     * @return string
      */
     public function getThumbnail(string $publicId, int $width = 150, int $height = 150, string $crop = 'fill'): string
     {
         return $this->getOptimizedUrl($publicId, [
             'width' => $width,
             'height' => $height,
-            'crop' => $crop
+            'crop' => $crop,
         ]);
     }
 
     /**
      * Generate responsive image URLs
-     *
-     * @param string $publicId
-     * @param array $breakpoints
-     * @return array
      */
     public function getResponsiveUrls(string $publicId, array $breakpoints = [320, 640, 768, 1024, 1280]): array
     {
@@ -411,7 +375,7 @@ class CloudinaryImageService
         foreach ($breakpoints as $width) {
             $urls[$width] = $this->getOptimizedUrl($publicId, [
                 'width' => $width,
-                'crop' => 'scale'
+                'crop' => 'scale',
             ]);
         }
 
@@ -420,8 +384,6 @@ class CloudinaryImageService
 
     /**
      * Test Cloudinary connection
-     *
-     * @return bool
      */
     public function testConnection(): bool
     {
@@ -430,13 +392,14 @@ class CloudinaryImageService
             $result = Cloudinary::adminApi()->ping();
 
             // Convert result to array if it's an ApiResponse object
-            if (!is_array($result)) {
+            if (! is_array($result)) {
                 $result = $this->convertResponseToArray($result);
             }
 
             return isset($result['status']) && $result['status'] === 'ok';
         } catch (Exception $e) {
-            Log::error('Cloudinary connection test failed: ' . $e->getMessage());
+            Log::error('Cloudinary connection test failed: '.$e->getMessage());
+
             return false;
         }
     }

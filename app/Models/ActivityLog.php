@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ActivityLog extends Model
 {
@@ -34,9 +34,11 @@ class ActivityLog extends Model
     public function subject()
     {
         if ($this->model_type && $this->model_id) {
-            $modelClass = '\\App\\Models\\' . $this->model_type;
+            $modelClass = '\\App\\Models\\'.$this->model_type;
+
             return $modelClass::find($this->model_id);
         }
+
         return null;
     }
 }

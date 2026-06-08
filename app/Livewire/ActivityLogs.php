@@ -2,14 +2,15 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\ActivityLog;
 use Livewire\Attributes\Url;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class ActivityLogs extends Component
 {
     use WithPagination;
+
     protected $paginationTheme = 'bootstrap';
 
     public $users;
@@ -74,7 +75,7 @@ class ActivityLogs extends Component
             $query->whereBetween('created_at', [$this->from_date, $this->to_date]);
         }
 
-        return $query->latest('created_at')->paginate(50);
+        return $query->latest('created_at')->paginate(100);
     }
 
     public function render()

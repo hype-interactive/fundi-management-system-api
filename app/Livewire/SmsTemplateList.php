@@ -2,11 +2,11 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\SmsTemplate;
-use Livewire\Attributes\Url;
-use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class SmsTemplateList extends Component
 {
@@ -14,9 +14,10 @@ class SmsTemplateList extends Component
 
     protected $paginationTheme = 'bootstrap';
 
-
     public $editingTemplate = null;
+
     public $templateTitle = '';
+
     public $templateContent = '';
 
     // Template listing
@@ -39,7 +40,7 @@ class SmsTemplateList extends Component
         $this->reset([
             'editingTemplate',
             'templateTitle',
-            'templateContent'
+            'templateContent',
         ]);
     }
 
@@ -84,7 +85,7 @@ class SmsTemplateList extends Component
             $this->dispatch('templateUpdated');
 
         } catch (\Exception $e) {
-            session()->flash('error', 'Failed to save template: ' . $e->getMessage());
+            session()->flash('error', 'Failed to save template: '.$e->getMessage());
         }
     }
 
@@ -100,7 +101,7 @@ class SmsTemplateList extends Component
                 $this->dispatch('templateUpdated');
             }
         } catch (\Exception $e) {
-            session()->flash('error', 'Failed to delete template: ' . $e->getMessage());
+            session()->flash('error', 'Failed to delete template: '.$e->getMessage());
         }
     }
 
@@ -116,7 +117,7 @@ class SmsTemplateList extends Component
             $template = SmsTemplate::find($templateId);
             if ($template) {
                 SmsTemplate::create([
-                    'title' => $template->title . ' (Copy)',
+                    'title' => $template->title.' (Copy)',
                     'content' => $template->content,
                     'created_by' => Auth::id(),
                 ]);
@@ -125,7 +126,7 @@ class SmsTemplateList extends Component
                 $this->dispatch('templateUpdated');
             }
         } catch (\Exception $e) {
-            session()->flash('error', 'Failed to duplicate template: ' . $e->getMessage());
+            session()->flash('error', 'Failed to duplicate template: '.$e->getMessage());
         }
     }
 
@@ -134,8 +135,8 @@ class SmsTemplateList extends Component
     {
         return SmsTemplate::with('creator')
             ->when($this->search, function ($query) {
-                $query->where('title', 'like', '%' . $this->search . '%')
-                    ->orWhere('content', 'like', '%' . $this->search . '%');
+                $query->where('title', 'like', '%'.$this->search.'%')
+                    ->orWhere('content', 'like', '%'.$this->search.'%');
             })
             ->orderBy('created_at', 'desc')
             ->paginate($this->perPage);

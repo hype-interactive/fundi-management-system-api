@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\API;
 
-use Carbon\Carbon;
+use App\Http\Resources\OperatorProfileResource;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
-use App\Http\Resources\OperatorProfileResource;
 
 class AuthController extends BaseAPIController
 {
@@ -20,8 +20,9 @@ class AuthController extends BaseAPIController
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+
         // Rate limiting for login attempts
-        $key = 'login.' . $request->ip();
+        $key = 'login.'.$request->ip();
         // if (RateLimiter::tooManyAttempts($key, 5)) {
         //     $seconds = RateLimiter::availableIn($key);
         //     Log::warning('Too many login attempts', [
@@ -48,7 +49,7 @@ class AuthController extends BaseAPIController
 
         $credentials = [
             'phone_number' => $request->input('phone_number'),
-            'password' => $request->input('password')
+            'password' => $request->input('password'),
         ];
 
         // Log the login attempt (without password)
@@ -61,7 +62,7 @@ class AuthController extends BaseAPIController
         // Find user by phone number first
         $user = User::where('phone', $credentials['phone_number'])->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             // Increment rate limiter on failed attempts
             RateLimiter::hit($key, 300); // 5 minutes decay
 
@@ -79,7 +80,7 @@ class AuthController extends BaseAPIController
         if (isset($user->status) && $user->status !== 'active') {
             Log::warning('Login attempt on inactive account', [
                 'user_id' => $user->id,
-                'phone_number' => $user->phone_number,
+                'phone_number' => $user->phone,
                 'status' => $user->status ?? 'unknown',
                 'ip' => $request->ip(),
             ]);
@@ -105,7 +106,7 @@ class AuthController extends BaseAPIController
             // Log successful login
             Log::info('Successful login', [
                 'user_id' => $user->id,
-                'phone_number' => $user->phone_number,
+                'phone_number' => $user->phone,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -128,6 +129,7 @@ class AuthController extends BaseAPIController
             ]);
 
             Auth::logout();
+
             return $this->errorResponse('Login failed. Please try again.', $e->getMessage(), 500);
         }
     }
@@ -137,14 +139,14 @@ class AuthController extends BaseAPIController
         try {
             // Get the authenticated user as User model instance
             $userId = Auth::id();
-            if (!$userId) {
+            if (! $userId) {
                 return $this->errorResponse('User not authenticated', null, 401);
             }
 
             // Fetch user using User model to get access to Eloquent methods
             $user = User::find($userId);
 
-            if (!$user) {
+            if (! $user) {
                 return $this->errorResponse('User not found', null, 404);
             }
 
@@ -166,7 +168,7 @@ class AuthController extends BaseAPIController
                 'createdFundis',
                 'siteVisits',
                 'createdFundis as pending_fundis_count' => function ($query) {
-                    $query->whereNull('approved_at');
+                    $query->pending();
                 },
                 'siteVisits as pending_site_visits_count' => function ($query) {
                     $query->where('status', 'pending');
@@ -194,14 +196,14 @@ class AuthController extends BaseAPIController
         try {
             $userId = Auth::id();
 
-            if (!$userId) {
+            if (! $userId) {
                 return $this->errorResponse('User not authenticated', null, 401);
             }
 
             // Get user as User model instance
             $user = User::find($userId);
 
-            if (!$user) {
+            if (! $user) {
                 return $this->errorResponse('User not found', null, 401);
             }
 
@@ -214,7 +216,7 @@ class AuthController extends BaseAPIController
             // Log successful logout
             Log::info('User logged out', [
                 'user_id' => $user->id,
-                'phone_number' => $user->phone_number,
+                'phone_number' => $user->phone,
                 'ip' => request()->ip(),
             ]);
 
@@ -242,14 +244,14 @@ class AuthController extends BaseAPIController
         try {
             $userId = Auth::id();
 
-            if (!$userId) {
+            if (! $userId) {
                 return $this->errorResponse('User not authenticated', null, 401);
             }
 
             // Get user as User model instance
             $user = User::find($userId);
 
-            if (!$user) {
+            if (! $user) {
                 return $this->errorResponse('User not found', null, 401);
             }
 
@@ -258,7 +260,7 @@ class AuthController extends BaseAPIController
 
             Log::info('User logged out from all devices', [
                 'user_id' => $user->id,
-                'phone_number' => $user->phone_number,
+                'phone_number' => $user->phone,
                 'ip' => request()->ip(),
             ]);
 
@@ -285,14 +287,14 @@ class AuthController extends BaseAPIController
         try {
             $userId = Auth::id();
 
-            if (!$userId) {
+            if (! $userId) {
                 return $this->errorResponse('User not authenticated', null, 401);
             }
 
             // Get user as User model instance
             $user = User::find($userId);
 
-            if (!$user) {
+            if (! $user) {
                 return $this->errorResponse('User not found', null, 401);
             }
 

@@ -9,10 +9,14 @@
                     <div class="dropdown-menu">
                         <a href="{{ route('unapproved-fundis') }}" class="" type="button"> <i
                                 class="fa-solid fa-person-circle-xmark mr-4"></i>Unapproved </a>
-                        <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#addFundiForm"> <i
-                                class="fa-solid fa-plus mr-4"></i>Add Fundi</a>
-                        <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#bulk"><i
-                                class="fa-solid fa-cloud-arrow-up mr-4"></i>Add Bulk</a>
+                            <a type="button" href="{{ route('fundis.duplicates') }}">
+                                <i class="fa-solid fa-clone mr-4"></i>
+                                Duplicate Manager
+                            </a>
+                            <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#addFundiForm"> <i
+                                    class="fa-solid fa-plus mr-4"></i>Add Fundi</a>
+                            {{-- <a class="cursor-pointer" type="button" data-toggle="modal" data-target="#bulk"><i
+                                    class="fa-solid fa-cloud-arrow-up mr-4"></i>Add Bulk</a> --}}
                     </div>
                 </div>
             </div>

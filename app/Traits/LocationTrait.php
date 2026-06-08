@@ -15,6 +15,7 @@ trait LocationTrait
     protected function isAdminOrRoot(): bool
     {
         $user = currentUser();
+
         return $user && in_array($user->role->name, ['admin', 'root']);
     }
 
@@ -56,7 +57,7 @@ trait LocationTrait
      */
     public function getDistrictsByRegion(?int $regionId = null): Collection
     {
-        if (!$regionId) {
+        if (! $regionId) {
             return collect();
         }
 
@@ -76,7 +77,7 @@ trait LocationTrait
         }
 
         $user = currentUser();
-        if (!$user) {
+        if (! $user) {
             return collect();
         }
 
@@ -104,11 +105,12 @@ trait LocationTrait
      */
     public function getUserDistrictsByRegion(?int $regionId = null): Collection
     {
-        if (!$regionId) {
+        if (! $regionId) {
             return collect();
         }
 
         $userDistricts = $this->getUserAccessibleDistricts();
+
         return $userDistricts->where('region_id', $regionId);
     }
 
@@ -130,14 +132,14 @@ trait LocationTrait
      */
     public function getWards(?int $districtId = null): Collection
     {
-        if (!$districtId) {
+        if (! $districtId) {
             return collect();
         }
 
         // For non-admin users, verify they have access to this district
-        if (!$this->isAdminOrRoot()) {
+        if (! $this->isAdminOrRoot()) {
             $accessibleDistrictIds = $this->getUserAccessibleDistrictIds();
-            if (!$accessibleDistrictIds->contains($districtId)) {
+            if (! $accessibleDistrictIds->contains($districtId)) {
                 return collect();
             }
         }
@@ -166,7 +168,7 @@ trait LocationTrait
      */
     public function getWardsByRegion(?int $regionId = null): Collection
     {
-        if (!$regionId) {
+        if (! $regionId) {
             return collect();
         }
 
@@ -208,7 +210,7 @@ trait LocationTrait
         }
 
         $ward = Ward::find($wardId);
-        if (!$ward) {
+        if (! $ward) {
             return false;
         }
 
@@ -225,6 +227,7 @@ trait LocationTrait
         }
 
         $accessibleRegionIds = $this->getAccessibleRegions()->pluck('id');
+
         return $accessibleRegionIds->contains($regionId);
     }
 
@@ -234,7 +237,7 @@ trait LocationTrait
     public function getUserPrimaryRegion(): ?Region
     {
         $user = currentUser();
-        if (!$user || !$user->primary_district) {
+        if (! $user || ! $user->primary_district) {
             return null;
         }
 
@@ -247,6 +250,7 @@ trait LocationTrait
     public function getUserPrimaryDistrict(): ?District
     {
         $user = currentUser();
+
         return $user?->primary_district;
     }
 
@@ -257,7 +261,7 @@ trait LocationTrait
     public function applyLocationFiltersToQuery($query, ?int $regionId = null, ?int $districtId = null, ?int $wardId = null)
     {
         // For non-admin users, restrict to their accessible districts
-        if (!$this->isAdminOrRoot()) {
+        if (! $this->isAdminOrRoot()) {
             $userDistrictIds = $this->getUserAccessibleDistrictIds();
             $query->whereHas('ward', function ($wardQuery) use ($userDistrictIds) {
                 $wardQuery->whereIn('district_id', $userDistrictIds);

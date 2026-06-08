@@ -1,4 +1,8 @@
 <div>
+    <!-- Add polling when download is in progress -->
+    @if ($bulkDownloadInProgress)
+        <div wire:poll.2s="checkBulkDownloadStatus"></div>
+    @endif
     <!-- Filters Section -->
     <div class="filter mb-1">
         <div class="row">
@@ -10,18 +14,18 @@
             </div>
             <div class="col-md-9">
                 <div class="row">
-                    @if (isRoot())
-                        <div class="col">
-                            <div class="select">
-                                @include('components.selects.select_region')
-                            </div>
+                    {{-- @if (isRoot()) --}}
+                    <div class="col">
+                        <div class="select">
+                            @include('components.selects.select_region')
                         </div>
-                        <div class="col">
-                            <div class="select">
-                                @include('components.selects.select_district')
-                            </div>
+                    </div>
+                    <div class="col">
+                        <div class="select">
+                            @include('components.selects.select_district')
                         </div>
-                    @endif
+                    </div>
+                    {{-- @endif --}}
                     <div class="col">
                         <div class="select">
                             @include('components.selects.select_ward')
@@ -29,7 +33,12 @@
                     </div>
                     <div class="col">
                         <div class="select">
-                            @include('components.selects.select_ranking')
+                            <select wire:model.live="site_visit_count" class="form-select">
+                                <option value="">Site Visits</option>
+                                @foreach ($site_visit_count_options as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="col">
@@ -41,17 +50,68 @@
             </div>
         </div>
     </div>
+    {{-- Download Status Alert --}}
+    @if ($bulkDownloadInProgress)
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
+            <div>
+                <i class="fa-solid fa-spinner fa-spin me-2"></i>
+                <strong>Generating ID cards...</strong> This may take a few minutes. Please wait.
+            </div>
+            <button wire:click="resetDownload" class="btn btn-sm btn-outline-secondary">
+                Cancel
+            </button>
+        </div>
+    @endif
+
+    @if ($downloadUrl)
+        <div class="alert alert-success mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fa-solid fa-check-circle me-2"></i>
+                    Your ID cards are ready!
+                </span>
+                <a href="{{ $downloadUrl }}" download class="btn btn-success btn-sm">
+                    <i class="fa-solid fa-download me-1"></i>
+                    Download ZIP
+                    ({{ round(Storage::disk('public')->size('downloads/' . basename($downloadUrl)) / 1024 / 1024, 2) }}
+                    MB)
+                </a>
+            </div>
+        </div>
+    @endif
+
+    {{-- Bulk Actions Bar --}}
+    @if (count($selectedFundis) > 0)
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
+            <div>
+                <i class="fa-solid fa-check-double me-2"></i>
+                <strong>{{ count($selectedFundis) }}</strong> fundi(s) selected
+            </div>
+            <div>
+                <button wire:click="bulkDelete" class="btn btn-danger btn-sm">
+                    <i class="fa-solid fa-trash me-1"></i>
+                    Delete Selected
+                </button>
+            </div>
+        </div>
+    @endif
+
+
 
     <!-- Desktop Actions -->
     <div class="results-summary mb-2 d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2">
+            <div class="results-card">
+                <i class="fa-solid fa-users me-2"></i>
+                <span>{{ number_format($fundis->total()) }} Fundi{{ $fundis->total() !== 1 ? 's' : '' }}</span>
+            </div>
+        </div>
         <div class="d-flex gap-2">
             <button wire:click="$toggle('compactView')"
                 class="btn btn-sm {{ $compactView ? 'btn-primary' : 'btn-outline-primary' }}">
                 <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }}"></i>
                 {{ $compactView ? 'Expand' : 'Compact' }}
             </button>
-        </div>
-        <div class="d-flex gap-2">
             <button wire:click="refresh" class="btn btn-outline-secondary btn-sm">
                 <i class="fa-solid fa-arrows-rotate me-1"></i>
                 Clear Filters
@@ -60,12 +120,20 @@
                 <i class="fa-solid fa-file-excel me-1"></i>
                 Export Excel
             </button>
-            <button wire:click="downloadFundiPDF" class="btn btn-outline-danger btn-sm">
+            <button wire:click="downloadFundisPDF" class="btn btn-outline-warning btn-sm">
                 <i class="fa-solid fa-file-pdf me-1"></i>
                 Download PDF
             </button>
+
+            {{-- Bulk Download ID Cards Button --}}
+            <button wire:click="bulkDownloadIdCards" class="btn btn-outline-danger btn-sm"
+                @if ($bulkDownloadInProgress) disabled @endif>
+                <i class="fa-solid fa-id-card me-1"></i>
+                Download ID Cards ({{ $fundis->total() }})
+            </button>
         </div>
     </div>
+
 
     <!-- Table Container -->
     <div class="custom-table">
@@ -74,6 +142,10 @@
             <table class="table">
                 <thead class="thead-light">
                     <tr>
+                        {{-- <th scope="col">
+                            <input type="checkbox" wire:model.live="selectAll" class="form-check-input"
+                                @if (count($fundis) === 0) disabled @endif>
+                        </th> --}}
                         <th scope="col">
                             <a wire:click="refresh">
                                 <i class="fa-solid fa-arrows-rotate"></i>
@@ -82,18 +154,24 @@
                         <th scope="col">Name</th>
                         @if (!$compactView)
                             <th scope="col" class="d-lg-table-cell d-none">Phone</th>
-                            <th scope="col" class="d-xl-table-cell d-none">Trans. Phone</th>
                         @else
                             <th scope="col">Contact</th>
                         @endif
                         <th scope="col" class="d-lg-table-cell d-none">Ranking</th>
                         <th scope="col" class="d-lg-table-cell d-none">Status</th>
+                        <th scope="col" class="d-xl-table-cell d-none">Sites</th>
+                        <th scope="col" class="d-xl-table-cell d-none">Bags</th>
+                        <th scope="col" class="d-xl-table-cell d-none">Location</th>
                         <th scope="col" class="d-xl-table-cell d-none">Registrar</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($fundis as $fundi)
                         <tr>
+                            {{-- <td>
+                                <input type="checkbox" wire:model.live="selectedFundis" value="{{ $fundi->id }}"
+                                    class="form-check-input">
+                            </td> --}}
                             <th scope="row">
                                 <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle">
                                     <i class="fa-solid fa-user"></i>
@@ -113,9 +191,6 @@
                                 <td class="d-lg-table-cell d-none">
                                     <span class="phone-number">{{ $fundi->primary_phone }}</span>
                                 </td>
-                                <td class="d-xl-table-cell d-none">
-                                    <span class="phone-number">{{ $fundi->transaction_phone ?? '-' }}</span>
-                                </td>
                             @else
                                 <td>
                                     <div class="contact-info">
@@ -134,6 +209,15 @@
                                     'approved_at' => $fundi->approved_at,
                                     'rejected_at' => $fundi->rejected_at,
                                 ])
+                            </td>
+                            <td class="d-xl-table-cell d-none">
+                                <span class="phone-number">{{ $fundi->siteVisitFundis()->count() ?? '0' }}</span>
+                            </td>
+                             <td class="d-xl-table-cell d-none">
+                                <span class="phone-number">{{ $fundi->total_product_quantity ?? '0' }}</span>
+                            </td>
+                            <td class="d-xl-table-cell d-none">
+                                <span class="phone-number">{{ $fundi->address ?? '-' }}</span>
                             </td>
                             <td class="d-xl-table-cell d-none">
                                 <span class="creator-name">{{ $fundi->creator->full_name ?? 'N/A' }}</span>
@@ -156,6 +240,10 @@
             @forelse ($fundis as $fundi)
                 <div class="fundi-card" wire:key="mobile-{{ $fundi->id }}">
                     <div class="card-header">
+                        <div class="fundi-checkbox">
+                            <input type="checkbox" wire:model.live="selectedFundis" value="{{ $fundi->id }}"
+                                class="form-check-input">
+                        </div>
                         <div class="fundi-avatar">
                             <a href="{{ route('fundi', [$fundi]) }}" class="avatar-circle">
                                 <i class="fa-solid fa-user"></i>
@@ -211,4 +299,23 @@
     <div class="pagination-wrapper d-flex justify-content-center mt-3">
         {{ $fundis->links() }}
     </div>
+    @script
+        <script>
+            // Auto-trigger download when ready
+            $wire.on('trigger-download', (event) => {
+                console.log('Triggering download:', event.url);
+
+                // Create temporary link and click it
+                const link = document.createElement('a');
+                link.href = event.url;
+                link.download = '';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Optional: Show success notification
+                alert('Download started! Check your Downloads folder.');
+            });
+        </script>
+    @endscript
 </div>

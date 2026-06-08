@@ -5,39 +5,51 @@ namespace App\Livewire;
 use App\Models\User;
 use App\Traits\HasAlerts;
 use App\Traits\HasUserNotifications;
-use Livewire\Component;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class Administrators extends Component
 {
-    use LocationTrait, HasAlerts, HasUserNotifications;
+    use HasAlerts, HasUserNotifications, LocationTrait;
 
     public $districts;
+
     public $district;
+
     public $district_name;
 
     public $role;
+
     public $role_name;
 
     public $is_root;
+
     public $action_text;
 
     public $admins;
+
     public $admin;
+
     public $admin_id;
 
     public $fname;
+
     public $mname;
+
     public $lname;
+
     public $email;
+
     public $phone;
-    // public $password;
-    // public $rpassword;
+
+    protected $listeners = [
+        'executeDeleteAdmin' => 'executeDeleteAdmin',
+    ];
 
     public function mount()
     {
-        $this->action_text = "Create";
+        $this->action_text = 'Create';
 
         $this->admin = User::with('districts', 'role')->find(Auth::id());
 
@@ -60,7 +72,7 @@ class Administrators extends Component
     public function refresh()
     {
         $this->reset(['fname', 'mname', 'lname', 'email', 'phone']);
-        $this->action_text = "Create";
+        $this->action_text = 'Create';
         $this->admin_id = null;
         $this->role = null;
         $this->role_name = null;
@@ -68,10 +80,12 @@ class Administrators extends Component
         $this->district_name = null;
     }
 
-    // Set admin details
+    /**
+     * Set admin details for editing
+     */
     public function setAdmin($admin)
     {
-        $this->action_text = "Update";
+        $this->action_text = 'Update';
 
         $this->admin = User::with('districts', 'role')->find($admin['id']);
 
@@ -99,15 +113,14 @@ class Administrators extends Component
             'fname' => 'required|string|max:255',
             'mname' => 'nullable|string|max:255',
             'lname' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $this->admin_id,
+            'email' => 'required|email|max:255|unique:users,email,'.$this->admin_id,
             'phone' => 'required|string|max:20',
-            // 'password' => 'nullable|string|min:8|confirmed',
             'district' => 'required|exists:districts,id',
         ]);
 
         // Default password for new users
         $defaultPassword = 'Fundi@2025';
-        $isNewUser = !$this->admin_id;
+        $isNewUser = ! $this->admin_id;
 
         // Use the handleOperationWithFlash method for cleaner code
         $result = $this->handleOperationWithFlash(
@@ -122,8 +135,7 @@ class Administrators extends Component
                         'phone' => $this->formatTanzanianNumber($this->phone),
                         'role_id' => $this->role,
                         'status' => 'active',
-                        // 'password' => bcrypt(generateDefaultPassword($this->fname, $this->lname)),
-                        'password' => bcrypt($isNewUser ? $defaultPassword : $this->admin->password), // Use default password for new users
+                        'password' => bcrypt($isNewUser ? $defaultPassword : $this->admin->password),
                     ]
                 );
 
@@ -137,12 +149,13 @@ class Administrators extends Component
 
                     return true;
                 }
+
                 return false;
             },
             'Success',
-            'Administrator ' . strtolower($this->action_text) . 'd successfully.',
+            'Administrator '.strtolower($this->action_text).'d successfully.',
             'Error',
-            'Failed to ' . strtolower($this->action_text) . ' administrator.'
+            'Failed to '.strtolower($this->action_text).' administrator.'
         );
 
         if ($result) {
@@ -155,24 +168,64 @@ class Administrators extends Component
     }
 
     /**
-     * Delete an administrator.
+     * Delete an administrator - Show confirmation
      */
     public function deleteAdmin($adminId)
     {
+        // Find the admin to show their name in the confirmation
         $admin = User::find($adminId);
 
-        if ($admin) {
-            $admin->delete();
-            session()->flash('message', "Administrator deleted successfully.");
-        } else {
-            session()->flash('error', "Failed to delete administrator.");
+        if (! $admin) {
+            $this->showErrorAlert('Error', 'Administrator not found');
+
+            return;
+        }
+
+        $this->showDeleteConfirmation(
+            'executeDeleteAdmin',
+            ['adminId' => $adminId],
+            'Delete Administrator?',
+            "Are you sure you want to delete {$admin->full_name}? This action cannot be undone."
+        );
+    }
+
+    /**
+     * Execute delete - Called after confirmation
+     */
+    public function executeDeleteAdmin($adminId)
+    {
+        $result = $this->handleOperation(
+            function () use ($adminId) {
+                $admin = User::find($adminId);
+                if ($admin) {
+                    return $admin->delete();
+                }
+
+                return false;
+            },
+            'Deleted!',
+            'Administrator deleted successfully',
+            'Error',
+            'Failed to delete administrator',
+            true // Use toast
+        );
+
+        // Optionally refresh the list after deletion
+        if ($result) {
+            $this->admins = User::where('role_id', '!=', 3)
+                ->orWhereNull('role_id')
+                ->get();
         }
     }
 
     public function render()
     {
         $this->districts = $this->getDistricts();
-        $this->admins = User::where('role_id', "!=", 3)->orWhereNull('role_id')->get(); // Assuming 3 is the role_id for 'operator'
+
+        // Load administrators excluding operators (role_id = 3)
+        $this->admins = User::where('role_id', '!=', 3)
+            ->orWhereNull('role_id')
+            ->get();
 
         return view('livewire.administrators');
     }
@@ -191,6 +244,6 @@ class Administrators extends Component
         $lastNineDigits = substr($digitsOnly, -9);
 
         // Format with +255 prefix
-        return '+255' . $lastNineDigits;
+        return '+255'.$lastNineDigits;
     }
 }

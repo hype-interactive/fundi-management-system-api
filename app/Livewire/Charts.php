@@ -2,21 +2,26 @@
 
 namespace App\Livewire;
 
-use Carbon\Carbon;
 use App\Models\Fundi;
-use Livewire\Component;
 use App\Models\SiteVisit;
+use Carbon\Carbon;
+use Livewire\Component;
 
 class Charts extends Component
 {
     public $fundiData = [];
+
     public $siteVisitData = [];
 
     // Filter properties
     public $selectedTimeRange = '12_months';
+
     public $selectedChartType = 'both';
+
     public $selectedMetric = 'count';
+
     public $dateFrom;
+
     public $dateTo;
 
     public function mount()
@@ -133,7 +138,7 @@ class Charts extends Component
 
         $this->fundiData = [
             'labels' => array_column($months, 'label'),
-            'data' => array_column($months, 'count')
+            'data' => array_column($months, 'count'),
         ];
     }
 
@@ -175,7 +180,7 @@ class Charts extends Component
 
         $this->siteVisitData = [
             'labels' => array_column($months, 'label'),
-            'data' => array_column($months, 'count')
+            'data' => array_column($months, 'count'),
         ];
     }
 
@@ -189,7 +194,7 @@ class Charts extends Component
                 'label' => $current->format('M Y'),
                 'year' => $current->year,
                 'month' => $current->month,
-                'count' => 0
+                'count' => 0,
             ];
             $current->addMonth();
         }

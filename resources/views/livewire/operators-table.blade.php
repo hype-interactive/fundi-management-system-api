@@ -1,256 +1,156 @@
 <div>
-    <!-- Filters Section -->
-    <div class="filter mb-1">
-        <div class="row">
-            <div class="col-md-3">
+    <div class="filter mb-3">
+        <div class="row align-items-center">
+            <div class="col-md-2">
                 <div class="search">
-                    <input wire:model.live.debounce.300ms="search_key" type="text" id="search"
-                        placeholder="Search operators...">
+                    <input wire:model.live.debounce.300ms="search_key" type="text" placeholder="Search operators...">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
             </div>
-            <div class="col-md-9">
-                <div class="row">
+            <div class="col-md-4">
+                <div class="row g-2">
                     @if (isRoot())
                         <div class="col">
-                            <div class="select">
-                                @include('components.selects.select_region', ['regions' => $regions])
-                            </div>
+                            @include('components.selects.select_region', ['regions' => $regions])
                         </div>
                         <div class="col">
-                            <div class="select">
-                                @include('components.selects.select_district', ['districts' => $districts])
-                            </div>
+                            @include('components.selects.select_district', ['districts' => $districts])
                         </div>
                     @endif
-                    <div class="col">
-                        <div class="select">
-                            <select wire:model.live="status" class="form-select">
-                                <option value="">All Status</option>
-                                @foreach ($status_options as $key => $value)
-                                    <option value="{{ $key }}">{{ $value }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                </div>
+            </div>
+            {{-- Date Range Filters --}}
+            <div class="col-md-3">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <input type="date" 
+                               wire:model.live="date_from" 
+                               class="form-control form-control-sm py-3"
+                               placeholder="From"
+                               max="{{ now()->format('Y-m-d') }}"
+                               title="From Date">
                     </div>
+                    <div class="col-6">
+                        <input type="date" 
+                               wire:model.live="date_to" 
+                               class="form-control form-control-sm py-3"
+                               placeholder="To"
+                               max="{{ now()->format('Y-m-d') }}"
+                               title="To Date">
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-end gap-2">
+                    <button wire:click="refresh" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                    <button wire:click="exportToExcel" class="btn btn-sm btn-outline-success ml-1">
+                        <i class="fa-solid fa-file-csv me-1"></i>Export
+                    </button>
+                    <button wire:click="downloadOperatorPDF" class="btn btn-sm btn-outline-danger ml-1">
+                        <i class="fa-solid fa-file-pdf me-1"></i>PDF
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Desktop Actions -->
-    <div class="results-summary mb-2 d-flex justify-content-between align-items-center">
-        <div class="d-flex gap-2">
-            <button wire:click="$toggle('compactView')"
-                class="btn btn-sm {{ $compactView ? 'btn-primary' : 'btn-outline-primary' }}">
-                <i class="fa-solid fa-{{ $compactView ? 'expand' : 'compress' }}"></i>
-                {{ $compactView ? 'Expand' : 'Compact' }}
+    {{-- Date Filter Active Indicator --}}
+    @if($this->hasDateFilter())
+        <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
+            <small>
+                <i class="fa-solid fa-filter me-1"></i>
+                Showing data from 
+                <strong>{{ $date_from ? \Carbon\Carbon::parse($date_from)->format('M d, Y') : 'Beginning' }}</strong>
+                to 
+                <strong>{{ $date_to ? \Carbon\Carbon::parse($date_to)->format('M d, Y') : 'Now' }}</strong>
+            </small>
+            <button wire:click="$set('date_from', null); $set('date_to', null)" class="btn btn-sm btn-outline-info">
+                <i class="fa-solid fa-times me-1"></i>Clear Dates
             </button>
         </div>
-        <div class="d-flex gap-2">
-            <button wire:click="refresh" class="btn btn-outline-secondary btn-sm">
-                <i class="fa-solid fa-arrows-rotate me-1"></i>
-                Clear Filters
-            </button>
-            <button wire:click="exportToExcel" class="btn btn-outline-success btn-sm">
-                <i class="fa-solid fa-file-excel me-1"></i>
-                Export Excel
-            </button>
-            <button wire:click="downloadOperatorPDF" class="btn btn-outline-danger btn-sm">
-                <i class="fa-solid fa-file-pdf me-1"></i>
-                Download PDF
-            </button>
-        </div>
-    </div>
+    @endif
 
-    <!-- Table Container -->
-    <div class="custom-table">
-        <!-- Desktop Table -->
-        <div class="d-none d-md-block">
-            <table class="table">
-                <thead class="thead-light">
-                    <tr>
-                        <th scope="col">
-                            <a wire:click="refresh">
-                                <i class="fa-solid fa-arrows-rotate"></i>
-                            </a>
-                        </th>
-                        <th scope="col">Name</th>
-                        @if (!$compactView)
-                            <th scope="col" class="d-lg-table-cell d-none">Email</th>
-                            <th scope="col" class="d-xl-table-cell d-none">Phone</th>
-                        @else
-                            <th scope="col">Contact</th>
-                        @endif
-                        <th scope="col" class="d-lg-table-cell d-none">Status</th>
-                        <th scope="col" class="d-xl-table-cell d-none">Districts</th>
-                        <th scope="col" class="d-xl-table-cell d-none">Performance</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($operators as $operator)
-                        <tr>
-                            <th scope="row">
-                                <a href="{{ route('operator', [$operator]) }}" class="avatar-circle">
-                                    {{-- @if ($operator->profile_photo)
-                                        <img src="{{ asset('storage/' . $operator->profile_photo) }}"
-                                            alt="{{ $operator->full_name }}" class="avatar-img">
-                                    @else
-                                        <i class="fa-solid fa-user-tie"></i>
-                                    @endif --}}
-                                    <i class="fa-solid fa-user-tie"></i>
-                                </a>
-                            </th>
-                            <td>
-                                <a href="{{ route('operator', $operator) }}" class="text-decoration-none">
-                                    <div class="operator-name">
-                                        <span class="fw-semibold">{{ $operator->fname }} {{ $operator->lname }}</span>
-                                        @if ($operator->mname)
-                                            <small class="text-muted d-block">{{ $operator->mname }}</small>
-                                        @endif
-                                    </div>
-                                </a>
-                            </td>
-                            @if (!$compactView)
-                                <td class="d-lg-table-cell d-none">
-                                    <span class="email-address">{{ $operator->email }}</span>
-                                </td>
-                                <td class="d-xl-table-cell d-none">
-                                    <span class="phone-number">{{ $operator->phone ?? '-' }}</span>
-                                </td>
-                            @else
-                                <td>
-                                    <div class="contact-info">
-                                        <div class="email-address">{{ $operator->email }}</div>
-                                        @if ($operator->phone)
-                                            <small class="phone-number">{{ $operator->phone }}</small>
-                                        @endif
-                                    </div>
-                                </td>
-                            @endif
-                            <td class="d-lg-table-cell d-none">
-                                @include('components.general-status-badge', ['status' => $operator->status])
-                            </td>
-                            <td class="d-xl-table-cell d-none">
-                                <div class="districts-list">
-                                    @if ($operator->districts->count() > 0)
-                                        @foreach ($operator->districts->take(2) as $district)
-                                            <span class="district-badge">{{ $district->name }}</span>
-                                        @endforeach
-                                        @if ($operator->districts->count() > 2)
-                                            <small class="text-muted">+{{ $operator->districts->count() - 2 }}
-                                                more</small>
-                                        @endif
-                                    @else
-                                        <span class="text-muted">No districts</span>
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="d-xl-table-cell d-none">
-                                <div class="performance-metrics">
-                                    <small class="d-block">
-                                        <i class="fa-solid fa-map-marker-alt me-1"></i>
-                                        {{ $operator->siteVisits()->count() }} visits
-                                    </small>
-                                    <small class="d-block">
-                                        <i class="fa-solid fa-users me-1"></i>
-                                        {{ $operator->approvedFundis()->count() }} fundis
-                                    </small>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                <i class="fa-solid fa-user-tie me-2"></i>
-                                No operators found matching your criteria.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+    {{-- Cards Grid --}}
+    <div class="row g-3">
+        @forelse ($operators as $operator)
+            @php
+                $stats = $this->getOperatorStats($operator);
+                $showFiltered = $this->hasDateFilter();
+            @endphp
 
-        <!-- Mobile Cards -->
-        <div class="mobile-cards d-md-none">
-            @forelse ($operators as $operator)
-                <div class="operator-card" wire:key="mobile-{{ $operator->id }}">
-                    <div class="card-header">
-                        <div class="operator-avatar">
-                            <a href="{{ route('operator', [$operator]) }}" class="avatar-circle">
-                                @if ($operator->profile_photo)
-                                    <img src="{{ asset('storage/' . $operator->profile_photo) }}"
-                                        alt="{{ $operator->full_name }}" class="avatar-img">
-                                @else
-                                    <i class="fa-solid fa-user-tie"></i>
-                                @endif
-                            </a>
-                        </div>
-                        <div class="operator-details">
-                            <a href="{{ route('operator', $operator) }}" class="text-decoration-none">
-                                <h6 class="operator-name mb-1">{{ $operator->full_name }}</h6>
-                            </a>
-                            <div class="operator-meta">
-                                {{-- @include('components.role-badge', ['role' => $operator->role]) --}}
-                                @include('components.general-status-badge', ['status' => $operator->status])
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="contact-row">
-                            <i class="fa-solid fa-envelope me-2 text-muted"></i>
-                            <span>{{ $operator->email }}</span>
+            <div class="col-md-4 col-lg-4" wire:key="op-{{ $operator->id }}">
+                <div class="op-card text-decoration-none">
+
+                    {{-- Name + Status --}}
+                    <div class="d-flex align-items-start justify-content-between mb-2">
+                        <div>
+                            <a href="{{ route('operator', $operator) }}"
+                                class="fw-semibold text-blue lh-sm">{{ $operator->fname }} {{ $operator->lname }}</a>
                         </div>
                         @if ($operator->phone)
-                            <div class="contact-row">
-                                <i class="fa-solid fa-phone me-2 text-muted"></i>
-                                <span>{{ $operator->phone }}</span>
-                            </div>
+                            <small class="text-muted">
+                                {{ $operator->phone }}
+                            </small>
                         @endif
-                        <div class="districts-row">
-                            <i class="fa-solid fa-map-marker-alt me-2 text-muted"></i>
-                            <span>
-                                @if ($operator->districts->count() > 0)
-                                    {{ $operator->districts->pluck('name')->take(2)->join(', ') }}
-                                    @if ($operator->districts->count() > 2)
-                                        <small class="text-muted">(+{{ $operator->districts->count() - 2 }}
-                                            more)</small>
-                                    @endif
-                                @else
-                                    No districts assigned
-                                @endif
-                            </span>
-                        </div>
-                        <div class="performance-row">
-                            <div class="performance-metrics">
-                                <div class="metric">
-                                    <i class="fa-solid fa-map-marker-alt me-1"></i>
-                                    <span>{{ $operator->siteVisits()->count() }} visits</span>
-                                </div>
-                                <div class="metric">
-                                    <i class="fa-solid fa-users me-1"></i>
-                                    <span>{{ $operator->approvedFundis()->count() }} fundis</span>
-                                </div>
-                                <div class="metric">
-                                    <i class="fa-solid fa-coins me-1"></i>
-                                    <span>TSh {{ number_format($operator->incentives()->sum('amount')) }}</span>
-                                </div>
-                            </div>
-                        </div>
+                        <span class="badge {{ $operator->status === 'active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' }} rounded-pill ms-2">
+                            {{ ucfirst($operator->status) }}
+                        </span>
                     </div>
+
+                    <hr class="my-2 opacity-25">
+
+                    <table class="op-mini-table w-100 mt-2">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Sites</th>
+                                <th>Fundis</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="op-row-label">Today</td>
+                                <td>{{ $stats['today_visits'] }}</td>
+                                <td>{{ $stats['today_fundis'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="op-row-label">Week</td>
+                                <td>{{ $stats['week_visits'] }}</td>
+                                <td>{{ $stats['week_fundis'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="op-row-label">Month</td>
+                                <td>{{ $stats['month_visits'] }}</td>
+                                <td>{{ $stats['month_fundis'] }}</td>
+                            </tr>
+                            <tr>
+                                <td class="op-row-label">Total</td>
+                                <td>{{ number_format($stats['total_visits']) }}</td>
+                                <td>{{ number_format($stats['total_fundis']) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
                 </div>
-            @empty
-                <div class="empty-state text-center py-5">
-                    <i class="fa-solid fa-user-tie fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">No operators found</h5>
-                    <p class="text-muted">Try adjusting your search criteria.</p>
-                </div>
-            @endforelse
-        </div>
+            </div>
+        @empty
+            <div class="col-12 text-center text-muted py-5">
+                <i class="fa-solid fa-user-tie fa-2x mb-2 d-block opacity-25"></i>
+                No operators found.
+            </div>
+        @endforelse
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination-wrapper d-flex justify-content-center mt-3">
+    {{-- Pagination --}}
+    <div class="d-flex justify-content-center mt-4">
         {{ $operators->links() }}
     </div>
+    <style>
+    .filtered-stats {
+        border-left: 3px solid #3b82f6;
+    }
+</style>
 </div>
+
