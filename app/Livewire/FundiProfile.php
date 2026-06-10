@@ -127,7 +127,7 @@ class FundiProfile extends Component
 
         // Prepare data for ID card generation
         $data = [
-            'company_name' => 'MAGIC BUILDERS AFRICA',
+            'company_name' => 'MAGIC BUILDERS FOUNDATION',
             'id_number' => $this->fundi->unique_id ?? 'FNS-01X251',
             'name' => $this->fundi->full_name,
             'gender' => $this->fundi->gender ?? 'N/A',

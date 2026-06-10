@@ -115,7 +115,7 @@ class GenerateFundiIdCards implements ShouldQueue
                         }
 
                         $data = [
-                            'company_name' => 'MAGIC BUILDERS AFRICA',
+                            'company_name' => 'MAGIC BUILDERS FOUNDATION',
                             'id_number' => $fundi->unique_id ?? 'FNS-01X251',
                             'name' => $fundi->full_name,
                             'gender' => $fundi->gender ?? 'N/A',
