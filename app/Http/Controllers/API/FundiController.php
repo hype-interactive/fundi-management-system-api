@@ -160,7 +160,7 @@ class FundiController extends BaseAPIController
      */
     public function show(string $unique_id): JsonResponse
     {
-        if (! preg_match('/^FND\d{6}$/', $unique_id)) {
+        if (! preg_match('/^FND\d{6,}$/', $unique_id)) {
             return $this->errorResponse('Invalid fundi ID format', null, 400);
         }
 
@@ -202,14 +202,6 @@ class FundiController extends BaseAPIController
                 'error' => true,
                 'message' => 'Fundi not found',
                 'status' => 404,
-            ];
-        }
-
-        if (! isRoot() && ! isAdministrator() && ! $this->getOperatorDistricts()->contains($fundi->ward->district_id)) {
-            return [
-                'error' => true,
-                'message' => 'Unauthorized access',
-                'status' => 403,
             ];
         }
 
@@ -316,7 +308,7 @@ class FundiController extends BaseAPIController
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return $this->errorResponse('Failed to register fundi: '.$e->getMessage());
+            return $this->errorResponse('Failed to register fundi. Please try again.', null, 500);
         }
     }
 
@@ -920,14 +912,10 @@ class FundiController extends BaseAPIController
     }
 
     /**
-     * Generate unique ID for fundi
+     * Generate unique ID for fundi — delegates to the single shared generator on Fundi.
      */
     private function generateUniqueId(): string
     {
-        do {
-            $id = 'FND'.str_pad(mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
-        } while (Fundi::where('unique_id', $id)->exists());
-
-        return $id;
+        return Fundi::generateUniqueId();
     }
 }

@@ -405,7 +405,7 @@ class FundiForm extends Component
         ];
 
         if ($isCreating) {
-            $fundiData['unique_id'] = 'F'.date('Ymd').rand(1000, 9999);
+            $fundiData['unique_id'] = Fundi::generateUniqueId();
             $fundiData['created_by'] = Auth::id();
         }
 

@@ -123,28 +123,47 @@ class Fundi extends Model
     }
 
     /**
-     * Generate QR code without triggering model events
+     * Generate QR code without triggering model events.
+     * Returns empty string and logs on failure so fundi creation is not aborted.
      */
     public function generateQrCodeQuietly(): string
     {
-        // Skip if already exists
         if ($this->qr_code_path && Storage::disk('public')->exists($this->qr_code_path)) {
             return $this->qr_code_path;
         }
 
-        // Generate QR code
-        $qrCode = QrCode::format('svg')
-            ->size(300)
-            ->generate($this->unique_id);
+        try {
+            $qrCode = QrCode::format('svg')
+                ->size(300)
+                ->generate($this->unique_id);
 
-        // Save to storage
-        $filename = 'qrcodes/fundi_'.$this->id.'_'.time().'.svg';
-        Storage::disk('public')->put($filename, $qrCode);
+            $filename = 'qrcodes/fundi_'.$this->id.'_'.time().'.svg';
+            Storage::disk('public')->put($filename, $qrCode);
+            $this->updateQuietly(['qr_code_path' => $filename]);
 
-        // Update model without triggering events again
-        $this->updateQuietly(['qr_code_path' => $filename]);
+            return $filename;
+        } catch (\Exception $e) {
+            Log::error('QR code generation failed', [
+                'fundi_id' => $this->id,
+                'unique_id' => $this->unique_id,
+                'error' => $e->getMessage(),
+            ]);
 
-        return $filename;
+            return '';
+        }
+    }
+
+    /**
+     * Generate a collision-safe unique fundi ID (FND + 8 zero-padded digits).
+     * Use this on every creation path so all fundis share one format.
+     */
+    public static function generateUniqueId(): string
+    {
+        do {
+            $id = 'FND'.str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT);
+        } while (static::where('unique_id', $id)->exists());
+
+        return $id;
     }
 
     /**

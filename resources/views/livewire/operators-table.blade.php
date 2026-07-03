@@ -73,7 +73,7 @@
         @forelse ($operators as $operator)
             @php
                 $stats = $this->getOperatorStats($operator);
-                $showFiltered = $this->hasDateFilter();
+                $showFiltered = $this->date_from && $this->date_to;
             @endphp
 
             <div class="col-md-4 col-lg-4" wire:key="op-{{ $operator->id }}">
@@ -106,21 +106,29 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td class="op-row-label">Today</td>
-                                <td>{{ $stats['today_visits'] }}</td>
-                                <td>{{ $stats['today_fundis'] }}</td>
-                            </tr>
-                            <tr>
-                                <td class="op-row-label">Week</td>
-                                <td>{{ $stats['week_visits'] }}</td>
-                                <td>{{ $stats['week_fundis'] }}</td>
-                            </tr>
-                            <tr>
-                                <td class="op-row-label">Month</td>
-                                <td>{{ $stats['month_visits'] }}</td>
-                                <td>{{ $stats['month_fundis'] }}</td>
-                            </tr>
+                            @if ($showFiltered)
+                                <tr>
+                                    <td class="op-row-label text-primary">Range</td>
+                                    <td>{{ number_format($stats['filtered_site_visits'] ?? 0) }}</td>
+                                    <td>{{ number_format($stats['filtered_fundis'] ?? 0) }}</td>
+                                </tr>
+                            @else
+                                <tr>
+                                    <td class="op-row-label">Today</td>
+                                    <td>{{ $stats['today_visits'] }}</td>
+                                    <td>{{ $stats['today_fundis'] }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="op-row-label">Week</td>
+                                    <td>{{ $stats['week_visits'] }}</td>
+                                    <td>{{ $stats['week_fundis'] }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="op-row-label">Month</td>
+                                    <td>{{ $stats['month_visits'] }}</td>
+                                    <td>{{ $stats['month_fundis'] }}</td>
+                                </tr>
+                            @endif
                             <tr>
                                 <td class="op-row-label">Total</td>
                                 <td>{{ number_format($stats['total_visits']) }}</td>
