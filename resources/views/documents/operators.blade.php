@@ -31,10 +31,25 @@
             text-align: center;
         }
 
+        td.range {
+            text-align: center;
+            background-color: #eff6ff;
+            font-weight: bold;
+        }
+
         .header {
             padding-bottom: 1rem;
             border-bottom: 1px solid #ddd;
             margin-bottom: 1.5rem;
+        }
+
+        .filters {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 1rem;
+            padding: 0.4rem 0.6rem;
+            background-color: #f0f4ff;
+            border-left: 3px solid #3b82f6;
         }
 
         .footer {
@@ -52,6 +67,11 @@
     <div class="header">
         <img src="{{ assetToBase64('images/logo.png') }}" height="30" alt="Logo">
     </div>
+
+    @if ($filters)
+        <div class="filters">Filters: {{ $filters }}</div>
+    @endif
+
     <div class="table-responsive">
         <h3>{{ $title }} <span style="float:right; font-size:15px;">{{ $date }}</span></h3>
         <table width="100%">
@@ -59,16 +79,24 @@
                 <tr>
                     <th rowspan="2">Name</th>
                     <th rowspan="2">Phone</th>
-                    <th colspan="3" class="group-header">Site Visits</th>
-                    <th colspan="3" class="group-header">Fundis Registered</th>
+                    <th colspan="{{ $hasFilter ? 5 : 4 }}" class="group-header">Site Visits</th>
+                    <th colspan="{{ $hasFilter ? 5 : 4 }}" class="group-header">Fundis Registered</th>
                 </tr>
                 <tr>
                     <th>Today</th>
+                    <th>Week</th>
                     <th>Month</th>
                     <th>All Time</th>
+                    @if ($hasFilter)
+                        <th style="background-color:#dbeafe;">Range</th>
+                    @endif
                     <th>Today</th>
+                    <th>Week</th>
                     <th>Month</th>
                     <th>All Time</th>
+                    @if ($hasFilter)
+                        <th style="background-color:#dbeafe;">Range</th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
@@ -77,11 +105,19 @@
                         <td>{{ $row['name'] }}</td>
                         <td>{{ $row['phone'] }}</td>
                         <td class="number">{{ $row['site']['today'] }}</td>
+                        <td class="number">{{ $row['site']['week'] }}</td>
                         <td class="number">{{ $row['site']['month'] }}</td>
                         <td class="number">{{ $row['site']['all_time'] }}</td>
+                        @if ($hasFilter)
+                            <td class="range">{{ $row['site']['range'] ?? 0 }}</td>
+                        @endif
                         <td class="number">{{ $row['fundis']['today'] }}</td>
+                        <td class="number">{{ $row['fundis']['week'] }}</td>
                         <td class="number">{{ $row['fundis']['month'] }}</td>
                         <td class="number">{{ $row['fundis']['all_time'] }}</td>
+                        @if ($hasFilter)
+                            <td class="range">{{ $row['fundis']['range'] ?? 0 }}</td>
+                        @endif
                     </tr>
                 @endforeach
             </tbody>
