@@ -351,6 +351,165 @@ class OperatorsTable extends Component
         ]);
     }
 
+    /**
+     * Active filter summary for operator+mafundi reports.
+     */
+    protected function getActiveFiltersLabel(): string
+    {
+        $filterParts = [];
+
+        if ($this->region) {
+            $region = \App\Models\Region::find($this->region);
+            $filterParts[] = 'Region: '.($region?->name ?? $this->region);
+        }
+        if ($this->district) {
+            $district = \App\Models\District::find($this->district);
+            $filterParts[] = 'District: '.($district?->name ?? $this->district);
+        }
+        if ($this->date_from || $this->date_to) {
+            $filterParts[] = 'Date: '.($this->date_from ?? 'Beginning').' — '.($this->date_to ?? 'Today');
+        }
+        if ($this->search_key) {
+            $filterParts[] = 'Search: '.$this->search_key;
+        }
+        if ($this->status) {
+            $filterParts[] = 'Status: '.ucfirst($this->status);
+        }
+
+        return implode('  |  ', $filterParts);
+    }
+
+    /**
+     * Build operator + mafundi rows for the filtered operators list.
+     */
+    protected function buildOperatorsWithMafundiData(): array
+    {
+        $dateRange = $this->getDateRange();
+        $hasDateFilter = $dateRange['from'] && $dateRange['to'];
+
+        $operators = $this->getOperatorQuery()
+            ->with([
+                'role',
+                'districts',
+                'createdFundis' => function ($query) use ($hasDateFilter, $dateRange) {
+                    $query->with(['ward.district.region'])->latest('created_at');
+                    if ($hasDateFilter) {
+                        $query->whereBetween('created_at', [$dateRange['from'], $dateRange['to']]);
+                    }
+                },
+            ])
+            ->get();
+
+        return $operators->map(function ($operator) {
+            return [
+                'name' => $operator->full_name,
+                'phone' => $operator->phone,
+                'email' => $operator->email,
+                'status' => ucfirst($operator->status),
+                'role' => $operator->role->display_name ?? $operator->role->name ?? 'N/A',
+                'districts' => $operator->districts->pluck('name')->join(', '),
+                'fundis' => $operator->createdFundis->map(function ($fundi) {
+                    return [
+                        'name' => $fundi->full_name,
+                        'primary_phone' => $fundi->primary_phone ?: 'N/A',
+                        'transaction_phone' => $fundi->transaction_phone ?: 'N/A',
+                        'address' => $fundi->address,
+                    ];
+                })->all(),
+            ];
+        })->all();
+    }
+
+    /**
+     * Download PDF of filtered operators with their mafundi lists.
+     */
+    public function downloadOperatorsWithMafundiPDF()
+    {
+        set_time_limit(300);
+        ini_set('memory_limit', '1000M');
+
+        return response()->streamDownload(function () {
+            $operators = $this->buildOperatorsWithMafundiData();
+            $filters = $this->getActiveFiltersLabel();
+            $title = 'Operators with Mafundi | Magic Builders';
+            $date = date('D, M/d/Y');
+
+            $html_view = view('documents.operator-mafundi', compact('title', 'date', 'operators', 'filters'))->render();
+            $pdf = app('dompdf.wrapper');
+            $pdf->loadHTML($html_view);
+            $pdf->setPaper('A4', 'landscape');
+
+            echo $pdf->stream();
+        }, 'operators_with_mafundi_'.date('Y-m-d_H-i-s').'.pdf');
+    }
+
+    /**
+     * Export filtered operators with their mafundi lists to CSV.
+     */
+    public function exportOperatorsWithMafundi()
+    {
+        return response()->streamDownload(function () {
+            $operators = $this->buildOperatorsWithMafundiData();
+            $handle = fopen('php://output', 'w');
+
+            $filters = $this->getActiveFiltersLabel();
+            if ($filters !== '') {
+                fputcsv($handle, ['Filters: '.$filters]);
+            }
+
+            fputcsv($handle, [
+                'Operator Name',
+                'Operator Phone',
+                'Operator Email',
+                'Operator Status',
+                'Operator Role',
+                'Operator Districts',
+                'Fundi Name',
+                'Fundi Primary Phone',
+                'Fundi Transaction Phone',
+                'Fundi Address',
+            ]);
+
+            foreach ($operators as $operator) {
+                if (empty($operator['fundis'])) {
+                    fputcsv($handle, [
+                        $operator['name'],
+                        $operator['phone'] ?: 'N/A',
+                        $operator['email'] ?: 'N/A',
+                        $operator['status'],
+                        $operator['role'],
+                        $operator['districts'] ?: 'N/A',
+                        'No mafundi',
+                        '',
+                        '',
+                        '',
+                    ]);
+
+                    continue;
+                }
+
+                foreach ($operator['fundis'] as $fundi) {
+                    fputcsv($handle, [
+                        $operator['name'],
+                        $operator['phone'] ?: 'N/A',
+                        $operator['email'] ?: 'N/A',
+                        $operator['status'],
+                        $operator['role'],
+                        $operator['districts'] ?: 'N/A',
+                        $fundi['name'],
+                        $fundi['primary_phone'],
+                        $fundi['transaction_phone'],
+                        $fundi['address'],
+                    ]);
+                }
+            }
+
+            fclose($handle);
+        }, 'operators_with_mafundi_'.date('Y-m-d_H-i-s').'.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
     public function mount()
     {
         if (! $this->isAdminOrRoot()) {
