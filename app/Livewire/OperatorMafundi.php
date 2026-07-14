@@ -111,6 +111,7 @@ class OperatorMafundi extends Component
         return view('livewire.operator-mafundi', [
             'fundis' => $this->operator->createdFundis()
                 ->with(['ward.district.region'])
+                ->withMafundiReportStats()
                 ->latest('created_at')
                 ->paginate(12),
         ]);

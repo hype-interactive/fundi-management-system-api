@@ -28,8 +28,11 @@
                         </a>
                     </th>
                     <th scope="col">Name</th>
+                    <th scope="col">Gender</th>
                     <th scope="col">Contact</th>
                     <th scope="col">Address</th>
+                    <th scope="col">Visits</th>
+                    <th scope="col">Bags</th>
                 </tr>
             </thead>
             <tbody>
@@ -47,6 +50,7 @@
                                 </div>
                             </a>
                         </td>
+                        <td>{{ $fundi->gender ? ucfirst($fundi->gender) : 'N/A' }}</td>
                         <td>
                             <div class="contact-info">
                                 <div class="phone-number">{{ $fundi->primary_phone }}</div>
@@ -58,10 +62,12 @@
                         <td>
                             {{ $fundi->address }}
                         </td>
+                        <td>{{ $fundi->site_visits_count ?? 0 }}</td>
+                        <td>{{ $fundi->bags_total ?? 0 }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             <i class="fa-solid fa-users me-2"></i>
                             No fundis found matching your criteria.
                         </td>
@@ -80,8 +86,9 @@
             <a href="{{ route('fundi', $fundi) }}" class="text-decoration-none text-dark">
                 <div class="border rounded p-3 mb-2">
                     <div class="fw-semibold">{{ $fundi->fname }} {{ $fundi->lname }}</div>
-                    <div class="small text-muted">{{ $fundi->primary_phone }}</div>
+                    <div class="small text-muted">{{ $fundi->gender ? ucfirst($fundi->gender) : 'N/A' }} · {{ $fundi->primary_phone }}</div>
                     <div class="small">{{ $fundi->address }}</div>
+                    <div class="small text-muted mt-1">Visits: {{ $fundi->site_visits_count ?? 0 }} · Bags: {{ $fundi->bags_total ?? 0 }}</div>
                 </div>
             </a>
         @empty
