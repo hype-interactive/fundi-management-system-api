@@ -178,11 +178,14 @@
                 <table class="mafundi-table">
                     <thead>
                         <tr>
-                            <th style="width: 28px;">#</th>
+                            <th style="width: 24px;">#</th>
                             <th>Name</th>
-                            <th style="width: 110px;">Primary Phone</th>
-                            <th style="width: 110px;">Trans. Phone</th>
+                            <th style="width: 52px;">Gender</th>
+                            <th style="width: 95px;">Primary Phone</th>
+                            <th style="width: 95px;">Trans. Phone</th>
                             <th>Address</th>
+                            <th style="width: 52px;">Visits</th>
+                            <th style="width: 48px;">Bags</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -190,9 +193,12 @@
                             <tr>
                                 <td>{{ $index + 1 }}</td>
                                 <td>{{ $fundi['name'] }}</td>
+                                <td>{{ $fundi['gender'] }}</td>
                                 <td>{{ $fundi['primary_phone'] }}</td>
                                 <td>{{ $fundi['transaction_phone'] }}</td>
                                 <td>{{ $fundi['address'] }}</td>
+                                <td>{{ $fundi['site_visits'] }}</td>
+                                <td>{{ $fundi['bags_total'] }}</td>
                             </tr>
                         @endforeach
                     </tbody>

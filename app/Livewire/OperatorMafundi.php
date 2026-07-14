@@ -31,6 +31,7 @@ class OperatorMafundi extends Component
     {
         $fundis = $this->operator->createdFundis()
             ->with(['ward.district.region'])
+            ->withMafundiReportStats()
             ->latest('created_at')
             ->get();
 
@@ -41,14 +42,7 @@ class OperatorMafundi extends Component
             'status' => ucfirst($this->operator->status),
             'role' => $this->operator->role?->display_name ?? $this->operator->role?->name ?? 'N/A',
             'districts' => $this->operator->districts->pluck('name')->join(', '),
-            'fundis' => $fundis->map(function ($fundi) {
-                return [
-                    'name' => $fundi->full_name,
-                    'primary_phone' => $fundi->primary_phone ?: 'N/A',
-                    'transaction_phone' => $fundi->transaction_phone ?: 'N/A',
-                    'address' => $fundi->address,
-                ];
-            })->all(),
+            'fundis' => $fundis->map->toMafundiReportRow()->all(),
         ];
     }
 
@@ -91,15 +85,18 @@ class OperatorMafundi extends Component
             fputcsv($handle, ['Districts', $data['districts'] ?: 'N/A']);
             fputcsv($handle, ['Total Mafundi', count($data['fundis'])]);
             fputcsv($handle, []);
-            fputcsv($handle, ['#', 'Name', 'Primary Phone', 'Transaction Phone', 'Address']);
+            fputcsv($handle, ['#', 'Name', 'Gender', 'Primary Phone', 'Transaction Phone', 'Address', 'Site Visits', 'Bags Total']);
 
             foreach ($data['fundis'] as $index => $fundi) {
                 fputcsv($handle, [
                     $index + 1,
                     $fundi['name'],
+                    $fundi['gender'],
                     $fundi['primary_phone'],
                     $fundi['transaction_phone'],
                     $fundi['address'],
+                    $fundi['site_visits'],
+                    $fundi['bags_total'],
                 ]);
             }
 

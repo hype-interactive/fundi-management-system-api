@@ -392,7 +392,9 @@ class OperatorsTable extends Component
                 'role',
                 'districts',
                 'createdFundis' => function ($query) use ($hasDateFilter, $dateRange) {
-                    $query->with(['ward.district.region'])->latest('created_at');
+                    $query->with(['ward.district.region'])
+                        ->withMafundiReportStats()
+                        ->latest('created_at');
                     if ($hasDateFilter) {
                         $query->whereBetween('created_at', [$dateRange['from'], $dateRange['to']]);
                     }
@@ -408,14 +410,7 @@ class OperatorsTable extends Component
                 'status' => ucfirst($operator->status),
                 'role' => $operator->role->display_name ?? $operator->role->name ?? 'N/A',
                 'districts' => $operator->districts->pluck('name')->join(', '),
-                'fundis' => $operator->createdFundis->map(function ($fundi) {
-                    return [
-                        'name' => $fundi->full_name,
-                        'primary_phone' => $fundi->primary_phone ?: 'N/A',
-                        'transaction_phone' => $fundi->transaction_phone ?: 'N/A',
-                        'address' => $fundi->address,
-                    ];
-                })->all(),
+                'fundis' => $operator->createdFundis->map->toMafundiReportRow()->all(),
             ];
         })->all();
     }
@@ -465,9 +460,12 @@ class OperatorsTable extends Component
                 'Operator Role',
                 'Operator Districts',
                 'Fundi Name',
+                'Fundi Gender',
                 'Fundi Primary Phone',
                 'Fundi Transaction Phone',
                 'Fundi Address',
+                'Fundi Site Visits',
+                'Fundi Bags Total',
             ]);
 
             foreach ($operators as $operator) {
@@ -480,6 +478,9 @@ class OperatorsTable extends Component
                         $operator['role'],
                         $operator['districts'] ?: 'N/A',
                         'No mafundi',
+                        '',
+                        '',
+                        '',
                         '',
                         '',
                         '',
@@ -497,9 +498,12 @@ class OperatorsTable extends Component
                         $operator['role'],
                         $operator['districts'] ?: 'N/A',
                         $fundi['name'],
+                        $fundi['gender'],
                         $fundi['primary_phone'],
                         $fundi['transaction_phone'],
                         $fundi['address'],
+                        $fundi['site_visits'],
+                        $fundi['bags_total'],
                     ]);
                 }
             }

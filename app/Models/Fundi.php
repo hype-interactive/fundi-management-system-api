@@ -361,6 +361,47 @@ class Fundi extends Model
     }
 
     /**
+     * Products recorded on site visits this fundi participated in.
+     */
+    public function siteVisitProducts()
+    {
+        return $this->hasManyThrough(
+            SiteVisitProduct::class,
+            SiteVisitFundi::class,
+            'fundi_id',
+            'site_visit_id',
+            'id',
+            'site_visit_id'
+        );
+    }
+
+    /**
+     * Eager-load visit count and bag totals (product_id = 1) for operator reports.
+     */
+    public function scopeWithMafundiReportStats($query)
+    {
+        return $query
+            ->withCount('siteVisits')
+            ->withSum(['siteVisitProducts as bags_total' => fn ($q) => $q->where('product_id', 1)], 'quantity');
+    }
+
+    /**
+     * Row payload for operator mafundi PDF/CSV exports.
+     */
+    public function toMafundiReportRow(): array
+    {
+        return [
+            'name' => $this->full_name,
+            'gender' => $this->gender ? ucfirst($this->gender) : 'N/A',
+            'primary_phone' => $this->primary_phone ?: 'N/A',
+            'transaction_phone' => $this->transaction_phone ?: 'N/A',
+            'address' => $this->address,
+            'site_visits' => (int) ($this->site_visits_count ?? 0),
+            'bags_total' => (int) ($this->bags_total ?? 0),
+        ];
+    }
+
+    /**
      * Get transactions for this fundi
      */
     public function transactions()
