@@ -19,7 +19,7 @@ class IdCardController extends Controller
         session()->forget('id_card_data');
 
         $pdf = Pdf::loadView('documents.id-card', $data)
-            ->setPaper([0, 0, 300, 530], 'landscape');
+            ->setPaper(config('idcard.paper_size'), config('idcard.paper_orientation'));
 
         return $pdf->stream($data['name'].'_Id_card_'.$data['id_number'].'.pdf');
 

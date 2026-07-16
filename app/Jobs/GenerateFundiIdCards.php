@@ -131,7 +131,7 @@ class GenerateFundiIdCards implements ShouldQueue
                         $pdf = Pdf::loadView('documents.id-card', $data);
 
                         // Set paper BEFORE any other options
-                        $pdf->setPaper([0, 0, 300, 530], 'landscape');
+                        $pdf->setPaper(config('idcard.paper_size'), config('idcard.paper_orientation'));
 
                         // Set all options explicitly
                         $pdf->setOptions([
