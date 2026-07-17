@@ -18,7 +18,10 @@
 
         .header {
             width: 100%;
-            padding: 14px 18px;
+            /* Top padding = original 14px + 5.665pt (~2mm) vertical bleed so the
+               navy background reaches the true page edge while the logo/title
+               stay positioned as if the page were still the 5.5cm live area. */
+            padding: 21.55px 18px 14px 18px;
             background: #141A5A;
             color: white;
         }
