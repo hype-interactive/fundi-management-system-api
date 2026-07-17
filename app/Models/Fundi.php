@@ -101,6 +101,26 @@ class Fundi extends Model
         return "{$wardName}/{$districtName}/{$regionName}";
     }
 
+        //shorter Address for ID card
+    public function getShortAddressAttribute(): string
+    {
+        // Check if relationship is loaded to prevent N+1
+        if (
+            ! $this->relationLoaded('ward') ||
+            ! $this->ward->relationLoaded('district') ||
+            ! $this->ward->district->relationLoaded('region')
+        ) {
+            Log::warning('Short address accessor called without eager loading relationships. This may cause N+1 queries.', [
+                'fundi_id' => $this->id,
+            ]);
+        }  
+        
+        $regionName = $this->ward->district->region->name ?? '';
+        $wardName = $this->ward->name ?? '';    
+
+        return "{$wardName}/{$regionName}";
+    } 
+
     /**
      * Generate QR code (public method with event firing)
      */

@@ -32,7 +32,7 @@
         }
 
         .company-title {
-            font-size: 13px;
+            font-size: 11px;
             font-weight: bold;
             letter-spacing: 0.5px;
         }
@@ -108,30 +108,25 @@
             <!-- LEFT INFO -->
             <td valign="top" style="padding-left: 17px">
 
-                <table  cellspacing="0" cellpadding="4" style="border-collapse:collapse; font-size:9px;">
+                <table cellspacing="0" cellpadding="4" style="border-collapse:collapse; font-size:9px;">
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A; width:68px;">Name:</td>
-                        <td style="color:#222;">{{ $name }}</td>
+                        <td style="color:#141A5A;">Name: <span style="font-weight:bold; color:#222;">{{ $name }}</span></td>
                     </tr>
 
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A;">Gender:</td>
-                        <td style="color:#222;">{{ $gender }}</td>
+                        <td style="color:#141A5A;">Gender: <span style="font-weight:bold; color:#222;">{{ $gender }}</span></td>
                     </tr>
 
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A;">Address:</td>
-                        <td style="color:#222;">{{ $address }}</td>
+                        <td style="color:#141A5A;">Address: <span style="font-weight:bold; color:#222;">{{ $address }}</span></td>
                     </tr>
 
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A;">Registered:</td>
-                        <td style="color:#222;">{{ $registered }}</td>
+                        <td style="color:#141A5A;">Registered: <span style="font-weight:bold; color:#222;">{{ $registered }}</span></td>
                     </tr>
 
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A;">Expire:</td>
-                        <td style="color:#222;">{{ $expire }}</td>
+                        <td style="color:#141A5A;">Expire: <span style="font-weight:bold; color:#222;">{{ $expire }}</span></td>
                     </tr>
                 </table>
 
