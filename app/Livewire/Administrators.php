@@ -33,6 +33,10 @@ class Administrators extends Component
 
     public $admin_id;
 
+    public $password = '';
+
+    public $password_confirmation = '';
+
     public $fname;
 
     public $mname;
@@ -71,7 +75,8 @@ class Administrators extends Component
      */
     public function refresh()
     {
-        $this->reset(['fname', 'mname', 'lname', 'email', 'phone']);
+        $this->resetValidation();
+        $this->reset(['fname', 'mname', 'lname', 'email', 'phone', 'password', 'password_confirmation']);
         $this->action_text = 'Create';
         $this->admin_id = null;
         $this->role = null;
@@ -85,6 +90,9 @@ class Administrators extends Component
      */
     public function setAdmin($admin)
     {
+        $this->resetValidation();
+        $this->password = '';
+        $this->password_confirmation = '';
         $this->action_text = 'Update';
 
         $this->admin = User::with('districts', 'role')->find($admin['id']);
@@ -98,10 +106,10 @@ class Administrators extends Component
         $this->email = $this->admin->email;
         $this->role_name = $this->admin->role?->name ?? 'Unknown';
 
-        $firstDistrict = $this->admin->districts->first();
+        // $firstDistrict = $this->admin->districts->first();
 
-        $this->district = $firstDistrict?->id;
-        $this->district_name = $firstDistrict?->name ?? 'NIL';
+        // $this->district = $firstDistrict?->id;
+        // $this->district_name = $firstDistrict?->name ?? 'NIL';
     }
 
     /**
@@ -109,48 +117,41 @@ class Administrators extends Component
      */
     public function createOrUpdateAdmin()
     {
+        $isNewUser = ! $this->admin_id;
+
         $this->validate([
             'fname' => 'required|string|max:255',
             'mname' => 'nullable|string|max:255',
             'lname' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,'.$this->admin_id,
             'phone' => 'required|string|max:20',
-            'district' => 'required|exists:districts,id',
+            'password' => $isNewUser ? 'required|string|min:6|confirmed' : 'nullable|string|min:6|confirmed',
         ]);
 
-        // Default password for new users
-        $defaultPassword = 'Fundi@2025';
-        $isNewUser = ! $this->admin_id;
-
-        // Use the handleOperationWithFlash method for cleaner code
         $result = $this->handleOperationWithFlash(
-            function () use ($defaultPassword, $isNewUser) {
-                $admin = User::updateOrCreate(
-                    ['id' => $this->admin_id],
-                    [
-                        'fname' => $this->fname,
-                        'mname' => $this->mname,
-                        'lname' => $this->lname,
-                        'email' => $this->email,
-                        'phone' => $this->formatTanzanianNumber($this->phone),
-                        'role_id' => $this->role,
-                        'status' => 'active',
-                        'password' => bcrypt($isNewUser ? $defaultPassword : $this->admin->password),
-                    ]
-                );
+            function () use ($isNewUser) {
+                $data = [
+                    'fname' => $this->fname,
+                    'mname' => $this->mname,
+                    'lname' => $this->lname,
+                    'email' => $this->email,
+                    'phone' => $this->formatTanzanianNumber($this->phone),
+                    'role_id' => $this->role,
+                    'status' => 'active',
+                ];
 
-                if ($admin) {
-                    $admin->districts()->sync([$this->district]);
-
-                    // Send login credentials if this is a new user
-                    if ($isNewUser) {
-                        $this->sendNotificationWithFeedback($admin, $defaultPassword, 'login_credentials');
-                    }
-
-                    return true;
+                if ($isNewUser) {
+                    $data['password'] = $this->password;
                 }
 
-                return false;
+                $admin = User::updateOrCreate(['id' => $this->admin_id], $data);
+
+                if (! $isNewUser && ! empty($this->password)) {
+                    $admin->password = $this->password;
+                    $admin->save();
+                }
+
+                return (bool) $admin;
             },
             'Success',
             'Administrator '.strtolower($this->action_text).'d successfully.',
@@ -159,10 +160,8 @@ class Administrators extends Component
         );
 
         if ($result) {
-            // Reset form fields
-            $this->reset(['fname', 'mname', 'lname', 'email', 'phone']);
+            $this->reset(['fname', 'mname', 'lname', 'email', 'phone', 'password', 'password_confirmation']);
 
-            // Redirect to /administrators where the alert will be shown in mount()
             return redirect('/administrators');
         }
     }

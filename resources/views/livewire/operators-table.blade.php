@@ -1,56 +1,82 @@
 <div>
-    <div class="filter mb-3">
-        <div class="row align-items-center">
-            <div class="col-md-2">
+    <div class="filter mb-3 operators-toolbar">
+        {{-- Row 1: Search + location filters --}}
+        <div class="row align-items-center g-2 mb-2">
+            <div class="col-12 col-lg">
                 <div class="search">
                     <input wire:model.live.debounce.300ms="search_key" type="text" placeholder="Search operators...">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="row g-2">
-                    @if (isRoot())
-                        <div class="col">
-                            @include('components.selects.select_region', ['regions' => $regions])
-                        </div>
-                        <div class="col">
-                            @include('components.selects.select_district', ['districts' => $districts])
-                        </div>
-                    @endif
+            @if (isRoot())
+                <div class="col-12 col-sm-6 col-lg-3">
+                    @include('components.selects.select_region', ['regions' => $regions])
                 </div>
-            </div>
-            {{-- Date Range Filters --}}
-            <div class="col-md-3">
-                <div class="row g-2">
-                    <div class="col-6">
-                        <input type="date" 
-                               wire:model.live="date_from" 
-                               class="form-control form-control-sm py-3"
-                               placeholder="From"
+                <div class="col-12 col-sm-6 col-lg-3">
+                    @include('components.selects.select_district', ['districts' => $districts])
+                </div>
+            @endif
+        </div>
+
+        {{-- Row 2: Dates + actions --}}
+        <div class="row align-items-center g-2">
+            <div class="col-12 col-md">
+                <div class="operators-date-range">
+                    <div class="date-field">
+                        <label class="date-label" for="operators-date-from">From</label>
+                        <input id="operators-date-from"
+                               type="date"
+                               wire:model.live="date_from"
+                               class="form-control form-control-sm"
                                max="{{ now()->format('Y-m-d') }}"
                                title="From Date">
                     </div>
-                    <div class="col-6">
-                        <input type="date" 
-                               wire:model.live="date_to" 
-                               class="form-control form-control-sm py-3"
-                               placeholder="To"
+                    <span class="date-separator d-none d-sm-inline text-muted">—</span>
+                    <div class="date-field">
+                        <label class="date-label" for="operators-date-to">To</label>
+                        <input id="operators-date-to"
+                               type="date"
+                               wire:model.live="date_to"
+                               class="form-control form-control-sm"
                                max="{{ now()->format('Y-m-d') }}"
                                title="To Date">
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="d-flex justify-content-end gap-2">
-                    <button wire:click="refresh" class="btn btn-sm btn-outline-secondary">
+            <div class="col-12 col-md-auto">
+                <div class="operators-actions">
+                    <button wire:click="refresh" class="btn btn-sm btn-outline-secondary" title="Clear filters">
                         <i class="fa-solid fa-arrows-rotate"></i>
+                        <span class="d-md-none ms-1">Refresh</span>
                     </button>
-                    <button wire:click="exportToExcel" class="btn btn-sm btn-outline-success ml-1">
-                        <i class="fa-solid fa-file-csv me-1"></i>Export
-                    </button>
-                    <button wire:click="downloadOperatorPDF" class="btn btn-sm btn-outline-danger ml-1">
-                        <i class="fa-solid fa-file-pdf me-1"></i>PDF
-                    </button>
+
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-success dropdown-toggle"
+                                type="button"
+                                id="operatorsDownloadMenu"
+                                data-toggle="dropdown"
+                                aria-haspopup="true"
+                                aria-expanded="false">
+                            <i class="fa-solid fa-download me-1"></i>Download
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="operatorsDownloadMenu">
+                            <h6 class="dropdown-header">Operator Stats</h6>
+                            <button type="button" class="dropdown-item" wire:click="exportToExcel">
+                                <i class="fa-solid fa-file-csv text-success me-2"></i>Stats CSV
+                            </button>
+                            <button type="button" class="dropdown-item" wire:click="downloadOperatorPDF">
+                                <i class="fa-solid fa-file-pdf text-danger me-2"></i>Stats PDF
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <h6 class="dropdown-header">Operators with Mafundi</h6>
+                            <button type="button" class="dropdown-item" wire:click="exportOperatorsWithMafundi">
+                                <i class="fa-solid fa-file-csv text-success me-2"></i>Mafundi CSV
+                            </button>
+                            <button type="button" class="dropdown-item" wire:click="downloadOperatorsWithMafundiPDF">
+                                <i class="fa-solid fa-file-pdf text-danger me-2"></i>Mafundi PDF
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -58,15 +84,15 @@
 
     {{-- Date Filter Active Indicator --}}
     @if($this->hasDateFilter())
-        <div class="alert alert-info py-2 mb-3 d-flex justify-content-between align-items-center">
+        <div class="alert alert-info py-2 mb-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
             <small>
                 <i class="fa-solid fa-filter me-1"></i>
-                Showing data from 
+                Showing data from
                 <strong>{{ $date_from ? \Carbon\Carbon::parse($date_from)->format('M d, Y') : 'Beginning' }}</strong>
-                to 
+                to
                 <strong>{{ $date_to ? \Carbon\Carbon::parse($date_to)->format('M d, Y') : 'Now' }}</strong>
             </small>
-            <button wire:click="$set('date_from', null); $set('date_to', null)" class="btn btn-sm btn-outline-info">
+            <button wire:click="$set('date_from', null); $set('date_to', null)" class="btn btn-sm btn-outline-info align-self-start align-self-sm-center">
                 <i class="fa-solid fa-times me-1"></i>Clear Dates
             </button>
         </div>
@@ -77,7 +103,7 @@
         @forelse ($operators as $operator)
             @php
                 $stats = $this->getOperatorStats($operator);
-                $showFiltered = $this->hasDateFilter();
+                $showFiltered = $this->date_from && $this->date_to;
             @endphp
 
             <div class="col-md-4 col-lg-4" wire:key="op-{{ $operator->id }}">
@@ -110,21 +136,29 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td class="op-row-label">Today</td>
-                                <td>{{ $stats['today_visits'] }}</td>
-                                <td>{{ $stats['today_fundis'] }}</td>
-                            </tr>
-                            <tr>
-                                <td class="op-row-label">Week</td>
-                                <td>{{ $stats['week_visits'] }}</td>
-                                <td>{{ $stats['week_fundis'] }}</td>
-                            </tr>
-                            <tr>
-                                <td class="op-row-label">Month</td>
-                                <td>{{ $stats['month_visits'] }}</td>
-                                <td>{{ $stats['month_fundis'] }}</td>
-                            </tr>
+                            @if ($showFiltered)
+                                <tr>
+                                    <td class="op-row-label text-primary">Range</td>
+                                    <td>{{ number_format($stats['filtered_site_visits'] ?? 0) }}</td>
+                                    <td>{{ number_format($stats['filtered_fundis'] ?? 0) }}</td>
+                                </tr>
+                            @else
+                                <tr>
+                                    <td class="op-row-label">Today</td>
+                                    <td>{{ $stats['today_visits'] }}</td>
+                                    <td>{{ $stats['today_fundis'] }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="op-row-label">Week</td>
+                                    <td>{{ $stats['week_visits'] }}</td>
+                                    <td>{{ $stats['week_fundis'] }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="op-row-label">Month</td>
+                                    <td>{{ $stats['month_visits'] }}</td>
+                                    <td>{{ $stats['month_fundis'] }}</td>
+                                </tr>
+                            @endif
                             <tr>
                                 <td class="op-row-label">Total</td>
                                 <td>{{ number_format($stats['total_visits']) }}</td>
@@ -148,9 +182,78 @@
         {{ $operators->links() }}
     </div>
     <style>
-    .filtered-stats {
-        border-left: 3px solid #3b82f6;
-    }
-</style>
+        .filtered-stats {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .operators-toolbar .operators-date-range {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 0.5rem 0.75rem;
+        }
+
+        .operators-toolbar .date-field {
+            flex: 1 1 140px;
+            min-width: 0;
+        }
+
+        .operators-toolbar .date-label {
+            display: block;
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-bottom: 0.2rem;
+            line-height: 1;
+        }
+
+        .operators-toolbar .operators-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .operators-toolbar .dropdown-menu {
+            min-width: 220px;
+        }
+
+        .operators-toolbar .dropdown-item {
+            cursor: pointer;
+        }
+
+        .operators-toolbar .dropdown-header {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        @media (max-width: 767.98px) {
+            .operators-toolbar .operators-actions {
+                justify-content: stretch;
+            }
+
+            .operators-toolbar .operators-actions > .btn,
+            .operators-toolbar .operators-actions > .dropdown {
+                flex: 1 1 auto;
+            }
+
+            .operators-toolbar .operators-actions > .dropdown > .btn {
+                width: 100%;
+            }
+
+            .operators-toolbar .dropdown-menu {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .op-card .op-mini-table th,
+            .op-card .op-mini-table td {
+                font-size: 0.8rem;
+                padding: 0.2rem 0.25rem;
+            }
+        }
+    </style>
 </div>
 

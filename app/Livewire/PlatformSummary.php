@@ -60,14 +60,14 @@ class PlatformSummary extends Component
         $this->fundis_month_status = $this->getFundiDiff('MONTH') >= 0;
 
         // Total Site Visits with Month Comparison
-        $this->total_visits = $this->getSiteVisitTotal(null, $this->selected_district);
+        $this->total_visits = $this->getSiteVisitTotal('MONTH', $this->selected_district);
         $this->visits_month_diff = abs($this->getSiteVisitDiff('MONTH'));
         $this->visits_month_status = $this->getSiteVisitDiff('MONTH') >= 0;
 
         // Total Disbursements with Month Comparison
-        $this->total_disbursements = $this->getDisbursementTotal(null, $this->selected_district);
+        $this->total_disbursements = $this->getDisbursementTotal('MONTH', $this->selected_district);
         $this->disbursements_month_diff = abs($this->getDisbursementDiff('MONTH'));
-        $this->disbursements_month_status = $this->getDisbursementDiff('MONTH') >= 0;
+        $this->disbursements_month_status = $this->getDisbursementDiff('MONTH') >= 0;   
 
         // Performance Metrics
         $this->fundi_approval_rate = $this->getFundiApprovalRate('MONTH');

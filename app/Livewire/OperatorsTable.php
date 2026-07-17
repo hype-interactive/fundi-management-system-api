@@ -96,12 +96,17 @@ class OperatorsTable extends Component
     }
 
     /**
-     * Get the date range for filtering
+     * Get the date range for filtering, boundaries in UTC for DB comparison.
+     * User-selected dates are interpreted as EAT (Africa/Dar_es_Salaam) calendar days.
      */
     public function getDateRange(): array
     {
-        $from = $this->date_from ? Carbon::parse($this->date_from)->startOfDay() : null;
-        $to = $this->date_to ? Carbon::parse($this->date_to)->endOfDay() : null;
+        $from = $this->date_from
+            ? Carbon::parse($this->date_from, 'Africa/Dar_es_Salaam')->startOfDay()->utc()
+            : null;
+        $to = $this->date_to
+            ? Carbon::parse($this->date_to, 'Africa/Dar_es_Salaam')->endOfDay()->utc()
+            : null;
 
         return compact('from', 'to');
     }
@@ -115,37 +120,38 @@ class OperatorsTable extends Component
     }
 
     /**
-     * Get stats for an operator within the date range
+     * Get stats for an operator. All period boundaries use EAT (UTC+3) and are
+     * converted to UTC for comparison against stored timestamps.
      */
     public function getOperatorStats($operator): array
     {
-        $dateRange = $this->getDateRange();
+        $eatNow = Carbon::now('Africa/Dar_es_Salaam');
 
-        if ($dateRange['from'] && $dateRange['to']) {
-            // Filtered stats
-            $siteVisits = $operator->siteVisits()
-                ->whereBetween('created_at', [$dateRange['from'], $dateRange['to']])
-                ->count();
-            $fundis = $operator->createdFundis()
-                ->whereBetween('created_at', [$dateRange['from'], $dateRange['to']])
-                ->count();
-        } else {
-            // Default: Today, Week, Month, Total
-            $siteVisits = null;
-            $fundis = null;
-        }
+        $todayStart  = $eatNow->copy()->startOfDay()->utc();
+        $todayEnd    = $eatNow->copy()->endOfDay()->utc();
+        $weekStart   = $eatNow->copy()->startOfWeek()->utc();
+        $weekEnd     = $eatNow->copy()->endOfWeek()->utc();
+        $monthStart  = $eatNow->copy()->startOfMonth()->utc();
+        $monthEnd    = $eatNow->copy()->endOfMonth()->utc();
+
+        $dateRange = $this->getDateRange();
+        $hasFilter = $dateRange['from'] && $dateRange['to'];
 
         return [
-            'filtered_site_visits' => $siteVisits,
-            'filtered_fundis' => $fundis,
-            'today_visits' => $operator->siteVisits()->whereDate('created_at', today())->count(),
-            'today_fundis' => $operator->createdFundis()->whereDate('created_at', today())->count(),
-            'week_visits' => $operator->siteVisits()->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
-            'week_fundis' => $operator->createdFundis()->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
-            'month_visits' => $operator->siteVisits()->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
-            'month_fundis' => $operator->createdFundis()->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
-            'total_visits' => $operator->siteVisits()->count(),
-            'total_fundis' => $operator->createdFundis()->count(),
+            'filtered_site_visits' => $hasFilter
+                ? $operator->siteVisits()->whereBetween('created_at', [$dateRange['from'], $dateRange['to']])->count()
+                : null,
+            'filtered_fundis' => $hasFilter
+                ? $operator->createdFundis()->whereBetween('created_at', [$dateRange['from'], $dateRange['to']])->count()
+                : null,
+            'today_visits'  => $operator->siteVisits()->whereBetween('created_at', [$todayStart, $todayEnd])->count(),
+            'today_fundis'  => $operator->createdFundis()->whereBetween('created_at', [$todayStart, $todayEnd])->count(),
+            'week_visits'   => $operator->siteVisits()->whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+            'week_fundis'   => $operator->createdFundis()->whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+            'month_visits'  => $operator->siteVisits()->whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+            'month_fundis'  => $operator->createdFundis()->whereBetween('created_at', [$monthStart, $monthEnd])->count(),
+            'total_visits'  => $operator->siteVisits()->count(),
+            'total_fundis'  => $operator->createdFundis()->count(),
         ];
     }
 
@@ -206,6 +212,7 @@ class OperatorsTable extends Component
 
         return response()->streamDownload(function () {
             $operators = $this->getOperatorQuery()->get();
+            $hasFilter = $this->hasDateFilter() && $this->date_from && $this->date_to;
 
             $rows = [];
             foreach ($operators as $operator) {
@@ -215,21 +222,39 @@ class OperatorsTable extends Component
                     'name' => $operator->full_name,
                     'phone' => $operator->phone,
                     'site' => [
-                        'today' => $stats['today_visits'],
-                        'month' => $stats['month_visits'],
+                        'today'    => $stats['today_visits'],
+                        'week'     => $stats['week_visits'],
+                        'month'    => $stats['month_visits'],
                         'all_time' => $stats['total_visits'],
+                        'range'    => $stats['filtered_site_visits'],
                     ],
                     'fundis' => [
-                        'today' => $stats['today_fundis'],
-                        'month' => $stats['month_fundis'],
+                        'today'    => $stats['today_fundis'],
+                        'week'     => $stats['week_fundis'],
+                        'month'    => $stats['month_fundis'],
                         'all_time' => $stats['total_fundis'],
+                        'range'    => $stats['filtered_fundis'],
                     ],
                 ];
             }
 
+            $filterParts = [];
+            if ($this->region) {
+                $region = \App\Models\Region::find($this->region);
+                $filterParts[] = 'Region: ' . ($region?->name ?? $this->region);
+            }
+            if ($this->district) {
+                $district = \App\Models\District::find($this->district);
+                $filterParts[] = 'District: ' . ($district?->name ?? $this->district);
+            }
+            if ($this->date_from || $this->date_to) {
+                $filterParts[] = 'Date: ' . ($this->date_from ?? 'Beginning') . ' — ' . ($this->date_to ?? 'Today');
+            }
+            $filters = implode('  |  ', $filterParts);
+
             $title = 'Operators | Magic Builders';
             $date = date('D, M/d/Y');
-            $html_view = view('documents.operators', compact('title', 'date', 'rows'))->render();
+            $html_view = view('documents.operators', compact('title', 'date', 'rows', 'filters', 'hasFilter'))->render();
             $pdf = app('dompdf.wrapper');
             $pdf->loadHTML($html_view);
             $pdf->setPaper('A4', 'landscape');
@@ -242,6 +267,7 @@ class OperatorsTable extends Component
     {
         return response()->streamDownload(function () {
             $operators = $this->getOperatorQuery()->get();
+            $hasFilter = $this->hasDateFilter() && $this->date_from && $this->date_to;
 
             $headers = [
                 'Name',
@@ -251,16 +277,40 @@ class OperatorsTable extends Component
                 'Status',
                 'Districts',
                 'Site Visits (Today)',
+                'Site Visits (Week)',
                 'Site Visits (Month)',
                 'Site Visits (All Time)',
                 'Fundis Registered (Today)',
+                'Fundis Registered (Week)',
                 'Fundis Registered (Month)',
                 'Fundis Registered (All Time)',
                 'Total Incentives',
                 'Created At',
             ];
 
+            if ($hasFilter) {
+                $headers[] = 'Site Visits (' . $this->date_from . ' to ' . $this->date_to . ')';
+                $headers[] = 'Fundis Registered (' . $this->date_from . ' to ' . $this->date_to . ')';
+            }
+
             $handle = fopen('php://output', 'w');
+
+            $filterParts = [];
+            if ($this->region) {
+                $region = \App\Models\Region::find($this->region);
+                $filterParts[] = 'Region: ' . ($region?->name ?? $this->region);
+            }
+            if ($this->district) {
+                $district = \App\Models\District::find($this->district);
+                $filterParts[] = 'District: ' . ($district?->name ?? $this->district);
+            }
+            if ($this->date_from || $this->date_to) {
+                $filterParts[] = 'Date: ' . ($this->date_from ?? 'Beginning') . ' to ' . ($this->date_to ?? 'Today');
+            }
+            if (! empty($filterParts)) {
+                fputcsv($handle, ['Filters: ' . implode(' | ', $filterParts)]);
+            }
+
             fputcsv($handle, $headers);
 
             foreach ($operators as $operator) {
@@ -268,7 +318,7 @@ class OperatorsTable extends Component
                 $totalIncentives = $operator->incentives()->sum('amount');
                 $stats = $this->getOperatorStats($operator);
 
-                fputcsv($handle, [
+                $row = [
                     $operator->full_name,
                     $operator->email,
                     $operator->phone,
@@ -276,18 +326,190 @@ class OperatorsTable extends Component
                     ucfirst($operator->status),
                     $districts ?: 'N/A',
                     $stats['today_visits'],
+                    $stats['week_visits'],
                     $stats['month_visits'],
                     $stats['total_visits'],
                     $stats['today_fundis'],
+                    $stats['week_fundis'],
                     $stats['month_fundis'],
                     $stats['total_fundis'],
                     number_format($totalIncentives, 2),
                     $operator->created_at->format('Y-m-d H:i:s'),
-                ]);
+                ];
+
+                if ($hasFilter) {
+                    $row[] = $stats['filtered_site_visits'] ?? 0;
+                    $row[] = $stats['filtered_fundis'] ?? 0;
+                }
+
+                fputcsv($handle, $row);
             }
 
             fclose($handle);
         }, 'operators_export_'.date('Y-m-d_H-i-s').'.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Active filter summary for operator+mafundi reports.
+     */
+    protected function getActiveFiltersLabel(): string
+    {
+        $filterParts = [];
+
+        if ($this->region) {
+            $region = \App\Models\Region::find($this->region);
+            $filterParts[] = 'Region: '.($region?->name ?? $this->region);
+        }
+        if ($this->district) {
+            $district = \App\Models\District::find($this->district);
+            $filterParts[] = 'District: '.($district?->name ?? $this->district);
+        }
+        if ($this->date_from || $this->date_to) {
+            $filterParts[] = 'Date: '.($this->date_from ?? 'Beginning').' — '.($this->date_to ?? 'Today');
+        }
+        if ($this->search_key) {
+            $filterParts[] = 'Search: '.$this->search_key;
+        }
+        if ($this->status) {
+            $filterParts[] = 'Status: '.ucfirst($this->status);
+        }
+
+        return implode('  |  ', $filterParts);
+    }
+
+    /**
+     * Build operator + mafundi rows for the filtered operators list.
+     */
+    protected function buildOperatorsWithMafundiData(): array
+    {
+        $dateRange = $this->getDateRange();
+        $hasDateFilter = $dateRange['from'] && $dateRange['to'];
+
+        $operators = $this->getOperatorQuery()
+            ->with([
+                'role',
+                'districts',
+                'createdFundis' => function ($query) use ($hasDateFilter, $dateRange) {
+                    $query->with(['ward.district.region'])
+                        ->withMafundiReportStats()
+                        ->latest('created_at');
+                    if ($hasDateFilter) {
+                        $query->whereBetween('created_at', [$dateRange['from'], $dateRange['to']]);
+                    }
+                },
+            ])
+            ->get();
+
+        return $operators->map(function ($operator) {
+            return [
+                'name' => $operator->full_name,
+                'phone' => $operator->phone,
+                'email' => $operator->email,
+                'status' => ucfirst($operator->status),
+                'role' => $operator->role->display_name ?? $operator->role->name ?? 'N/A',
+                'districts' => $operator->districts->pluck('name')->join(', '),
+                'fundis' => $operator->createdFundis->map->toMafundiReportRow()->all(),
+            ];
+        })->all();
+    }
+
+    /**
+     * Download PDF of filtered operators with their mafundi lists.
+     */
+    public function downloadOperatorsWithMafundiPDF()
+    {
+        set_time_limit(300);
+        ini_set('memory_limit', '1000M');
+
+        return response()->streamDownload(function () {
+            $operators = $this->buildOperatorsWithMafundiData();
+            $filters = $this->getActiveFiltersLabel();
+            $title = 'Operators with Mafundi | Magic Builders';
+            $date = date('D, M/d/Y');
+
+            $html_view = view('documents.operator-mafundi', compact('title', 'date', 'operators', 'filters'))->render();
+            $pdf = app('dompdf.wrapper');
+            $pdf->loadHTML($html_view);
+            $pdf->setPaper('A4', 'landscape');
+
+            echo $pdf->stream();
+        }, 'operators_with_mafundi_'.date('Y-m-d_H-i-s').'.pdf');
+    }
+
+    /**
+     * Export filtered operators with their mafundi lists to CSV.
+     */
+    public function exportOperatorsWithMafundi()
+    {
+        return response()->streamDownload(function () {
+            $operators = $this->buildOperatorsWithMafundiData();
+            $handle = fopen('php://output', 'w');
+
+            $filters = $this->getActiveFiltersLabel();
+            if ($filters !== '') {
+                fputcsv($handle, ['Filters: '.$filters]);
+            }
+
+            fputcsv($handle, [
+                'Operator Name',
+                'Operator Phone',
+                'Operator Email',
+                'Operator Status',
+                'Operator Role',
+                'Operator Districts',
+                'Fundi Name',
+                'Fundi Gender',
+                'Fundi Primary Phone',
+                'Fundi Transaction Phone',
+                'Fundi Address',
+                'Fundi Site Visits',
+                'Fundi Bags Total',
+            ]);
+
+            foreach ($operators as $operator) {
+                if (empty($operator['fundis'])) {
+                    fputcsv($handle, [
+                        $operator['name'],
+                        $operator['phone'] ?: 'N/A',
+                        $operator['email'] ?: 'N/A',
+                        $operator['status'],
+                        $operator['role'],
+                        $operator['districts'] ?: 'N/A',
+                        'No mafundi',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                    ]);
+
+                    continue;
+                }
+
+                foreach ($operator['fundis'] as $fundi) {
+                    fputcsv($handle, [
+                        $operator['name'],
+                        $operator['phone'] ?: 'N/A',
+                        $operator['email'] ?: 'N/A',
+                        $operator['status'],
+                        $operator['role'],
+                        $operator['districts'] ?: 'N/A',
+                        $fundi['name'],
+                        $fundi['gender'],
+                        $fundi['primary_phone'],
+                        $fundi['transaction_phone'],
+                        $fundi['address'],
+                        $fundi['site_visits'],
+                        $fundi['bags_total'],
+                    ]);
+                }
+            }
+
+            fclose($handle);
+        }, 'operators_with_mafundi_'.date('Y-m-d_H-i-s').'.csv', [
             'Content-Type' => 'text/csv',
         ]);
     }

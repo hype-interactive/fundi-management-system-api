@@ -123,28 +123,47 @@ class Fundi extends Model
     }
 
     /**
-     * Generate QR code without triggering model events
+     * Generate QR code without triggering model events.
+     * Returns empty string and logs on failure so fundi creation is not aborted.
      */
     public function generateQrCodeQuietly(): string
     {
-        // Skip if already exists
         if ($this->qr_code_path && Storage::disk('public')->exists($this->qr_code_path)) {
             return $this->qr_code_path;
         }
 
-        // Generate QR code
-        $qrCode = QrCode::format('svg')
-            ->size(300)
-            ->generate($this->unique_id);
+        try {
+            $qrCode = QrCode::format('svg')
+                ->size(300)
+                ->generate($this->unique_id);
 
-        // Save to storage
-        $filename = 'qrcodes/fundi_'.$this->id.'_'.time().'.svg';
-        Storage::disk('public')->put($filename, $qrCode);
+            $filename = 'qrcodes/fundi_'.$this->id.'_'.time().'.svg';
+            Storage::disk('public')->put($filename, $qrCode);
+            $this->updateQuietly(['qr_code_path' => $filename]);
 
-        // Update model without triggering events again
-        $this->updateQuietly(['qr_code_path' => $filename]);
+            return $filename;
+        } catch (\Exception $e) {
+            Log::error('QR code generation failed', [
+                'fundi_id' => $this->id,
+                'unique_id' => $this->unique_id,
+                'error' => $e->getMessage(),
+            ]);
 
-        return $filename;
+            return '';
+        }
+    }
+
+    /**
+     * Generate a collision-safe unique fundi ID (FND + 8 zero-padded digits).
+     * Use this on every creation path so all fundis share one format.
+     */
+    public static function generateUniqueId(): string
+    {
+        do {
+            $id = 'FND'.str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT);
+        } while (static::where('unique_id', $id)->exists());
+
+        return $id;
     }
 
     /**
@@ -339,6 +358,47 @@ class Fundi extends Model
     public function siteVisitFundis()
     {
         return $this->hasMany(SiteVisitFundi::class);
+    }
+
+    /**
+     * Products recorded on site visits this fundi participated in.
+     */
+    public function siteVisitProducts()
+    {
+        return $this->hasManyThrough(
+            SiteVisitProduct::class,
+            SiteVisitFundi::class,
+            'fundi_id',
+            'site_visit_id',
+            'id',
+            'site_visit_id'
+        );
+    }
+
+    /**
+     * Eager-load visit count and bag totals (product_id = 1) for operator reports.
+     */
+    public function scopeWithMafundiReportStats($query)
+    {
+        return $query
+            ->withCount('siteVisits')
+            ->withSum(['siteVisitProducts as bags_total' => fn ($q) => $q->where('product_id', 1)], 'quantity');
+    }
+
+    /**
+     * Row payload for operator mafundi PDF/CSV exports.
+     */
+    public function toMafundiReportRow(): array
+    {
+        return [
+            'name' => $this->full_name,
+            'gender' => $this->gender ? ucfirst($this->gender) : 'N/A',
+            'primary_phone' => $this->primary_phone ?: 'N/A',
+            'transaction_phone' => $this->transaction_phone ?: 'N/A',
+            'address' => $this->address,
+            'site_visits' => (int) ($this->site_visits_count ?? 0),
+            'bags_total' => (int) ($this->bags_total ?? 0),
+        ];
     }
 
     /**

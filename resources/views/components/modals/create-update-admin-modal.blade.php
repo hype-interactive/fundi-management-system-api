@@ -42,23 +42,6 @@
                             @enderror
                         </div>
                     </div>
-                    {{-- <div class="form-row">
-                        <div class="form-group col-md-6">
-                            <label for="inputHNo">Password</label>
-                            <input type="password" class="form-control" wire:model="rpassword">
-                            @error('rpassword')
-                                <span class="error text-danger"><small>Password is required</small></span>
-                            @enderror
-                        </div>
-                        <div class="form-group col-md-6">
-                            <label for="inputAdmin">Confirm Password</label>
-                            <input type="password" class="form-control" wire:model="password">
-                            @error('password')
-                                <span class="error text-danger"><small>Password is required, must match the
-                                        previous</small></span>
-                            @enderror
-                        </div>
-                    </div> --}}
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label for="inputRole">Role</label>
@@ -71,11 +54,21 @@
                                 <span class="error">{{ $message }}</span>
                             @enderror
                         </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group col-md-6">
-                            <label for="inputAdmin">District</label>
-                            @include('components.selects.select_district')
-                            @error('district')
-                                <span class="error">{{ $message }}</span>
+                            <label for="inputHNo">Password</label>
+                            <input type="password" class="form-control" wire:model="password">
+                            @error('password')
+                                <span class="error text-danger"><small>Password is required</small></span>
+                            @enderror
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="inputAdmin">Confirm Password</label>
+                            <input type="password" class="form-control" wire:model="password_confirmation">
+                            @error('password_confirmation')
+                                <span class="error text-danger"><small>Password is required, must match the
+                                        previous</small></span>
                             @enderror
                         </div>
                     </div>

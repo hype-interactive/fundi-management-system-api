@@ -15,15 +15,13 @@
                 <livewire:platform-summary>
             </div>
             <div class="mt-4"></div>
-
-    <livewire:charts />
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3 pt-4">
             <div class="light-bg section-right summary">
                 @livewire('dashboard.company-summary')
             </div>
         </div>
     </div>
-    
+    <livewire:charts />
 </div>
 @endsection

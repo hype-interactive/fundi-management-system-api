@@ -1,5 +1,5 @@
 <div wire:poll.keep-alive>
-    <div class="notifications">
+    <div class="notifications mt-6">
         <div class="tile">
             <div class="icon">
                 <i class="fa-solid fa-people-carry-box"></i>
@@ -11,13 +11,14 @@
         </div>
         <div class="tile">
             <div class="icon">
-                <i class="fa-solid fa-user-secret"></i>
+                <i class="fas fa-location-arrow"></i>
             </div>
             <div class="title">
-                <div class="count">{{ number_format($this->admin_count) }}</div>
-                Administrators
+                <span class="count">{{ number_format($this->sites_count) }}</span>
+                <span>Total Visits</span>
             </div>
         </div>
+        
         <div class="tile">
             <div class="icon">
                 <i class="fa-solid fa-users-gear"></i>
@@ -27,7 +28,14 @@
                 Operators
             </div>
         </div>
-        @include('components.charts.chart-summary')
+        <div class="tile">
+            <div class="icon">
+                <i class="fa-solid fa-user-secret"></i>
+            </div>
+            <div class="title">
+                <div class="count">{{ number_format($this->admin_count) }}</div>
+                Administrators
+            </div>
+        </div>
     </div>
-
 </div>
