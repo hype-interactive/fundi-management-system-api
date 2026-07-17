@@ -131,7 +131,7 @@ class FundiProfile extends Component
             'id_number' => $this->fundi->unique_id ?? 'FNS-01X251',
             'name' => $this->fundi->full_name,
             'gender' => $this->fundi->gender ?? 'N/A',
-            'address' => $this->fundi->address ?? 'Sinza, Kinondoni, Dar Es Salaam',
+            'address' => $this->fundi->short_address ?? 'Sinza, Kinondoni, Dar Es Salaam',
             'registered' => $this->fundi->created_at ? $this->fundi->created_at->format('d/m/Y') : date('d/m/Y'),
             'expire' => $this->fundi->expire_date ? $this->fundi->expire_date->format('d/m/Y') : date('d/m/Y', strtotime('+5 years')),
             'photo' => $this->fundi->photo_path ? Storage::disk('public')->path($this->fundi->photo_path) : public_path('images/profile.jpg'),

@@ -119,7 +119,7 @@ class GenerateFundiIdCards implements ShouldQueue
                             'id_number' => $fundi->unique_id ?? 'FNS-01X251',
                             'name' => $fundi->full_name,
                             'gender' => $fundi->gender ?? 'N/A',
-                            'address' => $fundi->address ?? 'Sinza, Kinondoni, Dar Es Salaam',
+                            'address' => $fundi->short_address ?? 'Sinza, Kinondoni, Dar Es Salaam',
                             'registered' => $fundi->created_at ? $fundi->created_at->format('d/m/Y') : date('d/m/Y'),
                             'expire' => $fundi->created_at ? $fundi->created_at->addYears(5)->format('d/m/Y') : date('d/m/Y', strtotime('+5 years')),
                             'photo' => $fundi->profile_photo_url ?? public_path('images/profile.jpg'),
