@@ -325,7 +325,7 @@ class PublicFundiRegistration extends Component
 
             // Create fundi with status 'pending' for review
             $fundi = Fundi::create([
-                'unique_id' => 'F'.date('Ymd').rand(1000, 9999),
+                'unique_id' => Fundi::generateUniqueId(),
                 'fname' => $this->fname,
                 'mname' => $this->mname,
                 'lname' => $this->lname,

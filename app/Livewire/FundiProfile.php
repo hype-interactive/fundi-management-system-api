@@ -115,7 +115,7 @@ class FundiProfile extends Component
         $qrCodeBase64 = null;
         if (file_exists($qrCodePath)) {
             $qrCodeData = file_get_contents($qrCodePath);
-            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
+            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION) === 'svg' ? 'svg+xml' : pathinfo($qrCodePath, PATHINFO_EXTENSION);
             $qrCodeBase64 = 'data:image/'.$qrCodeType.';base64,'.base64_encode($qrCodeData);
         }
 

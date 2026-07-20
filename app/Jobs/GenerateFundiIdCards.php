@@ -86,25 +86,7 @@ class GenerateFundiIdCards implements ShouldQueue
                         $qrCodeBase64 = null;
                         if (file_exists($qrCodePath)) {
                             $qrCodeData = file_get_contents($qrCodePath);
-                            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
-                            $qrCodeBase64 = 'data:image/'.$qrCodeType.';base64,'.base64_encode($qrCodeData);
-                        }
-
-                        $logoBase64 = null;
-                        if (file_exists($logoPath)) {
-                            $logoData = file_get_contents($logoPath);
-                            $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
-                        }
-
-                        // Get absolute paths
-                        $qrCodePath = storage_path('app/public/'.$fundi->qr_code_path);
-                        $logoPath = public_path('images/logo.png');
-
-                        // Convert images to base64
-                        $qrCodeBase64 = null;
-                        if (file_exists($qrCodePath)) {
-                            $qrCodeData = file_get_contents($qrCodePath);
-                            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
+                            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION) === 'svg' ? 'svg+xml' : pathinfo($qrCodePath, PATHINFO_EXTENSION);
                             $qrCodeBase64 = 'data:image/'.$qrCodeType.';base64,'.base64_encode($qrCodeData);
                         }
 
