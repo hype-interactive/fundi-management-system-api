@@ -158,7 +158,7 @@ class FundiController extends BaseAPIController
     /**
      * Show single fundi with caching
      */
-    public function show(string $unique_id): JsonResponse
+    public function show(Request $request, string $unique_id): JsonResponse
     {
         if (! preg_match('/^(FND\d{6,}|F\d{12})$/', $unique_id)) {
             return $this->errorResponse('Invalid fundi ID format', null, 400);
@@ -171,10 +171,12 @@ class FundiController extends BaseAPIController
             'unique_id' => $unique_id,
         ]);
 
+        $includeTransactions = $request->boolean('include_transactions');
+
         $cachedData = $this->rememberWithTags(
             $cacheKey,
             $this->getCacheTTL('medium'),
-            fn () => $this->buildFundiDetailData($unique_id),
+            fn () => $this->buildFundiDetailData($unique_id, $includeTransactions),
             [self::CACHE_TAGS['fundis']]
         );
 
@@ -195,7 +197,7 @@ class FundiController extends BaseAPIController
     /**
      * Build fundi detail data for caching
      */
-    private function buildFundiDetailData(string $unique_id): array
+    private function buildFundiDetailData(string $unique_id, bool $includeTransactions = false): array
     {
         $fundi = Fundi::where('unique_id', $unique_id)->first();
 
@@ -212,12 +214,15 @@ class FundiController extends BaseAPIController
             'creator',
             'approver',
             'rejector',
-            'transactions' => function ($query) {
+        ]);
+
+        if ($includeTransactions) {
+            $fundi->load(['transactions' => function ($query) {
                 $query->latest()->limit(10);
-            },
-        ])
-            ->loadCount('transactions')
-            ->loadSum('transactions', 'amount');
+            }])
+                ->loadCount('transactions')
+                ->loadSum('transactions', 'amount');
+        }
 
         return (new FundiResource($fundi))->resolve();
     }
