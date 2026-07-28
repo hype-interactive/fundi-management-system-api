@@ -63,6 +63,7 @@ class GenerateFundiIdCards implements ShouldQueue
 
             $successCount = 0;
             $failCount = 0;
+            $skippedCount = 0;
 
             foreach (array_chunk($this->fundiIds, 50) as $chunkIndex => $chunk) {
                 Log::info("Processing chunk {$chunkIndex}", ['chunk_size' => count($chunk)]);
@@ -73,6 +74,15 @@ class GenerateFundiIdCards implements ShouldQueue
 
                 foreach ($fundis as $fundi) {
                     try {
+                        // Re-check the fundi still exists — it may have been soft-deleted after
+                        // this chunk was loaded but before its turn in this loop.
+                        if (! Fundi::whereKey($fundi->id)->exists()) {
+                            $skippedCount++;
+                            Log::warning("Skipping Fundi {$fundi->id} - deleted after chunk load, before card generation");
+
+                            continue;
+                        }
+
                         // Ensure QR code exists
                         if (! $fundi->qr_code_path) {
                             $fundi->generateQrCodeQuietly();
@@ -154,7 +164,7 @@ class GenerateFundiIdCards implements ShouldQueue
 
             $zip->close();
 
-            Log::info("Zip file closed. Success: {$successCount}, Failed: {$failCount}");
+            Log::info("Zip file closed. Success: {$successCount}, Failed: {$failCount}, Skipped: {$skippedCount}");
 
             $downloadsDir = storage_path('app/public/downloads');
             if (! file_exists($downloadsDir)) {
@@ -176,6 +186,7 @@ class GenerateFundiIdCards implements ShouldQueue
                 'batch_id' => $this->batchId,
                 'success_count' => $successCount,
                 'fail_count' => $failCount,
+                'skipped_count' => $skippedCount,
             ]);
         } catch (\Exception $e) {
             Log::error('GenerateFundiIdCards job failed', [

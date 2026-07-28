@@ -5,6 +5,7 @@ namespace App\Services\Financial;
 use App\Jobs\ProcessDisbursementJob;
 use App\Models\BudgetAllocation;
 use App\Models\DisbursementBatch;
+use App\Models\Fundi;
 use App\Models\Transaction;
 use App\Services\Payment\SelcomService;
 use Exception;
@@ -45,7 +46,12 @@ class FinancialManagementService
                 throw new Exception('Insufficient budget remaining');
             }
 
-            // 2. Check SELCOM balance
+            // 2. Re-validate recipients are still eligible right now — the selection made in
+            // the disbursement form can be stale by the time this runs (deleted, deactivated,
+            // or never approved in the meantime).
+            $this->validateRecipientsEligible($data['recipients']);
+
+            // 3. Check SELCOM balance
             $balanceCheck = $this->selcomService->checkBalance();
 
             if (! $balanceCheck['success']) {
@@ -67,7 +73,7 @@ class FinancialManagementService
                 ));
             }
 
-            // 3. Create disbursement batch
+            // 4. Create disbursement batch
             $batch = DisbursementBatch::create([
                 'budget_allocation_id' => $budgetAllocationId,
                 'title' => $data['title'],
@@ -82,7 +88,7 @@ class FinancialManagementService
                 'batch_id' => $batch->id,
             ]);
 
-            // 4. Create transaction records
+            // 5. Create transaction records
             $transactions = [];
             foreach ($data['recipients'] as $recipient) {
                 $transaction = Transaction::create([
@@ -100,7 +106,7 @@ class FinancialManagementService
                 'transaction_count' => count($transactions),
             ]);
 
-            // 5. Update budget allocation
+            // 6. Update budget allocation
             $budgetAllocation->decrement('remaining_amount', $data['total_amount']);
 
             Log::info('Budget allocation updated', [
@@ -108,10 +114,10 @@ class FinancialManagementService
                 'new_remaining_amount' => $budgetAllocation->fresh()->remaining_amount,
             ]);
 
-            // 6. Dispatch async jobs to process disbursements
+            // 7. Dispatch async jobs to process disbursements
             $this->dispatchDisbursementJobs($transactions);
 
-            // 7. Update batch status to processing
+            // 8. Update batch status to processing
             $batch->update(['status' => 'processing']);
 
             Log::info('=== DISBURSEMENT BATCH PROCESSING INITIATED ===', [
@@ -121,6 +127,35 @@ class FinancialManagementService
 
             return $batch;
         });
+    }
+
+    /**
+     * Guard against paying a fundi who is no longer eligible by the time this batch is
+     * actually processed: deleted, deactivated, or never approved. The disbursement form's
+     * selection list is filtered at load time only, so it can go stale before submission.
+     *
+     * @param  array<int, array{fundi_id: int, amount: float}>  $recipients
+     *
+     * @throws Exception if any recipient is not currently an eligible, approved, active fundi
+     */
+    private function validateRecipientsEligible(array $recipients): void
+    {
+        $fundiIds = array_column($recipients, 'fundi_id');
+
+        $eligibleIds = Fundi::whereIn('id', $fundiIds)
+            ->where('status', 'active')
+            ->approved()
+            ->pluck('id')
+            ->all();
+
+        $ineligibleIds = array_diff($fundiIds, $eligibleIds);
+
+        if (! empty($ineligibleIds)) {
+            throw new Exception(
+                'The following fundis are no longer eligible for disbursement (deleted, '.
+                'inactive, or not approved): '.implode(', ', $ineligibleIds)
+            );
+        }
     }
 
     /**

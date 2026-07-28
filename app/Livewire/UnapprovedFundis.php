@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Fundi;
+use App\Traits\CacheManagement;
 use App\Traits\HasAlerts;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +13,7 @@ use Livewire\WithPagination;
 
 class UnapprovedFundis extends Component
 {
-    use HasAlerts, LocationTrait, WithPagination;
+    use CacheManagement, HasAlerts, LocationTrait, WithPagination;
 
     public $district;
 
@@ -59,6 +60,7 @@ class UnapprovedFundis extends Component
         ) {
             $this->showWarningAlert('Duplicate Found', 'Fundi already exists. Duplicate entry has been removed.');
             $fundi->delete();
+            $this->clearFundiCaches($fundi->unique_id);
 
             return;
         }
@@ -80,6 +82,8 @@ class UnapprovedFundis extends Component
         );
 
         if ($result) {
+            $this->clearFundiCaches($fundi->unique_id);
+
             // Remove from selected array
             $this->selectedFundis = array_diff($this->selectedFundis, [$fundi_id]);
         }
@@ -106,6 +110,7 @@ class UnapprovedFundis extends Component
         ) {
             session()->flash('message', 'Fundi already exists');
             $fundi->delete();
+            $this->clearFundiCaches($fundi->unique_id);
 
             return;
         }
@@ -113,6 +118,8 @@ class UnapprovedFundis extends Component
         $fundi->update([
             'status' => 'inactive',
         ]);
+
+        $this->clearFundiCaches($fundi->unique_id);
 
         session()->flash('message', 'Registration rejected');
 
@@ -152,6 +159,7 @@ class UnapprovedFundis extends Component
 
                 if ($isDuplicate) {
                     $fundi->delete();
+                    $this->clearFundiCaches($fundi->unique_id);
                     $duplicates++;
 
                     continue;
@@ -162,6 +170,8 @@ class UnapprovedFundis extends Component
                     'approved_by' => Auth::id(),
                     'status' => 'active',
                 ]);
+
+                $this->clearFundiCaches($fundi->unique_id);
 
                 $approved++;
             }
@@ -205,7 +215,11 @@ class UnapprovedFundis extends Component
         // Use toast for quick feedback
         $result = $this->handleOperation(
             function () use ($fundi_id) {
-                return Fundi::where('id', $fundi_id)->delete();
+                $uniqueId = Fundi::where('id', $fundi_id)->value('unique_id');
+                $deleted = Fundi::where('id', $fundi_id)->delete();
+                $this->clearFundiCaches($uniqueId);
+
+                return $deleted;
             },
             'Deleted!',
             'Fundi deleted successfully',
@@ -252,7 +266,14 @@ class UnapprovedFundis extends Component
 
         $result = $this->handleOperation(
             function () {
-                return Fundi::whereIn('id', $this->selectedFundis)->delete();
+                $uniqueIds = Fundi::whereIn('id', $this->selectedFundis)->pluck('unique_id');
+                $deleted = Fundi::whereIn('id', $this->selectedFundis)->delete();
+
+                foreach ($uniqueIds as $uniqueId) {
+                    $this->clearFundiCaches($uniqueId);
+                }
+
+                return $deleted;
             },
             'Deleted!',
             "Successfully deleted {$count} fundi(s)",

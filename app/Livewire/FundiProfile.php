@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Fundi;
 use App\Services\SmsService;
+use App\Traits\CacheManagement;
 use App\Traits\HasAlerts;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,7 @@ use Livewire\Component;
 
 class FundiProfile extends Component
 {
-    use HasAlerts;
+    use CacheManagement, HasAlerts;
 
     public $fundi;
 
@@ -99,6 +100,14 @@ class FundiProfile extends Component
 
     public function downloadQrCode()
     {
+        $this->fundi->refresh();
+
+        if ($this->fundi->trashed()) {
+            session()->flash('error', 'This fundi has been deleted and can no longer be downloaded.');
+
+            return;
+        }
+
         $this->fundi->loadMissing('ward.district.region');
 
         if (! $this->fundi->qr_code_path || ! Storage::disk('public')->exists($this->fundi->qr_code_path)) {
@@ -295,6 +304,8 @@ class FundiProfile extends Component
                 // Dispatch event to notify other components
                 $this->dispatch('fundiStatusChanged');
 
+                $this->clearFundiCaches($this->fundi->unique_id);
+
                 Log::info("Fundi approved: {$this->fundi->full_name} (ID: {$this->fundi->id})", [
                     'approved_by' => Auth::id(),
                     'approved_by_name' => Auth::user()->full_name ?? 'Unknown',
@@ -347,6 +358,8 @@ class FundiProfile extends Component
                 // Dispatch event to notify other components
                 $this->dispatch('fundiStatusChanged');
 
+                $this->clearFundiCaches($this->fundi->unique_id);
+
                 Log::info("Fundi rejected: {$this->fundi->full_name} (ID: {$this->fundi->id})", [
                     'rejected_by' => Auth::id(),
                     'rejected_by_name' => Auth::user()->full_name ?? 'Unknown',
@@ -381,6 +394,7 @@ class FundiProfile extends Component
                 DB::transaction(function () {
                     $fundiName = $this->fundi->full_name;
                     $fundiId = $this->fundi->id;
+                    $fundiUniqueId = $this->fundi->unique_id;
 
                     // Log the deletion with related data count
                     $transactionCount = $this->fundi->transactions()->count();
@@ -389,6 +403,8 @@ class FundiProfile extends Component
                     // Soft delete if your model uses SoftDeletes trait
                     // Or hard delete if not
                     $this->fundi->delete();
+
+                    $this->clearFundiCaches($fundiUniqueId);
 
                     // Log the deletion
                     Log::info("Fundi deleted: {$fundiName} (ID: {$fundiId})", [
@@ -461,6 +477,7 @@ class FundiProfile extends Component
                 ]);
 
                 $this->dispatch('fundiStatusChanged');
+                $this->clearFundiCaches($this->fundi->unique_id);
                 $this->fundi->refresh();
 
                 return true;
@@ -519,6 +536,7 @@ class FundiProfile extends Component
                 ]);
 
                 $this->dispatch('fundiStatusChanged');
+                $this->clearFundiCaches($this->fundi->unique_id);
                 $this->fundi->refresh();
 
                 return true;

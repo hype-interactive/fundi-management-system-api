@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Fundi;
+use App\Traits\CacheManagement;
 use App\Traits\HasAlerts;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\DB;
@@ -11,7 +12,7 @@ use Livewire\WithPagination;
 
 class FundiDuplicatesTable extends Component
 {
-    use HasAlerts, LocationTrait, WithPagination;
+    use CacheManagement, HasAlerts, LocationTrait, WithPagination;
 
     protected $paginationTheme = 'bootstrap';
 
@@ -312,7 +313,11 @@ class FundiDuplicatesTable extends Component
     {
         $result = $this->handleOperation(
             function () use ($fundiId) {
-                return Fundi::where('id', $fundiId)->delete();
+                $uniqueId = Fundi::where('id', $fundiId)->value('unique_id');
+                $deleted = Fundi::where('id', $fundiId)->delete();
+                $this->clearFundiCaches($uniqueId);
+
+                return $deleted;
             },
             'Deleted!',
             'Fundi deleted successfully',
@@ -372,7 +377,15 @@ class FundiDuplicatesTable extends Component
                 $oldestId = $query->min('id');
 
                 // Delete all except oldest
-                return $query->where('id', '!=', $oldestId)->delete();
+                $toDelete = (clone $query)->where('id', '!=', $oldestId);
+                $uniqueIds = $toDelete->pluck('unique_id');
+                $deleted = $toDelete->delete();
+
+                foreach ($uniqueIds as $uniqueId) {
+                    $this->clearFundiCaches($uniqueId);
+                }
+
+                return $deleted;
             },
             'Duplicates Removed!',
             'Kept oldest record and deleted duplicates',
@@ -459,9 +472,14 @@ class FundiDuplicatesTable extends Component
         $deleted = 0;
 
         foreach ($duplicates as $dup) {
-            $deleted += Fundi::where($field, $dup->$field)
-                ->where('id', '!=', $dup->oldest_id)
-                ->delete();
+            $toDelete = Fundi::where($field, $dup->$field)
+                ->where('id', '!=', $dup->oldest_id);
+            $uniqueIds = $toDelete->pluck('unique_id');
+            $deleted += $toDelete->delete();
+
+            foreach ($uniqueIds as $uniqueId) {
+                $this->clearFundiCaches($uniqueId);
+            }
         }
 
         return $deleted;
@@ -483,11 +501,16 @@ class FundiDuplicatesTable extends Component
         $deleted = 0;
 
         foreach ($duplicates as $dup) {
-            $deleted += Fundi::where('fname', $dup->fname)
+            $toDelete = Fundi::where('fname', $dup->fname)
                 ->where('lname', $dup->lname)
                 ->where('ward_id', $dup->ward_id)
-                ->where('id', '!=', $dup->oldest_id)
-                ->delete();
+                ->where('id', '!=', $dup->oldest_id);
+            $uniqueIds = $toDelete->pluck('unique_id');
+            $deleted += $toDelete->delete();
+
+            foreach ($uniqueIds as $uniqueId) {
+                $this->clearFundiCaches($uniqueId);
+            }
         }
 
         return $deleted;
