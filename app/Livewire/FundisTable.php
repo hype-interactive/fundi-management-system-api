@@ -52,6 +52,12 @@ class FundisTable extends Component
     #[Url]
     public $legacy_match = null;
 
+    #[Url]
+    public $date_from = null;
+
+    #[Url]
+    public $date_to = null;
+
     public $regions = [];
 
     public $districts = [];
@@ -200,6 +206,16 @@ class FundisTable extends Component
         $this->resetPage();
     }
 
+    public function updatedDateFrom()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateTo()
+    {
+        $this->resetPage();
+    }
+
     public function fetch()
     {
         return $this->getFundiQuery()->paginate($this->perPage);
@@ -341,6 +357,8 @@ class FundisTable extends Component
             ->when($this->created_by, fn ($q, $created_by) => $q->where('fundis.created_by', $created_by))
             ->when($this->approved_by, fn ($q, $approved_by) => $q->where('fundis.approved_by', $approved_by))
             ->when($this->legacy_match, fn ($q, $legacy_match) => $q->where('fundis.legacy_match', $legacy_match))
+            ->when($this->date_from, fn ($q, $date_from) => $q->whereDate('fundis.created_at', '>=', $date_from))
+            ->when($this->date_to, fn ($q, $date_to) => $q->whereDate('fundis.created_at', '<=', $date_to))
             ->latest('fundis.created_at');
     }
 
@@ -631,6 +649,8 @@ class FundisTable extends Component
             'created_by',
             'approved_by',
             'legacy_match',
+            'date_from',
+            'date_to',
             'selectedFundis',
             'selectAll',
             'region',
