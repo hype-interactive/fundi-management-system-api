@@ -86,25 +86,7 @@ class GenerateFundiIdCards implements ShouldQueue
                         $qrCodeBase64 = null;
                         if (file_exists($qrCodePath)) {
                             $qrCodeData = file_get_contents($qrCodePath);
-                            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
-                            $qrCodeBase64 = 'data:image/'.$qrCodeType.';base64,'.base64_encode($qrCodeData);
-                        }
-
-                        $logoBase64 = null;
-                        if (file_exists($logoPath)) {
-                            $logoData = file_get_contents($logoPath);
-                            $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
-                        }
-
-                        // Get absolute paths
-                        $qrCodePath = storage_path('app/public/'.$fundi->qr_code_path);
-                        $logoPath = public_path('images/logo.png');
-
-                        // Convert images to base64
-                        $qrCodeBase64 = null;
-                        if (file_exists($qrCodePath)) {
-                            $qrCodeData = file_get_contents($qrCodePath);
-                            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION);
+                            $qrCodeType = pathinfo($qrCodePath, PATHINFO_EXTENSION) === 'svg' ? 'svg+xml' : pathinfo($qrCodePath, PATHINFO_EXTENSION);
                             $qrCodeBase64 = 'data:image/'.$qrCodeType.';base64,'.base64_encode($qrCodeData);
                         }
 
@@ -119,7 +101,7 @@ class GenerateFundiIdCards implements ShouldQueue
                             'id_number' => $fundi->unique_id ?? 'FNS-01X251',
                             'name' => $fundi->full_name,
                             'gender' => $fundi->gender ?? 'N/A',
-                            'address' => $fundi->address ?? 'Sinza, Kinondoni, Dar Es Salaam',
+                            'address' => $fundi->short_address ?? 'Sinza, Kinondoni, Dar Es Salaam',
                             'registered' => $fundi->created_at ? $fundi->created_at->format('d/m/Y') : date('d/m/Y'),
                             'expire' => $fundi->created_at ? $fundi->created_at->addYears(5)->format('d/m/Y') : date('d/m/Y', strtotime('+5 years')),
                             'photo' => $fundi->profile_photo_url ?? public_path('images/profile.jpg'),
@@ -131,7 +113,7 @@ class GenerateFundiIdCards implements ShouldQueue
                         $pdf = Pdf::loadView('documents.id-card', $data);
 
                         // Set paper BEFORE any other options
-                        $pdf->setPaper([0, 0, 300, 530], 'landscape');
+                        $pdf->setPaper(config('idcard.paper_size'), config('idcard.paper_orientation'));
 
                         // Set all options explicitly
                         $pdf->setOptions([

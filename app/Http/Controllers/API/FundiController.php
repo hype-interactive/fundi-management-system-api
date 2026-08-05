@@ -158,21 +158,25 @@ class FundiController extends BaseAPIController
     /**
      * Show single fundi with caching
      */
-    public function show(string $unique_id): JsonResponse
+    public function show(Request $request, string $unique_id): JsonResponse
     {
-        if (! preg_match('/^FND\d{6,}$/', $unique_id)) {
+        if (! preg_match('/^(FND\d{6,}|F\d{12})$/', $unique_id)) {
             return $this->errorResponse('Invalid fundi ID format', null, 400);
         }
 
+        // Not operator-scoped: buildFundiDetailData() applies no district/authorization
+        // filtering, so the response is identical for every operator. Keying on unique_id
+        // alone keeps this in sync with clearFundiCaches()'s invalidation key.
         $cacheKey = $this->generateCacheKey('fundi.show', [
             'unique_id' => $unique_id,
-            'operator_id' => $this->getOperator()->id,
         ]);
+
+        $includeTransactions = $request->boolean('include_transactions');
 
         $cachedData = $this->rememberWithTags(
             $cacheKey,
             $this->getCacheTTL('medium'),
-            fn () => $this->buildFundiDetailData($unique_id),
+            fn () => $this->buildFundiDetailData($unique_id, $includeTransactions),
             [self::CACHE_TAGS['fundis']]
         );
 
@@ -193,7 +197,7 @@ class FundiController extends BaseAPIController
     /**
      * Build fundi detail data for caching
      */
-    private function buildFundiDetailData(string $unique_id): array
+    private function buildFundiDetailData(string $unique_id, bool $includeTransactions = false): array
     {
         $fundi = Fundi::where('unique_id', $unique_id)->first();
 
@@ -210,12 +214,15 @@ class FundiController extends BaseAPIController
             'creator',
             'approver',
             'rejector',
-            'transactions' => function ($query) {
+        ]);
+
+        if ($includeTransactions) {
+            $fundi->load(['transactions' => function ($query) {
                 $query->latest()->limit(10);
-            },
-        ])
-            ->loadCount('transactions')
-            ->loadSum('transactions', 'amount');
+            }])
+                ->loadCount('transactions')
+                ->loadSum('transactions', 'amount');
+        }
 
         return (new FundiResource($fundi))->resolve();
     }

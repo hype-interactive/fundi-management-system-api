@@ -5,16 +5,23 @@
     <title>ID Card</title>
 
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            width: 550px;
+        @page {
+            margin: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 305px;
         }
 
         .header {
             width: 100%;
-            padding: 20px 30px;
+            /* Top padding = original 14px + 5.665pt (~2mm) vertical bleed so the
+               navy background reaches the true page edge while the logo/title
+               stay positioned as if the page were still the 5.5cm live area. */
+            padding: 21.55px 18px 14px 18px;
             background: #141A5A;
             color: white;
         }
@@ -25,22 +32,22 @@
         }
 
         .company-title {
-            font-size: 20px;
+            font-size: 11px;
             font-weight: bold;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
         .id-number {
-            font-size: 16px;
-            letter-spacing: 2px;
-            margin-top: 4px;
+            font-size: 8px;
+            letter-spacing: 1px;
+            margin-top: 3px;
         }
 
         .logo-box {
-            width: 80px;
-            height: 80px;
+            width: 44px;
+            height: 44px;
             /* background: white; */
-            border-radius: 6px;
+            border-radius: 4px;
             overflow: hidden;
         }
 
@@ -60,13 +67,13 @@
     <div class="header">
         <table>
             <tr>
-                <td width="80px" style="border-right:2px solid #e0e0e0; padding-right:45px;">
+                <td width="44px" style="border-right:1px solid #e0e0e0; padding-right:25px;">
                     <div class="log-box">
-                        <img src="{{ $logo }}" height="50">
+                        <img src="{{ $logo }}" height="27">
                     </div>
                 </td>
 
-                <td style="padding-left:20px;">
+                <td style="padding-left:11px;">
                     <div class="company-title">{{ $company_name }}</div>
                     <div class="id-number">ID: {{ $id_number }}</div>
                 </td>
@@ -78,53 +85,48 @@
     <!-- ===========================
          MAIN CONTENT (LEFT + QR)
     ============================== -->
-    <table  cellspacing="0" cellpadding="0" 
-           style="margin-top:25px; padding:0 10px; border-collapse:collapse;">
+    <table  cellspacing="0" cellpadding="0"
+           style="margin-top:16px; padding:0 6px; border-collapse:collapse;">
 
         <tr>
               <!-- QR CODE RIGHT SIDE -->
             <td valign="top" width="35%" align="center"
-                style="border-right:2px solid #e0e0e0; padding-right:25px; ">
+                style="border-right:1px solid #e0e0e0; padding-right:12px; ">
 
-                <div style="width:130px; height:130px; 
-                            border:2px solid #141A5A; background:white; 
-                            overflow:hidden; margin-bottom:10px; margin-top:10px; ">
+                <div style="width:90px; height:90px;
+                            border:1px solid #141A5A; background:white;
+                            overflow:hidden; margin-bottom:6px; margin-top:6px; ">
                     <img src="{{ $qrcode }}" style="width:100%; height:100%; object-fit:contain;">
                 </div>
 
-                <div style="width:130px; font-size:11px; color:#555; font-weight:bold; text-alighn:left">
+                <div style="width:90px; font-size:7px; color:#555; font-weight:bold; text-alighn:left">
                     SCAN TO VERIFY
                 </div>
 
             </td>
 
             <!-- LEFT INFO -->
-            <td valign="top" style="padding-left: 30px">
+            <td valign="top" style="padding-left: 17px">
 
-                <table  cellspacing="0" cellpadding="5" style="border-collapse:collapse;">
+                <table cellspacing="0" cellpadding="4" style="border-collapse:collapse; font-size:9px;">
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A; width:120px;">Name:</td>
-                        <td style="color:#222;">{{ $name }}</td>
+                        <td style="color:#141A5A;">Name: <span style="font-weight:bold; color:#222;">{{ $name }}</span></td>
                     </tr>
 
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A;">Gender:</td>
-                        <td style="color:#222;">{{ $gender }}</td>
+                        <td style="color:#141A5A;">Gender: <span style="font-weight:bold; color:#222;">{{ $gender }}</span></td>
                     </tr>
 
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A;">Address:</td>
-                        <td style="color:#222;">{{ $address }}</td>
+                        <td style="color:#141A5A;">Address: <span style="font-weight:bold; color:#222;">{{ $address }}</span></td>
                     </tr>
 
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A;">Registered:</td>
-                        <td style="color:#222;">{{ $registered }}</td>
+                        <td style="color:#141A5A;">Registered: <span style="font-weight:bold; color:#222;">{{ $registered }}</span></td>
                     </tr>
 
                     <tr>
-                        <td style="font-weight:bold; color:#141A5A;">Expire:</td>
-                        <td style="color:#222;">{{ $expire }}</td>
+                        <td style="color:#141A5A;">Expire: <span style="font-weight:bold; color:#222;">{{ $expire }}</span></td>
                     </tr>
                 </table>
 
