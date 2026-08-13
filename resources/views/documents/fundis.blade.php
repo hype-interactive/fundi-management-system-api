@@ -53,7 +53,7 @@
                     <th scope="col">Trans. Phone</th>
                     <th scope="col">Gender</th>
                     <th scope="col">Sites</th>
-                    <th scope="col">Bags</th>
+                    <th scope="col">Putty Bags</th>
                 </tr>
             </thead>
             <tbody>

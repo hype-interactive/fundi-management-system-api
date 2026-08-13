@@ -3,6 +3,9 @@
     @if ($bulkDownloadInProgress)
         <div wire:poll.2s="checkBulkDownloadStatus"></div>
     @endif
+    @if ($pdfExportInProgress)
+        <div wire:poll.2s="checkPdfExportStatus"></div>
+    @endif
     <!-- Filters Section -->
     <div class="filter mb-1">
         <div class="row">
@@ -33,16 +36,6 @@
                     </div>
                     <div class="col">
                         <div class="select">
-                            <select wire:model.live="site_visit_count" class="form-select">
-                                <option value="">Site Visits</option>
-                                @foreach ($site_visit_count_options as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="select">
                             @include('components.selects.select_approval')
                         </div>
                     </div>
@@ -59,6 +52,16 @@
                 <label for="fundi-date-to" class="form-label small mb-1">Registered to</label>
                 <input id="fundi-date-to" wire:model.live="date_to" type="date"
                     class="form-control" min="{{ $date_from }}" max="{{ now()->toDateString() }}">
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <label for="fundi-site-visit-min" class="form-label small mb-1">Min site visits</label>
+                <input id="fundi-site-visit-min" wire:model.live="site_visit_min" type="number" min="0"
+                    class="form-control">
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <label for="fundi-site-visit-max" class="form-label small mb-1">Max site visits</label>
+                <input id="fundi-site-visit-max" wire:model.live="site_visit_max" type="number" min="0"
+                    class="form-control">
             </div>
         </div>
     </div>
@@ -86,6 +89,36 @@
                     <i class="fa-solid fa-download me-1"></i>
                     Download ZIP
                     ({{ round(Storage::disk('public')->size('downloads/' . basename($downloadUrl)) / 1024 / 1024, 2) }}
+                    MB)
+                </a>
+            </div>
+        </div>
+    @endif
+
+    {{-- PDF Export Status Alert --}}
+    @if ($pdfExportInProgress)
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
+            <div>
+                <i class="fa-solid fa-spinner fa-spin me-2"></i>
+                <strong>Generating PDF report...</strong> This may take a few minutes. Please wait.
+            </div>
+            <button wire:click="resetPdfExport" class="btn btn-sm btn-outline-secondary">
+                Cancel
+            </button>
+        </div>
+    @endif
+
+    @if ($pdfDownloadUrl)
+        <div class="alert alert-success mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fa-solid fa-check-circle me-2"></i>
+                    Your PDF report is ready!
+                </span>
+                <a href="{{ $pdfDownloadUrl }}" download class="btn btn-success btn-sm">
+                    <i class="fa-solid fa-download me-1"></i>
+                    Download PDF
+                    ({{ round(Storage::disk('public')->size('downloads/' . basename($pdfDownloadUrl)) / 1024 / 1024, 2) }}
                     MB)
                 </a>
             </div>
@@ -132,7 +165,8 @@
                 <i class="fa-solid fa-file-excel me-1"></i>
                 Export Excel
             </button>
-            <button wire:click="downloadFundisPDF" class="btn btn-outline-warning btn-sm">
+            <button wire:click="downloadFundisPDF" class="btn btn-outline-warning btn-sm"
+                @if ($pdfExportInProgress) disabled @endif>
                 <i class="fa-solid fa-file-pdf me-1"></i>
                 Download PDF
             </button>
@@ -172,7 +206,7 @@
                         <th scope="col" class="d-lg-table-cell d-none">Ranking</th>
                         <th scope="col" class="d-lg-table-cell d-none">Status</th>
                         <th scope="col" class="d-xl-table-cell d-none">Sites</th>
-                        <th scope="col" class="d-xl-table-cell d-none">Bags</th>
+                        <th scope="col" class="d-xl-table-cell d-none">Putty Bags</th>
                         <th scope="col" class="d-xl-table-cell d-none">Location</th>
                         <th scope="col" class="d-xl-table-cell d-none">Registrar</th>
                     </tr>
@@ -223,10 +257,10 @@
                                 ])
                             </td>
                             <td class="d-xl-table-cell d-none">
-                                <span class="phone-number">{{ $fundi->siteVisitFundis()->count() ?? '0' }}</span>
+                                <span class="phone-number">{{ $fundi->site_visits_count ?? '0' }}</span>
                             </td>
                              <td class="d-xl-table-cell d-none">
-                                <span class="phone-number">{{ $fundi->total_product_quantity ?? '0' }}</span>
+                                <span class="phone-number">{{ $fundi->bags_total ?? '0' }}</span>
                             </td>
                             <td class="d-xl-table-cell d-none">
                                 <span class="phone-number">{{ $fundi->address ?? '-' }}</span>

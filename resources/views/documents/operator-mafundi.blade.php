@@ -185,7 +185,7 @@
                             <th style="width: 95px;">Trans. Phone</th>
                             <th>Address</th>
                             <th style="width: 52px;">Visits</th>
-                            <th style="width: 48px;">Bags</th>
+                            <th style="width: 48px;">Putty Bags</th>
                         </tr>
                     </thead>
                     <tbody>

@@ -85,7 +85,7 @@ class OperatorMafundi extends Component
             fputcsv($handle, ['Districts', $data['districts'] ?: 'N/A']);
             fputcsv($handle, ['Total Mafundi', count($data['fundis'])]);
             fputcsv($handle, []);
-            fputcsv($handle, ['#', 'Name', 'Gender', 'Primary Phone', 'Transaction Phone', 'Address', 'Site Visits', 'Bags Total']);
+            fputcsv($handle, ['#', 'Name', 'Gender', 'Primary Phone', 'Transaction Phone', 'Address', 'Site Visits', 'Putty Bags Total']);
 
             foreach ($data['fundis'] as $index => $fundi) {
                 fputcsv($handle, [

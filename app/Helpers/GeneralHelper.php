@@ -94,7 +94,8 @@ if (! function_exists('assetToBase64')) {
     function assetToBase64($path)
     {
         $type = pathinfo($path, PATHINFO_EXTENSION);
-        $data = file_get_contents($path);
+        $absolutePath = str_starts_with($path, '/') ? $path : public_path($path);
+        $data = file_get_contents($absolutePath);
 
         return 'data:image/'.$type.';base64,'.base64_encode($data);
     }

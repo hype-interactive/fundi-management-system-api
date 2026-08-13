@@ -465,7 +465,7 @@ class OperatorsTable extends Component
                 'Fundi Transaction Phone',
                 'Fundi Address',
                 'Fundi Site Visits',
-                'Fundi Bags Total',
+                'Fundi Putty Bags Total',
             ]);
 
             foreach ($operators as $operator) {

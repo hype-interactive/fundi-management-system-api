@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Jobs\GenerateFundiIdCards;
+use App\Jobs\GenerateFundisPdfReport;
 use App\Models\Fundi;
 use App\Traits\HasAlerts;
 use App\Traits\LocationTrait;
@@ -38,7 +39,10 @@ class FundisTable extends Component
     public $gender = null;
 
     #[Url]
-    public $site_visit_count = null;
+    public $site_visit_min = null;
+
+    #[Url]
+    public $site_visit_max = null;
 
     #[Url]
     public $approval_status = null;
@@ -66,8 +70,6 @@ class FundisTable extends Component
 
     public $gender_options = [];
 
-    public $site_visit_count_options = [];
-
     public $approval_status_options = [];
 
     public $creators = [];
@@ -94,6 +96,12 @@ class FundisTable extends Component
     public $bulkDownloadBatchId = null;
 
     public $downloadUrl = null;
+
+    public $pdfExportInProgress = false;
+
+    public $pdfExportBatchId = null;
+
+    public $pdfDownloadUrl = null;
 
     public function mount()
     {
@@ -180,8 +188,12 @@ class FundisTable extends Component
         $this->resetPage();
     }
 
-    // With:
-    public function updatedSiteVisitCount()
+    public function updatedSiteVisitMin()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSiteVisitMax()
     {
         $this->resetPage();
     }
@@ -312,7 +324,9 @@ class FundisTable extends Component
                 'ward:id,name,district_id',
                 'ward.district:id,name,region_id',
                 'ward.district.region:id,name',
-            ]);
+                'creator:id,fname,lname',
+            ])
+            ->withMafundiReportStats();
 
         $this->applyLocationFiltersToQuery($query, $this->region, $this->district, $this->ward);
 
@@ -333,17 +347,15 @@ class FundisTable extends Component
             });
         }
 
+        $siteVisitCountSubquery = '(SELECT COUNT(*) FROM site_visit_fundis WHERE site_visit_fundis.fundi_id = fundis.id)';
+
         return $query
             ->when($this->gender, fn ($q, $gender) => $q->where('fundis.gender', $gender))
-            ->when($this->site_visit_count !== null && $this->site_visit_count !== '', function ($q) {
-                $sub = '(SELECT COUNT(*) FROM site_visit_fundis WHERE site_visit_fundis.fundi_id = fundis.id)';
-                if ($this->site_visit_count === '0') {
-                    $q->whereRaw("{$sub} = 0");
-                } elseif ($this->site_visit_count === '1-5') {
-                    $q->whereRaw("{$sub} BETWEEN 1 AND 5");
-                } elseif ($this->site_visit_count === '5+') {
-                    $q->whereRaw("{$sub} > 5");
-                }
+            ->when($this->site_visit_min !== null && $this->site_visit_min !== '', function ($q) use ($siteVisitCountSubquery) {
+                $q->whereRaw("{$siteVisitCountSubquery} >= ?", [(int) $this->site_visit_min]);
+            })
+            ->when($this->site_visit_max !== null && $this->site_visit_max !== '', function ($q) use ($siteVisitCountSubquery) {
+                $q->whereRaw("{$siteVisitCountSubquery} <= ?", [(int) $this->site_visit_max]);
             })
             ->when($this->approval_status, function ($q, $approval_status) {
                 if ($approval_status === 'approved') {
@@ -388,12 +400,6 @@ class FundisTable extends Component
 
         // Static options - no need to set every time
         $this->gender_options = ['male' => 'Male', 'female' => 'Female'];
-        // Replace with:
-        $this->site_visit_count_options = [
-            '0' => '0 Site Visits',
-            '1-5' => '1–5 Site Visits',
-            '5+' => 'Above 5 Site Visits',
-        ];
         $this->approval_status_options = [
             'approved' => 'Approved',
             'pending' => 'Pending Approval',
@@ -537,49 +543,54 @@ class FundisTable extends Component
     }
 
     /**
-     * Download the PDF of fundis
+     * Kick off background generation of the filtered fundi list as a PDF report
      */
     public function downloadFundisPDF()
     {
-        set_time_limit(300);
-        ini_set('memory_limit', '1000M');
+        $fundiIds = $this->getFundiQuery()->pluck('fundis.id')->toArray();
 
-        return response()->streamDownload(function () {
-            // Use chunk to avoid memory issues with large datasets
-            $query = $this->getFundiQuery();
+        if (empty($fundiIds)) {
+            session()->flash('error', 'No fundis found to download.');
 
-            $rows = [];
-            $query->chunk(500, function ($fundis) use (&$rows) {
-                foreach ($fundis as $fundi) {
-                    $location = $this->getLocationBreadcrumb(
-                        $fundi->ward_id,
-                        $fundi->ward->district_id,
-                        $fundi->ward->district->region_id
-                    );
+            return;
+        }
 
-                    $rows[] = [
-                        'name' => $fundi->full_name,
-                        'address' => $location,
-                        'primary_phone' => $fundi->primary_phone,
-                        'transaction_phone' => $fundi->transaction_phone,
-                        'gender' => ucfirst($fundi->gender),
-                        'ranking' => $this->ranking_options[$fundi->ranking] ?? 'N/A',
-                        'sites' => $fundi->siteVisitFundis()->count() ?? '0',
-                        'bags' => $fundi->total_product_quantity ?? '0',
-                        'status' => $fundi->approval_status,
-                    ];
-                }
-            });
+        $batchId = (string) Str::uuid();
+        $this->pdfExportBatchId = $batchId;
+        $this->pdfExportInProgress = true;
+        $this->pdfDownloadUrl = null;
 
-            $title = 'Mafundi | Magic Builders';
-            $date = date('D, M/d/Y');
-            $html_view = view('documents.fundis', compact('title', 'date', 'rows'))->render();
-            $pdf = app('dompdf.wrapper');
-            $pdf->loadHTML($html_view);
-            $pdf->setPaper('A4', 'landscape');
+        GenerateFundisPdfReport::dispatch($fundiIds, auth()->id(), $batchId);
 
-            echo $pdf->stream();
-        }, 'magic_builders_mafundi.pdf');
+        session()->flash('success', 'PDF report is being generated. This may take a few minutes.');
+    }
+
+    /**
+     * Check if the PDF report is ready
+     */
+    public function checkPdfExportStatus()
+    {
+        if (! $this->pdfExportBatchId || ! $this->pdfExportInProgress) {
+            return;
+        }
+
+        $fileName = "fundis_report_{$this->pdfExportBatchId}.pdf";
+
+        if (Storage::disk('public')->exists("downloads/{$fileName}")) {
+            $this->pdfExportInProgress = false;
+            $this->pdfDownloadUrl = Storage::url("downloads/{$fileName}");
+
+            session()->flash('success', 'PDF report ready! Click the button to download.');
+
+            $this->dispatch('trigger-download', url: $this->pdfDownloadUrl);
+        }
+    }
+
+    public function resetPdfExport()
+    {
+        $this->pdfExportInProgress = false;
+        $this->pdfExportBatchId = null;
+        $this->pdfDownloadUrl = null;
     }
 
     /**
@@ -644,7 +655,8 @@ class FundisTable extends Component
             'search_key',
             'ward',
             'gender',
-            'site_visit_count',  // was 'ranking'
+            'site_visit_min',
+            'site_visit_max',
             'approval_status',
             'created_by',
             'approved_by',

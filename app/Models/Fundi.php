@@ -101,7 +101,7 @@ class Fundi extends Model
         return "{$wardName}/{$districtName}/{$regionName}";
     }
 
-        //shorter Address for ID card
+    // shorter Address for ID card
     public function getShortAddressAttribute(): string
     {
         // Check if relationship is loaded to prevent N+1
@@ -113,13 +113,13 @@ class Fundi extends Model
             Log::warning('Short address accessor called without eager loading relationships. This may cause N+1 queries.', [
                 'fundi_id' => $this->id,
             ]);
-        }  
-        
+        }
+
         $regionName = $this->ward->district->region->name ?? '';
-        $wardName = $this->ward->name ?? '';    
+        $wardName = $this->ward->name ?? '';
 
         return "{$wardName}/{$regionName}";
-    } 
+    }
 
     /**
      * Generate QR code (public method with event firing)
@@ -402,7 +402,13 @@ class Fundi extends Model
     {
         return $query
             ->withCount('siteVisits')
-            ->withSum(['siteVisitProducts as bags_total' => fn ($q) => $q->where('product_id', 1)], 'quantity');
+            ->selectSub(function ($q) {
+                $q->from('site_visit_products')
+                    ->join('site_visit_fundis', 'site_visit_fundis.site_visit_id', '=', 'site_visit_products.site_visit_id')
+                    ->whereColumn('site_visit_fundis.fundi_id', 'fundis.id')
+                    ->where('site_visit_products.product_id', 1)
+                    ->selectRaw('COALESCE(SUM(site_visit_products.quantity), 0)');
+            }, 'bags_total');
     }
 
     /**

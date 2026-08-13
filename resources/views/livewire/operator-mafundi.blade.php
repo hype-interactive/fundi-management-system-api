@@ -32,7 +32,7 @@
                     <th scope="col">Contact</th>
                     <th scope="col">Address</th>
                     <th scope="col">Visits</th>
-                    <th scope="col">Bags</th>
+                    <th scope="col">Putty Bags</th>
                 </tr>
             </thead>
             <tbody>
@@ -88,7 +88,7 @@
                     <div class="fw-semibold">{{ $fundi->fname }} {{ $fundi->lname }}</div>
                     <div class="small text-muted">{{ $fundi->gender ? ucfirst($fundi->gender) : 'N/A' }} · {{ $fundi->primary_phone }}</div>
                     <div class="small">{{ $fundi->address }}</div>
-                    <div class="small text-muted mt-1">Visits: {{ $fundi->site_visits_count ?? 0 }} · Bags: {{ $fundi->bags_total ?? 0 }}</div>
+                    <div class="small text-muted mt-1">Visits: {{ $fundi->site_visits_count ?? 0 }} · Putty Bags: {{ $fundi->bags_total ?? 0 }}</div>
                 </div>
             </a>
         @empty
