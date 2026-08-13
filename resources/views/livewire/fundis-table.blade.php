@@ -8,63 +8,50 @@
     @endif
     <!-- Filters Section -->
     <div class="filter mb-1">
-        <div class="row">
+        <div class="row align-items-center">
             <div class="col-md-3">
                 <div class="search">
                     <input wire:model.live.debounce.300ms="search_key" type="text" id="search">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
             </div>
-            <div class="col-md-9">
-                <div class="row">
-                    {{-- @if (isRoot()) --}}
-                    <div class="col">
-                        <div class="select">
-                            @include('components.selects.select_region')
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="select">
-                            @include('components.selects.select_district')
-                        </div>
-                    </div>
-                    {{-- @endif --}}
-                    <div class="col">
-                        <div class="select">
-                            @include('components.selects.select_ward')
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="select">
-                            @include('components.selects.select_approval')
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row g-2 mt-2 align-items-end">
-            <div class="col-12 col-sm-6 col-md-3">
-                <label for="fundi-date-from" class="form-label small mb-1">Registered from</label>
-                <input id="fundi-date-from" wire:model.live="date_from" type="date"
-                    class="form-control" max="{{ $date_to ?: now()->toDateString() }}">
-            </div>
-            <div class="col-12 col-sm-6 col-md-3">
-                <label for="fundi-date-to" class="form-label small mb-1">Registered to</label>
-                <input id="fundi-date-to" wire:model.live="date_to" type="date"
-                    class="form-control" min="{{ $date_from }}" max="{{ now()->toDateString() }}">
-            </div>
-            <div class="col-12 col-sm-6 col-md-3">
-                <label for="fundi-site-visit-min" class="form-label small mb-1">Min site visits</label>
-                <input id="fundi-site-visit-min" wire:model.live="site_visit_min" type="number" min="0"
-                    class="form-control">
-            </div>
-            <div class="col-12 col-sm-6 col-md-3">
-                <label for="fundi-site-visit-max" class="form-label small mb-1">Max site visits</label>
-                <input id="fundi-site-visit-max" wire:model.live="site_visit_max" type="number" min="0"
-                    class="form-control">
+            <div class="col-md-9 d-flex flex-wrap gap-2 align-items-center">
+                <button type="button" wire:click="openFilterModal" data-toggle="modal" data-target="#fundiFilterModal"
+                    class="btn btn-outline-primary btn-sm">
+                    <i class="fa-solid fa-filter me-1"></i>
+                    Filters
+                    @if (count($activeFilters) > 0)
+                        <span class="badge bg-primary ms-1">{{ count($activeFilters) }}</span>
+                    @endif
+                </button>
+
+                @foreach ($activeFilters as $chip)
+                    <span class="badge bg-light text-dark border d-inline-flex align-items-center gap-1">
+                        {{ $chip['label'] }}
+                        <a href="#" wire:click.prevent="removeFilter('{{ $chip['key'] }}')" class="text-danger text-decoration-none"
+                            aria-label="Remove filter">&times;</a>
+                    </span>
+                @endforeach
             </div>
         </div>
     </div>
+
+    @livewire('fundi-filter-modal', [
+        'filters' => [
+            'region' => $region,
+            'district' => $district,
+            'ward' => $ward,
+            'gender' => $gender,
+            'ranking' => $ranking,
+            'site_visit_min' => $site_visit_min,
+            'site_visit_max' => $site_visit_max,
+            'bags_min' => $bags_min,
+            'bags_max' => $bags_max,
+            'created_by' => $created_by,
+            'date_from' => $date_from,
+            'date_to' => $date_to,
+        ],
+    ])
     {{-- Download Status Alert --}}
     @if ($bulkDownloadInProgress)
         <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">

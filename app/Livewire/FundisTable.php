@@ -7,7 +7,6 @@ use App\Jobs\GenerateFundisPdfReport;
 use App\Models\Fundi;
 use App\Traits\HasAlerts;
 use App\Traits\LocationTrait;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -48,6 +47,12 @@ class FundisTable extends Component
     public $site_visit_max = null;
 
     #[Url]
+    public $bags_min = null;
+
+    #[Url]
+    public $bags_max = null;
+
+    #[Url]
     public $approval_status = null;
 
     #[Url]
@@ -65,20 +70,6 @@ class FundisTable extends Component
     #[Url]
     public $date_to = null;
 
-    public $regions = [];
-
-    public $districts = [];
-
-    public $wards = [];
-
-    public $gender_options = [];
-
-    public $approval_status_options = [];
-
-    public $creators = [];
-
-    public $approvers = [];
-
     // New properties for mobile responsiveness
     public $showMobileFilters = false;
 
@@ -92,6 +83,8 @@ class FundisTable extends Component
     protected $listeners = [
         'executeSingleDelete' => 'executeSingleDelete',
         'executeBulkDelete' => 'executeBulkDelete',
+        'filtersApplied' => 'applyFiltersFromModal',
+        'filtersCleared' => 'clearFiltersFromModal',
     ];
 
     public $bulkDownloadInProgress = false;
@@ -157,61 +150,12 @@ class FundisTable extends Component
         }
     }
 
-    public function updatedRegion($value)
-    {
-        $this->district = null;
-        $this->ward = null;
-
-        // Load districts based on region selection
-        $this->districts = $this->getDistricts((int) $value);
-        $this->wards = collect();
-
-        $this->resetPage();
-    }
-
-    public function updatedDistrict($value)
-    {
-        $this->ward = null;
-        $this->wards = $this->getWards($value);
-        $this->resetPage();
-    }
-
     public function updatedSearchKey()
     {
         $this->resetPage();
     }
 
-    public function updatedWard()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedGender()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedRanking()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedSiteVisitMin()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedSiteVisitMax()
-    {
-        $this->resetPage();
-    }
-
     public function updatedApprovalStatus()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedCreatedBy()
     {
         $this->resetPage();
     }
@@ -226,14 +170,117 @@ class FundisTable extends Component
         $this->resetPage();
     }
 
-    public function updatedDateFrom()
+    /**
+     * Relay the currently committed filter values to the filter modal so it can
+     * populate its pending state - covers reopening after Apply, after a chip
+     * removal, or after a shared URL hydrated the committed properties.
+     */
+    public function openFilterModal()
     {
+        $this->dispatch('sync-filter-modal', filters: [
+            'region' => $this->region,
+            'district' => $this->district,
+            'ward' => $this->ward,
+            'gender' => $this->gender,
+            'ranking' => $this->ranking,
+            'site_visit_min' => $this->site_visit_min,
+            'site_visit_max' => $this->site_visit_max,
+            'bags_min' => $this->bags_min,
+            'bags_max' => $this->bags_max,
+            'created_by' => $this->created_by,
+            'date_from' => $this->date_from,
+            'date_to' => $this->date_to,
+        ]);
+    }
+
+    /**
+     * Commit the filter modal's Apply payload - the only point at which the
+     * committed filter properties change and the list query re-runs.
+     */
+    public function applyFiltersFromModal(array $filters)
+    {
+        $this->region = $filters['region'] ?? null;
+        $this->district = $filters['district'] ?? null;
+        $this->ward = $filters['ward'] ?? null;
+        $this->gender = $filters['gender'] ?? null;
+        $this->ranking = $filters['ranking'] ?? null;
+        $this->site_visit_min = $filters['site_visit_min'] ?? null;
+        $this->site_visit_max = $filters['site_visit_max'] ?? null;
+        $this->bags_min = $filters['bags_min'] ?? null;
+        $this->bags_max = $filters['bags_max'] ?? null;
+        $this->created_by = $filters['created_by'] ?? null;
+        $this->date_from = $filters['date_from'] ?? null;
+        $this->date_to = $filters['date_to'] ?? null;
+
         $this->resetPage();
     }
 
-    public function updatedDateTo()
+    public function clearFiltersFromModal()
     {
+        $this->reset([
+            'region', 'district', 'ward', 'gender', 'ranking',
+            'site_visit_min', 'site_visit_max', 'bags_min', 'bags_max',
+            'created_by', 'date_from', 'date_to',
+        ]);
+
         $this->resetPage();
+    }
+
+    /**
+     * Remove a single active filter chip and re-run the query.
+     */
+    public function removeFilter(string $key)
+    {
+        $this->reset([$key]);
+        $this->resetPage();
+    }
+
+    /**
+     * Active filter chips for display on the page when the modal is closed.
+     * Location/registrar values are resolved to names via cheap indexed lookups.
+     */
+    public function activeFilters(): array
+    {
+        $chips = [];
+
+        if ($this->region) {
+            $chips[] = ['key' => 'region', 'label' => 'Region: '.(\App\Models\Region::find($this->region)?->name ?? $this->region)];
+        }
+        if ($this->district) {
+            $chips[] = ['key' => 'district', 'label' => 'District: '.(\App\Models\District::find($this->district)?->name ?? $this->district)];
+        }
+        if ($this->ward) {
+            $chips[] = ['key' => 'ward', 'label' => 'Ward: '.(\App\Models\Ward::find($this->ward)?->name ?? $this->ward)];
+        }
+        if ($this->gender) {
+            $chips[] = ['key' => 'gender', 'label' => 'Gender: '.ucfirst($this->gender)];
+        }
+        if ($this->ranking) {
+            $chips[] = ['key' => 'ranking', 'label' => 'Ranking: '.($this->ranking === 'fundi_kuu' ? 'Fundi Mkuu' : 'Fundi Msaidizi')];
+        }
+        if ($this->site_visit_min !== null && $this->site_visit_min !== '') {
+            $chips[] = ['key' => 'site_visit_min', 'label' => 'Min Sites: '.$this->site_visit_min];
+        }
+        if ($this->site_visit_max !== null && $this->site_visit_max !== '') {
+            $chips[] = ['key' => 'site_visit_max', 'label' => 'Max Sites: '.$this->site_visit_max];
+        }
+        if ($this->bags_min !== null && $this->bags_min !== '') {
+            $chips[] = ['key' => 'bags_min', 'label' => 'Min Putty Bags: '.$this->bags_min];
+        }
+        if ($this->bags_max !== null && $this->bags_max !== '') {
+            $chips[] = ['key' => 'bags_max', 'label' => 'Max Putty Bags: '.$this->bags_max];
+        }
+        if ($this->created_by) {
+            $chips[] = ['key' => 'created_by', 'label' => 'Registrar: '.(\App\Models\User::find($this->created_by)?->full_name ?? $this->created_by)];
+        }
+        if ($this->date_from) {
+            $chips[] = ['key' => 'date_from', 'label' => 'From: '.$this->date_from];
+        }
+        if ($this->date_to) {
+            $chips[] = ['key' => 'date_to', 'label' => 'To: '.$this->date_to];
+        }
+
+        return $chips;
     }
 
     public function fetch()
@@ -304,8 +351,6 @@ class FundisTable extends Component
 
     public function getFundiQuery()
     {
-        $this->loadData();
-
         $query = Fundi::query()
             ->select([
                 'fundis.id',
@@ -355,17 +400,13 @@ class FundisTable extends Component
             });
         }
 
-        $siteVisitCountSubquery = '(SELECT COUNT(*) FROM site_visit_fundis WHERE site_visit_fundis.fundi_id = fundis.id)';
-
         return $query
             ->when($this->gender, fn ($q, $gender) => $q->where('fundis.gender', $gender))
             ->when($this->ranking, fn ($q, $ranking) => $q->where('fundis.ranking', $ranking))
-            ->when($this->site_visit_min !== null && $this->site_visit_min !== '', function ($q) use ($siteVisitCountSubquery) {
-                $q->whereRaw("{$siteVisitCountSubquery} >= ?", [(int) $this->site_visit_min]);
-            })
-            ->when($this->site_visit_max !== null && $this->site_visit_max !== '', function ($q) use ($siteVisitCountSubquery) {
-                $q->whereRaw("{$siteVisitCountSubquery} <= ?", [(int) $this->site_visit_max]);
-            })
+            ->when($this->site_visit_min !== null && $this->site_visit_min !== '', fn ($q) => $q->having('site_visits_count', '>=', (int) $this->site_visit_min))
+            ->when($this->site_visit_max !== null && $this->site_visit_max !== '', fn ($q) => $q->having('site_visits_count', '<=', (int) $this->site_visit_max))
+            ->when($this->bags_min !== null && $this->bags_min !== '', fn ($q) => $q->having('bags_total', '>=', (int) $this->bags_min))
+            ->when($this->bags_max !== null && $this->bags_max !== '', fn ($q) => $q->having('bags_total', '<=', (int) $this->bags_max))
             ->when($this->approval_status, function ($q, $approval_status) {
                 if ($approval_status === 'approved') {
                     $q->approved();
@@ -394,62 +435,6 @@ class FundisTable extends Component
 
         // Add country code and wildcard for LIKE query
         return '%+255'.$digitsOnly.'%';
-    }
-
-    public function loadData()
-    {
-        // Load regions based on user permissions (with caching)
-        $this->regions = $this->getAccessibleRegions();
-
-        // Load districts based on current region selection and user permissions
-        $this->districts = $this->getDistricts((int) $this->region);
-
-        // Load wards based on current district selection
-        $this->wards = $this->getWards($this->district);
-
-        // Static options - no need to set every time
-        $this->gender_options = ['male' => 'Male', 'female' => 'Female'];
-        $this->approval_status_options = [
-            'approved' => 'Approved',
-            'pending' => 'Pending Approval',
-            'rejected' => 'Rejected',
-        ];
-
-        // Cache user lists for better performance
-        $this->creators = $this->getCachedUsers('created_by');
-        $this->approvers = $this->getCachedUsers('approved_by');
-    }
-
-    /**
-     * Get cached users who have created or approved fundis
-     */
-    private function getCachedUsers(string $type): \Illuminate\Support\Collection
-    {
-        $cacheKey = "fundis_users_{$type}";
-
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($type) {
-            return \App\Models\User::select('id', 'fname', 'lname', 'email')
-                ->whereIn('id', function ($query) use ($type) {
-                    $query->select($type)
-                        ->from('fundis')
-                        ->whereNotNull($type)
-                        ->distinct();
-                })
-                ->orderBy('fname')
-                ->get();
-        });
-    }
-
-    /**
-     * Get all districts without user restrictions
-     */
-    private function getAllDistricts()
-    {
-        return Cache::remember('all_districts', now()->addHours(24), function () {
-            return \App\Models\District::select('id', 'name', 'region_id')
-                ->orderBy('name')
-                ->get();
-        });
     }
 
     /**
@@ -667,6 +652,8 @@ class FundisTable extends Component
             'ranking',
             'site_visit_min',
             'site_visit_max',
+            'bags_min',
+            'bags_max',
             'approval_status',
             'created_by',
             'approved_by',
@@ -695,6 +682,7 @@ class FundisTable extends Component
     {
         return view('livewire.fundis-table', [
             'fundis' => $this->fetch(),
+            'activeFilters' => $this->activeFilters(),
         ]);
     }
 }

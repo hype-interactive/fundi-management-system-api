@@ -6,6 +6,7 @@ use App\Models\District;
 use App\Models\Region;
 use App\Models\Ward;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 trait LocationTrait
 {
@@ -28,20 +29,24 @@ trait LocationTrait
     }
 
     /**
-     * Get accessible regions based on user permissions
+     * Get accessible regions based on user permissions (cached - reference data changes rarely)
      */
     public function getAccessibleRegions(): Collection
     {
         if ($this->isAdminOrRoot()) {
-            return $this->getAllRegions();
+            return Cache::remember('location_regions_all', now()->addHours(24), fn () => $this->getAllRegions());
         }
 
-        // For non-admin users, get regions that contain their accessible districts
-        $userDistrictIds = $this->getUserAccessibleDistrictIds();
+        $userId = currentUser()->id;
 
-        return Region::whereHas('districts', function ($query) use ($userDistrictIds) {
-            $query->whereIn('id', $userDistrictIds);
-        })->orderBy('name')->get();
+        return Cache::remember("location_regions_user_{$userId}", now()->addMinutes(30), function () {
+            // For non-admin users, get regions that contain their accessible districts
+            $userDistrictIds = $this->getUserAccessibleDistrictIds();
+
+            return Region::whereHas('districts', function ($query) use ($userDistrictIds) {
+                $query->whereIn('id', $userDistrictIds);
+            })->orderBy('name')->get();
+        });
     }
 
     /**
@@ -116,19 +121,27 @@ trait LocationTrait
 
     /**
      * Get districts based on user permissions and optional region filter
-     * This is the main method that should be used by components
+     * This is the main method that should be used by components (cached - reference data changes rarely)
      */
     public function getDistricts(?int $regionId = null): Collection
     {
+        $regionKey = $regionId ?? 'all';
+
         if ($this->isAdminOrRoot()) {
-            return $regionId ? $this->getDistrictsByRegion($regionId) : $this->getAllDistricts();
+            return Cache::remember("location_districts_all_region_{$regionKey}", now()->addHours(24), function () use ($regionId) {
+                return $regionId ? $this->getDistrictsByRegion($regionId) : $this->getAllDistricts();
+            });
         }
 
-        return $regionId ? $this->getUserDistrictsByRegion($regionId) : $this->getUserAccessibleDistricts();
+        $userId = currentUser()->id;
+
+        return Cache::remember("location_districts_user_{$userId}_region_{$regionKey}", now()->addMinutes(30), function () use ($regionId) {
+            return $regionId ? $this->getUserDistrictsByRegion($regionId) : $this->getUserAccessibleDistricts();
+        });
     }
 
     /**
-     * Get all wards for a specific district
+     * Get all wards for a specific district (cached - reference data changes rarely)
      */
     public function getWards(?int $districtId = null): Collection
     {
@@ -142,12 +155,23 @@ trait LocationTrait
             if (! $accessibleDistrictIds->contains($districtId)) {
                 return collect();
             }
+
+            $userId = currentUser()->id;
+
+            return Cache::remember("location_wards_user_{$userId}_district_{$districtId}", now()->addMinutes(30), function () use ($districtId) {
+                return Ward::where('district_id', $districtId)
+                    ->with('district.region')
+                    ->orderBy('name')
+                    ->get();
+            });
         }
 
-        return Ward::where('district_id', $districtId)
-            ->with('district.region')
-            ->orderBy('name')
-            ->get();
+        return Cache::remember("location_wards_district_{$districtId}", now()->addHours(24), function () use ($districtId) {
+            return Ward::where('district_id', $districtId)
+                ->with('district.region')
+                ->orderBy('name')
+                ->get();
+        });
     }
 
     /**
