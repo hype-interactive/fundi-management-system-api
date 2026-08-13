@@ -99,6 +99,16 @@ class FundisTable extends Component
 
     public $pdfDownloadUrl = null;
 
+    public $pdfExportFailedChunks = [];
+
+    public $pdfExportPendingConfirm = false;
+
+    public $pdfExportRowCount = null;
+
+    public $pdfExportDistrictCount = null;
+
+    public $pdfExportFileCount = null;
+
     public function mount()
     {
         // For non-admin/root users, set their primary location
@@ -537,22 +547,60 @@ class FundisTable extends Component
     }
 
     /**
-     * Kick off background generation of the filtered fundi list as a PDF report
+     * Start a PDF export. At or below the row cap, dispatches immediately as
+     * today. Above the cap, the export splits into a district ZIP - show the
+     * row/district/file counts and require explicit confirmation before
+     * dispatch, since a rejected/confirmed choice here means the job never
+     * exists rather than leaving a reserved row behind an OOM.
      */
     public function downloadFundisPDF()
     {
-        $fundiIds = $this->getFundiQuery()->pluck('fundis.id')->toArray();
+        $distribution = $this->districtDistribution();
+        $totalRows = (int) $distribution->sum('row_count');
 
-        if (empty($fundiIds)) {
+        if ($totalRows === 0) {
             session()->flash('error', 'No fundis found to download.');
 
             return;
         }
 
+        $cap = config('fundis_export.pdf_row_cap');
+
+        if ($totalRows <= $cap) {
+            $this->dispatchPdfExport();
+
+            return;
+        }
+
+        $this->pdfExportRowCount = $totalRows;
+        $this->pdfExportDistrictCount = $distribution->count();
+        $this->pdfExportFileCount = (int) $distribution->sum(fn ($row) => (int) ceil($row->row_count / $cap));
+        $this->pdfExportPendingConfirm = true;
+    }
+
+    public function confirmPdfExport()
+    {
+        $this->pdfExportPendingConfirm = false;
+        $this->dispatchPdfExport();
+    }
+
+    public function cancelPdfExport()
+    {
+        $this->pdfExportPendingConfirm = false;
+        $this->pdfExportRowCount = null;
+        $this->pdfExportDistrictCount = null;
+        $this->pdfExportFileCount = null;
+    }
+
+    protected function dispatchPdfExport(): void
+    {
+        $fundiIds = $this->getFundiQuery()->pluck('fundis.id')->toArray();
+
         $batchId = (string) Str::uuid();
         $this->pdfExportBatchId = $batchId;
         $this->pdfExportInProgress = true;
         $this->pdfDownloadUrl = null;
+        $this->pdfExportFailedChunks = [];
 
         GenerateFundisPdfReport::dispatch($fundiIds, auth()->id(), $batchId);
 
@@ -560,7 +608,31 @@ class FundisTable extends Component
     }
 
     /**
-     * Check if the PDF report is ready
+     * Row count per district for the currently filtered set, via count
+     * queries against the same filtered query getFundiQuery() already
+     * builds - never hydrates fundi models to count them. Fundis with no
+     * resolvable district are bucketed as "Unassigned" rather than dropped.
+     */
+    protected function districtDistribution(): \Illuminate\Support\Collection
+    {
+        return DB::query()
+            ->fromSub($this->getFundiQuery()->reorder(), 'filtered_fundis')
+            ->join('wards', 'filtered_fundis.ward_id', '=', 'wards.id')
+            ->leftJoin('districts', 'wards.district_id', '=', 'districts.id')
+            ->groupBy('districts.id', 'districts.name')
+            ->orderByRaw('districts.name IS NULL, districts.name asc')
+            ->get([
+                'districts.id as district_id',
+                DB::raw("COALESCE(districts.name, 'Unassigned') as district_name"),
+                DB::raw('count(*) as row_count'),
+            ]);
+    }
+
+    /**
+     * Check if the PDF report is ready - either a single PDF (at/below the
+     * row cap) or a chunked ZIP (above it). A ZIP result also checks for a
+     * failed-chunks status file so partial success surfaces in the UI
+     * instead of silently shipping an incomplete archive as if whole.
      */
     public function checkPdfExportStatus()
     {
@@ -568,13 +640,37 @@ class FundisTable extends Component
             return;
         }
 
-        $fileName = "fundis_report_{$this->pdfExportBatchId}.pdf";
+        $pdfFile = "downloads/fundis_report_{$this->pdfExportBatchId}.pdf";
+        $zipFile = "downloads/fundis_report_{$this->pdfExportBatchId}.zip";
 
-        if (Storage::disk('public')->exists("downloads/{$fileName}")) {
+        if (Storage::disk('public')->exists($pdfFile)) {
             $this->pdfExportInProgress = false;
-            $this->pdfDownloadUrl = Storage::url("downloads/{$fileName}");
+            $this->pdfDownloadUrl = Storage::url($pdfFile);
 
             session()->flash('success', 'PDF report ready! Click the button to download.');
+
+            $this->dispatch('trigger-download', url: $this->pdfDownloadUrl);
+
+            return;
+        }
+
+        if (Storage::disk('public')->exists($zipFile)) {
+            $this->pdfExportInProgress = false;
+            $this->pdfDownloadUrl = Storage::url($zipFile);
+
+            $statusFile = "downloads/fundis_report_{$this->pdfExportBatchId}_status.json";
+            if (Storage::disk('public')->exists($statusFile)) {
+                $status = json_decode(Storage::disk('public')->get($statusFile), true);
+                $this->pdfExportFailedChunks = $status['failed_chunks'] ?? [];
+            }
+
+            if (empty($this->pdfExportFailedChunks)) {
+                session()->flash('success', 'PDF report ready! Click the button to download.');
+            }
+            // else: the blade renders a partial-success warning banner directly
+            // from $pdfExportFailedChunks - a session flash set here would never
+            // be shown, since displayFlashedAlerts() only runs from mount(), not
+            // from this wire:poll-triggered method.
 
             $this->dispatch('trigger-download', url: $this->pdfDownloadUrl);
         }
@@ -585,6 +681,7 @@ class FundisTable extends Component
         $this->pdfExportInProgress = false;
         $this->pdfExportBatchId = null;
         $this->pdfDownloadUrl = null;
+        $this->pdfExportFailedChunks = [];
     }
 
     /**

@@ -82,6 +82,27 @@
         </div>
     @endif
 
+    {{-- PDF Export Pre-flight Confirmation --}}
+    @if ($pdfExportPendingConfirm)
+        <div class="alert alert-warning mb-3" role="alert">
+            <p class="mb-2">
+                This export covers <strong>{{ number_format($pdfExportRowCount) }}</strong> fundis across
+                <strong>{{ number_format($pdfExportDistrictCount) }}</strong> districts and will produce a ZIP of
+                <strong>{{ number_format($pdfExportFileCount) }}</strong> PDF file{{ $pdfExportFileCount === 1 ? '' : 's' }}
+                (above the {{ number_format(config('fundis_export.pdf_row_cap')) }}-row single-file limit).
+            </p>
+            <div class="d-flex gap-2">
+                <button wire:click="confirmPdfExport" class="btn btn-warning btn-sm">
+                    <i class="fa-solid fa-check me-1"></i>
+                    Confirm and Generate ZIP
+                </button>
+                <button wire:click="cancelPdfExport" class="btn btn-outline-secondary btn-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    @endif
+
     {{-- PDF Export Status Alert --}}
     @if ($pdfExportInProgress)
         <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
@@ -95,16 +116,24 @@
         </div>
     @endif
 
+    @if (count($pdfExportFailedChunks) > 0)
+        <div class="alert alert-warning mb-3" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+            <strong>Partial success:</strong> {{ count($pdfExportFailedChunks) }} file(s) failed to generate and are
+            missing from the ZIP: {{ implode(', ', $pdfExportFailedChunks) }}
+        </div>
+    @endif
+
     @if ($pdfDownloadUrl)
         <div class="alert alert-success mb-3">
             <div class="d-flex justify-content-between align-items-center">
                 <span>
                     <i class="fa-solid fa-check-circle me-2"></i>
-                    Your PDF report is ready!
+                    Your {{ str_ends_with($pdfDownloadUrl, '.zip') ? 'ZIP' : 'PDF' }} report is ready!
                 </span>
                 <a href="{{ $pdfDownloadUrl }}" download class="btn btn-success btn-sm">
                     <i class="fa-solid fa-download me-1"></i>
-                    Download PDF
+                    Download {{ str_ends_with($pdfDownloadUrl, '.zip') ? 'ZIP' : 'PDF' }}
                     ({{ round(Storage::disk('public')->size('downloads/' . basename($pdfDownloadUrl)) / 1024 / 1024, 2) }}
                     MB)
                 </a>
@@ -153,7 +182,7 @@
                 Export Excel
             </button>
             <button wire:click="downloadFundisPDF" class="btn btn-outline-warning btn-sm"
-                @if ($pdfExportInProgress) disabled @endif>
+                @if ($pdfExportInProgress || $pdfExportPendingConfirm) disabled @endif>
                 <i class="fa-solid fa-file-pdf me-1"></i>
                 Download PDF
             </button>
