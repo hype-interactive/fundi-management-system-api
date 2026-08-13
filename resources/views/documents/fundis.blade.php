@@ -12,8 +12,10 @@
         td,
         th {
             border: 1px solid #999;
-            padding: 0.5rem;
+            padding: 5px 6px;
             text-align: left;
+            font-size: 10px;
+            vertical-align: top;
         }
 
         th {
@@ -47,25 +49,19 @@
         <table id="sailorTable" class="table" width="100%">
             <thead class="thead-light">
                 <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Address</th>
-                    <th scope="col">Primary Phone</th>
-                    <th scope="col">Trans. Phone</th>
-                    <th scope="col">Gender</th>
-                    <th scope="col">Sites</th>
-                    <th scope="col">Putty Bags</th>
+                    @foreach ($columns as $column)
+                        <th scope="col" @if ($column['width']) style="width: {{ $column['width'] }};" @endif>
+                            {{ $column['label'] }}
+                        </th>
+                    @endforeach
                 </tr>
             </thead>
             <tbody>
                 @foreach ($rows as $row)
                     <tr>
-                        <td>{{ $row['name'] }}</td>
-                        <td>{{ $row['address'] }}</td>
-                        <td>{{ $row['primary_phone'] }}</td>
-                        <td>{{ $row['transaction_phone'] }}</td>
-                        <td>{{ $row['gender'] }}</td>
-                        <td>{{ $row['sites'] }}</td>
-                        <td>{{ $row['bags'] }}</td>
+                        @foreach ($columns as $key => $column)
+                            <td>{{ $row[$key] }}</td>
+                        @endforeach
                     </tr>
                 @endforeach
             </tbody>

@@ -109,6 +109,30 @@ class FundisTable extends Component
 
     public $pdfExportFileCount = null;
 
+    /**
+     * Session-only PDF column selection: no #[Url], no browser storage, and
+     * the default below means it resets on every fresh page load. PDF only -
+     * the CSV column set is unaffected.
+     */
+    public $pdfColumnOptions = [
+        'name' => 'Name',
+        'gender' => 'Gender',
+        'primary_phone' => 'Primary Phone',
+        'transaction_phone' => 'Transaction Phone',
+        'nida_number' => 'NIDA Number',
+        'ranking' => 'Ranking',
+        'address' => 'Address',
+        'approval_status' => 'Approval Status',
+        'registrar' => 'Registrar',
+        'approver' => 'Approver',
+        'created_at' => 'Created At',
+        'approved_at' => 'Approved At',
+        'sites' => 'Sites',
+        'bags' => 'Putty Bags',
+    ];
+
+    public $selectedPdfColumns = ['name', 'primary_phone', 'address', 'ranking', 'sites', 'bags'];
+
     public function mount()
     {
         // For non-admin/root users, set their primary location
@@ -602,7 +626,9 @@ class FundisTable extends Component
         $this->pdfDownloadUrl = null;
         $this->pdfExportFailedChunks = [];
 
-        GenerateFundisPdfReport::dispatch($fundiIds, auth()->id(), $batchId);
+        $columns = ! empty($this->selectedPdfColumns) ? $this->selectedPdfColumns : GenerateFundisPdfReport::DEFAULT_COLUMNS;
+
+        GenerateFundisPdfReport::dispatch($fundiIds, auth()->id(), $batchId, $columns);
 
         session()->flash('success', 'PDF report is being generated. This may take a few minutes.');
     }

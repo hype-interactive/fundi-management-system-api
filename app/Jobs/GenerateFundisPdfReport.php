@@ -23,17 +23,57 @@ class GenerateFundisPdfReport implements ShouldQueue
 
     public $maxExceptions = 1;
 
+    /**
+     * Mirrors the on-screen default columns. Declared as a property default
+     * (not just a constructor default) so a job payload serialised before
+     * this parameter existed still deserialises correctly - unserialize()
+     * restores property state directly, it does not re-run the constructor.
+     */
+    public const DEFAULT_COLUMNS = ['name', 'primary_phone', 'address', 'ranking', 'sites', 'bags'];
+
     protected $fundiIds;
 
     protected $userId;
 
     protected $batchId;
 
-    public function __construct(array $fundiIds, int $userId, string $batchId)
+    protected $columns = self::DEFAULT_COLUMNS;
+
+    public function __construct(array $fundiIds, int $userId, string $batchId, array $columns = self::DEFAULT_COLUMNS)
     {
         $this->fundiIds = $fundiIds;
         $this->userId = $userId;
         $this->batchId = $batchId;
+        $this->columns = ! empty($columns) ? $columns : self::DEFAULT_COLUMNS;
+    }
+
+    /**
+     * Single source of truth for every offerable column: its header label,
+     * how to read it off a hydrated+eager-loaded Fundi, and the pixel width
+     * to set on the <thead> cell (DomPDF ignores <colgroup>/<col> widths
+     * under table-layout: fixed, so widths must live on the first rendered
+     * row - matching documents/operator-mafundi.blade.php's pattern). Narrow
+     * columns get a fixed width; name/address stay flexible and share
+     * whatever room is left, same as that template.
+     */
+    public static function columnDefinitions(): array
+    {
+        return [
+            'name' => ['label' => 'Name', 'width' => null, 'value' => fn ($f) => $f->full_name],
+            'gender' => ['label' => 'Gender', 'width' => '52px', 'value' => fn ($f) => ucfirst($f->gender)],
+            'primary_phone' => ['label' => 'Primary Phone', 'width' => '95px', 'value' => fn ($f) => $f->primary_phone],
+            'transaction_phone' => ['label' => 'Trans. Phone', 'width' => '95px', 'value' => fn ($f) => $f->transaction_phone],
+            'nida_number' => ['label' => 'NIDA Number', 'width' => '90px', 'value' => fn ($f) => $f->nida_number ?: 'N/A'],
+            'ranking' => ['label' => 'Ranking', 'width' => '70px', 'value' => fn ($f) => $f->fundi_ranking],
+            'address' => ['label' => 'Address', 'width' => null, 'value' => fn ($f) => $f->address],
+            'approval_status' => ['label' => 'Status', 'width' => '60px', 'value' => fn ($f) => $f->approval_status],
+            'registrar' => ['label' => 'Registrar', 'width' => '110px', 'value' => fn ($f) => $f->creator->full_name ?? 'N/A'],
+            'approver' => ['label' => 'Approver', 'width' => '110px', 'value' => fn ($f) => $f->approver->full_name ?? 'N/A'],
+            'created_at' => ['label' => 'Created At', 'width' => '70px', 'value' => fn ($f) => $f->created_at->format('Y-m-d')],
+            'approved_at' => ['label' => 'Approved At', 'width' => '70px', 'value' => fn ($f) => $f->approved_at?->format('Y-m-d') ?? 'N/A'],
+            'sites' => ['label' => 'Sites', 'width' => '40px', 'value' => fn ($f) => $f->site_visits_count ?? '0'],
+            'bags' => ['label' => 'Putty Bags', 'width' => '60px', 'value' => fn ($f) => $f->bags_total ?? '0'],
+        ];
     }
 
     public function handle(): void
@@ -176,24 +216,29 @@ class GenerateFundisPdfReport implements ShouldQueue
 
     protected function buildRows(array $fundiIds): array
     {
+        $definitions = self::columnDefinitions();
+        $columns = array_intersect_key($definitions, array_flip($this->columns));
+
+        $eagerLoad = ['ward.district.region'];
+        if (isset($columns['registrar'])) {
+            $eagerLoad[] = 'creator';
+        }
+        if (isset($columns['approver'])) {
+            $eagerLoad[] = 'approver';
+        }
+
         $rows = [];
 
         Fundi::whereIn('id', $fundiIds)
-            ->with('ward.district.region')
+            ->with($eagerLoad)
             ->withMafundiReportStats()
-            ->chunk(500, function ($fundis) use (&$rows) {
+            ->chunk(500, function ($fundis) use (&$rows, $columns) {
                 foreach ($fundis as $fundi) {
-                    $rows[] = [
-                        'name' => $fundi->full_name,
-                        'address' => $fundi->address,
-                        'primary_phone' => $fundi->primary_phone,
-                        'transaction_phone' => $fundi->transaction_phone,
-                        'gender' => ucfirst($fundi->gender),
-                        'ranking' => $fundi->fundi_ranking,
-                        'sites' => $fundi->site_visits_count ?? '0',
-                        'bags' => $fundi->bags_total ?? '0',
-                        'status' => $fundi->approval_status,
-                    ];
+                    $row = [];
+                    foreach ($columns as $key => $definition) {
+                        $row[$key] = $definition['value']($fundi);
+                    }
+                    $rows[] = $row;
                 }
             });
 
@@ -202,10 +247,14 @@ class GenerateFundisPdfReport implements ShouldQueue
 
     protected function renderPdf(array $rows): string
     {
+        $definitions = self::columnDefinitions();
+        $columns = array_intersect_key($definitions, array_flip($this->columns));
+
         $html = view('documents.fundis', [
             'title' => 'Mafundi | Magic Builders',
             'date' => date('D, M/d/Y'),
             'rows' => $rows,
+            'columns' => $columns,
         ])->render();
 
         $pdf = Pdf::loadHTML($html);

@@ -52,6 +52,45 @@
             'date_to' => $date_to,
         ],
     ])
+
+    <div wire:ignore.self class="modal fade" id="pdfColumnsModal" tabindex="-1" aria-labelledby="pdfColumnsModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title" id="pdfColumnsModalLabel">PDF Columns</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Choose which columns the PDF export includes. The CSV export is
+                        unaffected.</p>
+                    <div class="row g-2">
+                        @foreach ($pdfColumnOptions as $key => $label)
+                            <div class="col-6">
+                                <div class="form-check">
+                                    <input type="checkbox" wire:model.live="selectedPdfColumns" value="{{ $key }}"
+                                        class="form-check-input" id="pdf-col-{{ $key }}">
+                                    <label class="form-check-label" for="pdf-col-{{ $key }}">{{ $label }}</label>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    @if (count($selectedPdfColumns) > 8)
+                        <div class="alert alert-warning mt-3 mb-0 py-2 small">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                            {{ count($selectedPdfColumns) }} columns selected - more than 8 may not fit cleanly on
+                            an A4 landscape page. You can still proceed.
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-sm" data-dismiss="modal">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
     {{-- Download Status Alert --}}
     @if ($bulkDownloadInProgress)
         <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" role="alert">
@@ -180,6 +219,11 @@
             <button wire:click="exportToExcel" class="btn btn-outline-success btn-sm">
                 <i class="fa-solid fa-file-excel me-1"></i>
                 Export Excel
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal"
+                data-target="#pdfColumnsModal">
+                <i class="fa-solid fa-table-columns me-1"></i>
+                Columns ({{ count($selectedPdfColumns) }})
             </button>
             <button wire:click="downloadFundisPDF" class="btn btn-outline-warning btn-sm"
                 @if ($pdfExportInProgress || $pdfExportPendingConfirm) disabled @endif>
