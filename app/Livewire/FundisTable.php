@@ -39,6 +39,9 @@ class FundisTable extends Component
     public $gender = null;
 
     #[Url]
+    public $ranking = null;
+
+    #[Url]
     public $site_visit_min = null;
 
     #[Url]
@@ -184,6 +187,11 @@ class FundisTable extends Component
     }
 
     public function updatedGender()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedRanking()
     {
         $this->resetPage();
     }
@@ -351,6 +359,7 @@ class FundisTable extends Component
 
         return $query
             ->when($this->gender, fn ($q, $gender) => $q->where('fundis.gender', $gender))
+            ->when($this->ranking, fn ($q, $ranking) => $q->where('fundis.ranking', $ranking))
             ->when($this->site_visit_min !== null && $this->site_visit_min !== '', function ($q) use ($siteVisitCountSubquery) {
                 $q->whereRaw("{$siteVisitCountSubquery} >= ?", [(int) $this->site_visit_min]);
             })
@@ -633,7 +642,7 @@ class FundisTable extends Component
                             $fundi->ward->name ?? 'N/A',
                             $fundi->ward->district->name ?? 'N/A',
                             $fundi->ward->district->region->name ?? 'N/A',
-                            $this->ranking_options[$fundi->ranking] ?? 'N/A',
+                            $fundi->fundi_ranking,
                             $fundi->approval_status ?? 'N/A',
                             $fundi->creator->full_name ?? 'N/A',
                             $fundi->approver->full_name ?? 'N/A',
@@ -655,6 +664,7 @@ class FundisTable extends Component
             'search_key',
             'ward',
             'gender',
+            'ranking',
             'site_visit_min',
             'site_visit_max',
             'approval_status',
