@@ -62,32 +62,15 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    width: 50vw;
-    overflow: hidden;
-  }
-
-  /* Two identical copies of the title back to back; sliding the track left
-     by exactly half its own width (-50%) hands off from the first copy to
-     the second with no visible seam, looping forever. */
-  #event-title-track {
-    display: inline-flex;
-    width: max-content;
-    animation: event-title-scroll 20s linear infinite;
-  }
-
-  .event-title-run {
+    max-width: 50vw;
     font-size: clamp(2.5rem, 2.6vw, 3rem);
     font-weight: 700;
     color: #fdf6ef;
     text-transform: uppercase;
     letter-spacing: 1px;
     white-space: nowrap;
-    padding-right: 4rem;
-  }
-
-  @keyframes event-title-scroll {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   #counter-block {
@@ -241,12 +224,7 @@
 <div id="background"></div>
 <div id="header">
   <img id="logo" src="/images/logo.png" alt="" onerror="this.style.display='none'">
-  <div id="event-title">
-    <div id="event-title-track">
-      <span class="event-title-run"></span>
-      <span class="event-title-run" aria-hidden="true"></span>
-    </div>
-  </div>
+  <div id="event-title"></div>
   <div id="counter-block">
     <div id="counter-label">Arrived</div>
     <div id="counter">0</div>
@@ -285,10 +263,8 @@
   var wallEl = document.getElementById('wall');
   var counterEl = document.getElementById('counter');
   var statusDotEl = document.getElementById('status-dot');
-  var titleRunEls = document.querySelectorAll('.event-title-run');
-  for (var titleRunIndex = 0; titleRunIndex < titleRunEls.length; titleRunIndex++) {
-    titleRunEls[titleRunIndex].textContent = eventTitle;
-  }
+  var titleEl = document.getElementById('event-title');
+  titleEl.textContent = eventTitle;
 
   var sinceId = 0;
   var isInitialLoad = true;
