@@ -10,6 +10,7 @@ use App\Services\CloudinaryImageService;
 use App\Traits\CacheManagement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -186,6 +187,26 @@ class FundiController extends BaseAPIController
                 null,
                 $cachedData['status']
             );
+        }
+
+        $scanEventKey = config('wall.scan_event_key');
+
+        if ($scanEventKey !== '') {
+            try {
+                DB::table('fundi_attendances')->insertOrIgnore([
+                    'fundi_id' => $cachedData['id'],
+                    'event_key' => $scanEventKey,
+                    'operator_id' => Auth::id(),
+                    'scanned_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Fundi attendance recording failed', [
+                    'fundi_id' => $cachedData['id'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $this->successResponse(
