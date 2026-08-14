@@ -4,22 +4,33 @@
 <meta charset="UTF-8">
 <title>Fundi Scan Wall</title>
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    /* Fractal-noise tile = cast-concrete grain. Fixed px background-size,
+       so narrow filler bricks crop the tile rather than stretching it.
+       Kill switch: delete these two custom properties and the
+       background-image/-size/-blend-mode lines on .brick and .arrival-card
+       to fall back to flat fills. */
+    --concrete-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    --concrete-lighting: linear-gradient(to bottom,
+      rgba(255, 255, 255, 0.16) 0%,
+      rgba(255, 255, 255, 0.04) 18%,
+      rgba(0, 0, 0, 0) 55%,
+      rgba(0, 0, 0, 0.14) 100%);
+  }
   * { box-sizing: border-box; }
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    /* background: #1c1917; */
     overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
 
-  /* Page background only. #header and #wall both paint their own opaque
-     #1c1917 on top, so this is only ever visible in the dead space above
-     the wall - it can never sit behind brick text. If wall-bg.jpeg is
-     missing, background-image simply fails to paint (no broken-image
-     state) and this flat background-color shows instead. */
+  /* Page background. #header is opaque; #wall paints opaque mortar
+     (#b8b4ae), so this dusk image is visible only in the band between
+     header and wall. If wall-bg.jpeg is missing, background-image fails
+     silently and the flat background-color shows instead. */
   #background {
     position: fixed;
     inset: 0;
@@ -28,8 +39,8 @@
     background-image: url('/images/wall-bg.jpeg');
     background-size: cover;
     background-position: center;
-    filter: blur(3px);
-    opacity: 0.42;
+    filter: blur(3px) saturate(0.6);
+    opacity: 0.34;
   }
 
   #header {
@@ -43,6 +54,8 @@
     gap: 18px;
     padding: 0 28px;
     background: #00044B;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
     z-index: 10;
   }
 
@@ -84,7 +97,7 @@
   #counter-label {
     font-size: clamp(14px, 1vw, 20px);
     font-weight: 600;
-    color: #9a8f86;
+    color: #98a0c4;
     text-transform: uppercase;
     letter-spacing: 2px;
   }
@@ -112,7 +125,7 @@
   /* Bottom 70% of the viewport. Bricks are sized in vw/vh so both the wall
      and its contents scale together with the display. Padding is the
      mortar frame (bottom full-thickness, sides half, top open since the
-     wall is still being built) - it's the same #1c1917 as the joints, and
+     wall is still being built) - it's the same #b8b4ae mortar as the joints, and
      wallEl.clientWidth/clientHeight in the script already exclude it, so
      row packing and the conveyor's row-capacity math pack within it for
      free without any extra accounting. */
@@ -126,7 +139,7 @@
     flex-direction: column-reverse;
     gap: 6px 0; /* must match WALL_ROW_GAP_PX in the script */
     overflow: hidden;
-    /* background: #1c1917; */
+    background: #b8b4ae; /* mortar — light CMU pointing, shows in all joints and the frame */
     padding: 0 0.75rem 1.5rem 0.75rem;
   }
 
@@ -149,8 +162,16 @@
     align-items: center;
     justify-content: center;
     border-radius: 2px;
-    box-shadow: 0 0 19px 1px #7d3232 inset;
-    color: #fdf6ef;
+    background-image: var(--concrete-grain), var(--concrete-lighting);
+    background-size: 140px 140px, 100% 100%;
+    background-blend-mode: soft-light, normal;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.38),
+      inset 0 -3px 4px rgba(0, 0, 0, 0.28),
+      inset 3px 0 4px rgba(0, 0, 0, 0.10),
+      inset -3px 0 4px rgba(0, 0, 0, 0.10),
+      0 2px 4px rgba(0, 0, 0, 0.35);
+    color: #23201d;
     opacity: 0;
     transition: opacity 150ms ease-out;
   }
@@ -171,6 +192,7 @@
     font-weight: 600;
     font-size: clamp(22px, 2.6vh, 32px);
     white-space: nowrap;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
   }
 
   /* Nameless filler bricks close a row flush; they take an explicit inline
@@ -192,7 +214,11 @@
     transform: translate(-50%, -50%) scale(0.6);
     opacity: 0;
     border-radius: 4px;
-    color: #fdf6ef;
+    color: #23201d;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.30);
+    background-image: var(--concrete-grain), var(--concrete-lighting);
+    background-size: 220px 220px, 100% 100%;
+    background-blend-mode: soft-light, normal;
     padding: 56px 84px;
     text-align: center;
     text-transform: uppercase;
@@ -207,10 +233,11 @@
        rather than a flat card. Colours are set per-instance from the same
        id-derived hue family as its landing brick. */
     box-shadow:
-      0 0 19px 1px #7d3232 inset,
+      inset 0 2px 0 rgba(255, 255, 255, 0.40),
+      inset 0 -4px 6px rgba(0, 0, 0, 0.26),
       7px 7px 0 0 var(--card-side-color),
       14px 14px 0 0 var(--card-deep-color),
-      0 22px 50px rgba(0, 0, 0, 0.45);
+      0 22px 50px rgba(0, 0, 0, 0.55);
   }
 
   .arrival-card.card-visible {
@@ -251,9 +278,9 @@
   var MIN_FILLER_WIDTH_PX = 48; // ~3rem
   var FONT_SIZE_FLOOR_PX = 22; // must match the CSS clamp() floor on .brick-label
 
-  var BRICK_FILL_HUE = 0;
-  var BRICK_FILL_SATURATION = 43;
-  var BRICK_FILL_BASE_LIGHTNESS = 54;
+  var BRICK_FILL_HUE = 210;
+  var BRICK_FILL_SATURATION = 4;
+  var BRICK_FILL_BASE_LIGHTNESS = 66;
   var BRICK_FILL_LIGHTNESS_SPREAD = 6; // +/- range, deterministic per attendance id
   var FILLER_COLOR_SEED_OFFSET = 1000000; // keeps filler shades out of real-id range
 
