@@ -155,6 +155,10 @@ Route::get('/app', function () {
     return view('pages.app-download');
 })->name('');
 
+Route::get('/privacy-policy', function () {
+    return view('pages.privacy-policy');
+})->name('privacy-policy');
+
 // ID - Generator
 
 Route::get('/id-card', [IdCardController::class, 'generate'])->name('fundi_id_download');
