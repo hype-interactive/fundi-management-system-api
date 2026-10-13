@@ -770,7 +770,9 @@ class FundiController extends BaseAPIController
      */
     private function authorizeOperatorAccess(Fundi $fundi): bool
     {
-        return isRoot() || isAdministrator() || $this->getOperatorDistricts()->contains($fundi->ward->district_id);
+        $operator = $this->getOperator();
+
+        return $operator && $operator->can('update', $fundi);
     }
 
     /**

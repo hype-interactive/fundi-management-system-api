@@ -8,6 +8,8 @@ class FundiController extends Controller
 {
     public function show(Fundi $fundi)
     {
+        $this->authorize('view', $fundi);
+
         return view('pages.fundi', compact('fundi'));
     }
 }
