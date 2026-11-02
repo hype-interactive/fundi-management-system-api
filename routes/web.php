@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FundiController;
+use App\Http\Controllers\FundiExportController;
 use App\Http\Controllers\IdCardController;
 use App\Http\Controllers\LegacyDataController;
 use App\Http\Controllers\OperatorController;
@@ -19,6 +20,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/fundis', function () {
         return view('pages.fundis');
     })->name('fundis');
+
+    Route::get('/fundis/export/excel', [FundiExportController::class, 'excel'])->name('fundis.export.excel');
+    Route::get('/fundis/export/pdf', [FundiExportController::class, 'pdf'])->name('fundis.export.pdf');
 
     Route::get('/fundis/{fundi}', [FundiController::class, 'show'])->name('fundi');
 

@@ -4,10 +4,10 @@ namespace App\Livewire;
 
 use App\Jobs\GenerateFundiIdCards;
 use App\Models\Fundi;
+use App\Services\FundiListQuery;
 use App\Traits\HasAlerts;
 use App\Traits\LocationTrait;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Url;
@@ -286,93 +286,28 @@ class FundisTable extends Component
     {
         $this->loadData();
 
-        $query = Fundi::query()
-            ->select([
-                'fundis.id',
-                'fundis.fname',
-                'fundis.mname',
-                'fundis.lname',
-                'fundis.gender',
-                'fundis.primary_phone',
-                'fundis.transaction_phone',
-                'fundis.nida_number',
-                'fundis.ranking',
-                'fundis.status',
-                'fundis.ward_id',
-                'fundis.approved_at',
-                'fundis.rejected_at',
-                'fundis.approved_by',
-                'fundis.created_by',
-                'fundis.created_at',
-                'fundis.legacy_match',
-                'fundis.legacy_id',
-                DB::raw("CONCAT_WS(' ', fname, mname, lname) as full_name"),
-            ])
-            ->with([
-                'ward:id,name,district_id',
-                'ward.district:id,name,region_id',
-                'ward.district.region:id,name',
-            ]);
-
-        $this->applyLocationFiltersToQuery($query, $this->region, $this->district, $this->ward);
-
-        if ($this->search_key) {
-            $searchTerm = '%'.$this->search_key.'%';
-            $query->where(function ($q) use ($searchTerm) {
-                $q->whereRaw("CONCAT_WS(' ', fname, mname, lname) LIKE ?", [$searchTerm])
-                    ->orWhere('fundis.unique_id', 'like', $searchTerm);
-
-                // Handle phone search if the search term looks like a phone number
-                if (preg_match('/^[0-9\s\-\+]+$/', $this->search_key)) {
-                    $formattedPhone = $this->formatSearchStringForPhoneSearch($this->search_key);
-
-                    // Search by removing spaces from stored phone numbers
-                    $q->orWhereRaw("REPLACE(REPLACE(primary_phone, ' ', ''), '-', '') LIKE ?", [$formattedPhone])
-                        ->orWhereRaw("REPLACE(REPLACE(transaction_phone, ' ', ''), '-', '') LIKE ?", [$formattedPhone]);
-                }
-            });
-        }
-
-        return $query
-            ->when($this->gender, fn ($q, $gender) => $q->where('fundis.gender', $gender))
-            ->when($this->site_visit_count !== null && $this->site_visit_count !== '', function ($q) {
-                $sub = '(SELECT COUNT(*) FROM site_visit_fundis WHERE site_visit_fundis.fundi_id = fundis.id)';
-                if ($this->site_visit_count === '0') {
-                    $q->whereRaw("{$sub} = 0");
-                } elseif ($this->site_visit_count === '1-5') {
-                    $q->whereRaw("{$sub} BETWEEN 1 AND 5");
-                } elseif ($this->site_visit_count === '5+') {
-                    $q->whereRaw("{$sub} > 5");
-                }
-            })
-            ->when($this->approval_status, function ($q, $approval_status) {
-                if ($approval_status === 'approved') {
-                    $q->approved();
-                } elseif ($approval_status === 'rejected') {
-                    $q->rejected();
-                } elseif ($approval_status === 'pending') {
-                    $q->pending();
-                }
-            })
-            ->when($this->created_by, fn ($q, $created_by) => $q->where('fundis.created_by', $created_by))
-            ->when($this->approved_by, fn ($q, $approved_by) => $q->where('fundis.approved_by', $approved_by))
-            ->when($this->legacy_match, fn ($q, $legacy_match) => $q->where('fundis.legacy_match', $legacy_match))
-            ->when($this->date_from, fn ($q, $date_from) => $q->whereDate('fundis.created_at', '>=', $date_from))
-            ->when($this->date_to, fn ($q, $date_to) => $q->whereDate('fundis.created_at', '<=', $date_to))
-            ->latest('fundis.created_at');
+        return app(FundiListQuery::class)->build($this->filters());
     }
 
-    // Format search string for phone searchability
-    public function formatSearchStringForPhoneSearch($searchTerm)
+    /**
+     * The active filters, in the form the export routes accept them.
+     */
+    public function filters(): array
     {
-        // Remove all non-digit characters (spaces, dashes, etc.)
-        $digitsOnly = preg_replace('/\D/', '', $searchTerm);
-
-        // Remove leading zeros
-        $digitsOnly = ltrim($digitsOnly, '0');
-
-        // Add country code and wildcard for LIKE query
-        return '%+255'.$digitsOnly.'%';
+        return collect([
+            'search_key' => $this->search_key,
+            'region' => $this->region,
+            'district' => $this->district,
+            'ward' => $this->ward,
+            'gender' => $this->gender,
+            'site_visit_count' => $this->site_visit_count,
+            'approval_status' => $this->approval_status,
+            'created_by' => $this->created_by,
+            'approved_by' => $this->approved_by,
+            'legacy_match' => $this->legacy_match,
+            'date_from' => $this->date_from,
+            'date_to' => $this->date_to,
+        ])->reject(fn ($value) => $value === null || $value === '')->all();
     }
 
     public function loadData()
@@ -534,108 +469,6 @@ class FundisTable extends Component
             $this->selectedFundis = [];
             $this->selectAll = false;
         }
-    }
-
-    /**
-     * Download the PDF of fundis
-     */
-    public function downloadFundisPDF()
-    {
-        set_time_limit(300);
-        ini_set('memory_limit', '1000M');
-
-        return response()->streamDownload(function () {
-            // Use chunk to avoid memory issues with large datasets
-            $query = $this->getFundiQuery();
-
-            $rows = [];
-            $query->chunk(500, function ($fundis) use (&$rows) {
-                foreach ($fundis as $fundi) {
-                    $location = $this->getLocationBreadcrumb(
-                        $fundi->ward_id,
-                        $fundi->ward->district_id,
-                        $fundi->ward->district->region_id
-                    );
-
-                    $rows[] = [
-                        'name' => $fundi->full_name,
-                        'address' => $location,
-                        'primary_phone' => $fundi->primary_phone,
-                        'transaction_phone' => $fundi->transaction_phone,
-                        'gender' => ucfirst($fundi->gender),
-                        'ranking' => $this->ranking_options[$fundi->ranking] ?? 'N/A',
-                        'sites' => $fundi->siteVisitFundis()->count() ?? '0',
-                        'bags' => $fundi->total_product_quantity ?? '0',
-                        'status' => $fundi->approval_status,
-                    ];
-                }
-            });
-
-            $title = 'Mafundi | Magic Builders';
-            $date = date('D, M/d/Y');
-            $html_view = view('documents.fundis', compact('title', 'date', 'rows'))->render();
-            $pdf = app('dompdf.wrapper');
-            $pdf->loadHTML($html_view);
-            $pdf->setPaper('A4', 'landscape');
-
-            echo $pdf->stream();
-        }, 'magic_builders_mafundi.pdf');
-    }
-
-    /**
-     * Export current filtered data to Excel - optimized for large datasets
-     */
-    public function exportToExcel()
-    {
-        return response()->streamDownload(function () {
-            $headers = [
-                'Name',
-                'Gender',
-                'Primary Phone',
-                'Transaction Phone',
-                'NIDA Number',
-                'Ward',
-                'District',
-                'Region',
-                'Ranking',
-                'Status',
-                'Registered By',
-                'Approved By',
-                'Created At',
-                'Approved At',
-            ];
-
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, $headers);
-
-            // Use cursor for memory efficiency with large datasets
-            $this->getFundiQuery()
-                ->with(['creator:id,fname,lname', 'approver:id,fname,lname'])
-                ->chunk(500, function ($fundis) use ($handle) {
-                    foreach ($fundis as $fundi) {
-                        fputcsv($handle, [
-                            $fundi->full_name,
-                            ucfirst($fundi->gender),
-                            $fundi->primary_phone,
-                            $fundi->transaction_phone,
-                            $fundi->nida_number,
-                            $fundi->ward->name ?? 'N/A',
-                            $fundi->ward->district->name ?? 'N/A',
-                            $fundi->ward->district->region->name ?? 'N/A',
-                            $this->ranking_options[$fundi->ranking] ?? 'N/A',
-                            $fundi->approval_status ?? 'N/A',
-                            $fundi->creator->full_name ?? 'N/A',
-                            $fundi->approver->full_name ?? 'N/A',
-                            $fundi->created_at->format('Y-m-d H:i:s'),
-                            $fundi->approved_at ? $fundi->approved_at->format('Y-m-d H:i:s') : 'N/A',
-                        ]);
-                    }
-                });
-
-            fclose($handle);
-        }, 'fundis_export_'.date('Y-m-d_H-i-s').'.csv', [
-            'Content-Type' => 'text/csv',
-        ]);
     }
 
     public function refresh()
