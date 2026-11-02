@@ -8,6 +8,7 @@ use App\Http\Controllers\API\MasterDataController;
 use App\Http\Controllers\API\SelcomCallbackController;
 use App\Http\Controllers\API\SiteVisitController;
 use App\Http\Controllers\API\TransactionController;
+use App\Http\Controllers\API\WallController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -22,6 +23,11 @@ Route::prefix('v1')->group(function () {
             ->name('api.public.districts')
             ->where('region_id', '[0-9]+');
     });
+
+    // Public scan wall display polling (static shared key, see config/wall.php)
+    Route::get('/wall/arrivals', [WallController::class, 'arrivals'])
+        ->name('api.public.wall.arrivals')
+        ->middleware('throttle:60,1');
 });
 
 // Protected routes
