@@ -128,14 +128,22 @@
                 <i class="fa-solid fa-arrows-rotate me-1"></i>
                 Clear Filters
             </button>
-            <button wire:click="exportToExcel" class="btn btn-outline-success btn-sm">
+            <a href="{{ route('fundis.export.excel', $this->filters()) }}" class="btn btn-outline-success btn-sm">
                 <i class="fa-solid fa-file-excel me-1"></i>
                 Export Excel
-            </button>
-            <button wire:click="downloadFundisPDF" class="btn btn-outline-warning btn-sm">
-                <i class="fa-solid fa-file-pdf me-1"></i>
-                Download PDF
-            </button>
+            </a>
+            @if ($fundis->total() > \App\Services\FundiListPdf::MAX_ROWS)
+                <button class="btn btn-outline-warning btn-sm" disabled
+                    title="Too many fundis for a PDF. Please narrow your filters or use Export Excel.">
+                    <i class="fa-solid fa-file-pdf me-1"></i>
+                    Download PDF
+                </button>
+            @else
+                <a href="{{ route('fundis.export.pdf', $this->filters()) }}" class="btn btn-outline-warning btn-sm">
+                    <i class="fa-solid fa-file-pdf me-1"></i>
+                    Download PDF
+                </a>
+            @endif
 
             {{-- Bulk Download ID Cards Button --}}
             <button wire:click="bulkDownloadIdCards" class="btn btn-outline-danger btn-sm"
